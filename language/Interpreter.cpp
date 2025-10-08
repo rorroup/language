@@ -1,26 +1,7 @@
 #include "Interpreter.h"
 
-size_t kpCHAR_HASH::operator()(const char* k) const
-{
-	size_t hash = -1;
-	static const int s = (sizeof(size_t) - sizeof(char)) * 8; // TODO: + 1?
-	int i = 0;
-	while (k[i] != '\0') {
-		hash = (size_t)k[i] ^ (hash << (i % s));
-		i++;
-	}
-	return hash;
-}
-
-bool kpCHAR_EQUAL::operator()(const char* lhs, const char* rhs) const
-{
-	if (lhs == nullptr || rhs == nullptr) {
-		return false;
-	}
-	return strlen(lhs) == strlen(rhs) && strcmp(lhs, rhs) == 0;
-}
-
-UMAP_kpCHAR(const char*, Token) VALUE_TABLE;
+NAME_TABLE_TYPE NAME_TABLE;
+VALUE_TABLE_TYPE VALUE_TABLE;
 
 Token::Token() { tag = Token::NONE; intu = 0; }
 Token::Token(intt i) { tag = Token::INT; intu = i; }
@@ -29,9 +10,10 @@ Token::Token(char* s) { tag = Token::IDENTIFIER; var = s; }
 Token::Token(StringShared* s) { tag = Token::STRING; str = s; str->owners++; }
 Token::Token(SharedArray* v) { tag = Token::ARRAY; vec = v; vec->owners++; }
 Token::Token(Function* f) { tag = Token::FUNCTION; fx = f; }
-Token::Token(char(*f)(std::vector<Token>&, std::vector<Token>&)) { tag = Token::BUILTIN; func = f; }
+Token::Token(fBuiltin* f) { tag = Token::BUILTIN; func = f; }
 Token::Token(Execution* e) { tag = Token::YIELDED; exe = e; }
-Token::Token(tok_tag t, int i) { tag = t; intu = i; }
+
+Token::Token(tok_tag t, intt i) { tag = t; intu = i; }
 
 Token::Token(const Token& token)
 {
@@ -290,23 +272,23 @@ Token::~Token()
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
 #define GET_VARIABLE_VALUE(variable) \
-const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(variable.var); \
+const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.intu); \
 if (local == state.LOCALS.end()) { \
-	const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(variable.var); \
+	const VALUE_TABLE_TYPE::iterator& iter = VALUE_TABLE.find(variable.intu); \
 	if (iter == VALUE_TABLE.end()) { \
-		printError("Variable '%s' not initialized.", variable.var); \
+		printError("Variable id: %lld not initialized.", variable.intu); \
 		SOLVE_FAILED; \
 	} \
-	printDebug("Variable '%s' found of type '%hhd'", variable.var, iter->second.tag); \
+	printDebug("Variable id: %lld found of type '%hhd'", variable.intu, iter->second.tag); \
 	variable = iter->second; \
 } \
 else { \
-	printDebug("Variable '%s' found of type '%hhd'", variable.var, local->second.tag); \
+	printDebug("Variable id: %lld found of type '%hhd'", variable.intu, local->second.tag); \
 	variable = local->second; \
 } \
 
 
-char run(Thread& thread)
+SOLVE_RESULT run(Thread& thread)
 {
 	while (!thread.calling.empty()) {
 		Execution& state = thread.calling.back();
@@ -324,16 +306,13 @@ char run(Thread& thread)
 			case Token::FLOAT:
 			case Token::STRING:
 			case Token::ARRAY:
-			case Token::IDENTIFIER:
+			case Token::VARIABLE:
 				state.solution.push_back(token);
 				break;
 			case Token::FUNCTION:
 				if (token.fx->name != nullptr) {
-					size_t len = strlen(token.fx->name) + 1;
-					char* func_name = new char[len];
-					memcpy(func_name, token.fx->name, len);
-					VALUE_TABLE.insert_or_assign(func_name, token);
-					printInfo("Registered global function '%s'.", func_name);
+					VALUE_TABLE.insert_or_assign(token.fx->variable_id, token);
+					printInfo("Registered global function '%s'(id = %lld).", token.fx->name, token.fx->variable_id);
 					//break; // Push the Token to keep the pattern.
 				}
 				state.solution.push_back(token);
@@ -346,7 +325,7 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::IDENTIFIER) {
+				if (arg.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(arg);
 				}
 				if (arg.tag == Token::INT) {
@@ -365,7 +344,7 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::IDENTIFIER) {
+				if (arg.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(arg);
 				}
 				if (arg.tag == Token::INT) {
@@ -400,7 +379,7 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::IDENTIFIER) {
+				if (arg.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(arg);
 				}
 				if (arg.tag == Token::INT) {
@@ -424,11 +403,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -495,11 +474,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -531,11 +510,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -567,11 +546,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -619,11 +598,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				if (left.tag == Token::INT && right.tag == Token::INT) {
@@ -647,11 +626,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				if (left.tag == Token::INT && right.tag == Token::INT) {
@@ -671,11 +650,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				if (left.tag == Token::INT && right.tag == Token::INT) {
@@ -695,11 +674,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -731,11 +710,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -767,11 +746,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -803,11 +782,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -839,11 +818,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -875,11 +854,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				switch (tagCOUPLE(left.tag, right.tag))
@@ -911,20 +890,14 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
-					const UMAP_kpCHAR(const char*, Token)::iterator& val = state.LOCALS.find(left.var);
-					printInfo("Registered variable '%s' of type '%hhd'.", left.var, right.tag);
-					if (val == state.LOCALS.end()) {
-						state.LOCALS.insert({ left.var, right });
-						left.var = nullptr;
-					}
-					else {
-						val->second = right;
-					}
+				if (left.tag == Token::VARIABLE) {
+					const VALUE_TABLE_TYPE::iterator& val = state.LOCALS.find(left.intu);
+					printInfo("Registered variable id = %lld of type '%hhd'.", left.intu, right.tag);
+					state.LOCALS.insert_or_assign(left.intu, right);
 					left = std::move(right);
 				}
 				else {
@@ -941,11 +914,11 @@ char run(Thread& thread)
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::IDENTIFIER) {
+				if (right.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.tag == Token::IDENTIFIER) {
+				if (left.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(left);
 				}
 				if (right.tag != Token::INT) {
@@ -997,25 +970,25 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token calling = state.solution[state.solution.size() - 1 - nArgs];
-				if (calling.tag == Token::IDENTIFIER) {
+				if (calling.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(calling);
 				}
 				if (calling.tag == Token::BUILTIN) {
 					std::vector<Token> arguments{};
 					for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
-						if (state.solution[i].tag == Token::IDENTIFIER) { // Dereference variables.
-							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
+						if (state.solution[i].tag == Token::VARIABLE) { // Dereference variables.
+							const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(state.solution[i].intu);
 							if (local == state.LOCALS.end()) {
-								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
+								const VALUE_TABLE_TYPE::iterator& iter = VALUE_TABLE.find(state.solution[i].intu);
 								if (iter == VALUE_TABLE.end()) {
-									printError("Variable '%s' not initialized.", state.solution[i].var);
+									printError("Variable id = %lld not initialized.", state.solution[i].intu);
 									SOLVE_FAILED;
 								}
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.tag);
+								printDebug("Variable id = %lld found of type '%hhd'", state.solution[i].intu, iter->second.tag);
 								arguments.push_back(iter->second);
 							}
 							else {
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.tag);
+								printDebug("Variable id = %lld found of type '%hhd'", state.solution[i].intu, local->second.tag);
 								arguments.push_back(local->second);
 							}
 						}
@@ -1024,58 +997,48 @@ char run(Thread& thread)
 						}
 					}
 					state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Take the function and its arguments out of the solution stack.
-					char answer = calling.func(arguments, state.solution);
+					SOLVE_RESULT answer = calling.func(arguments, state.solution);
 					if (answer != SOLVE_OK) {
 						return answer;
 					}
 				}
 				else if (calling.tag == Token::FUNCTION) {
-					sprintf_s(state.last_called, CHAR_YIELDED "%p", (void*)calling.intu); // Save function index as "*HEX_PTR".
-					const UMAP_kpCHAR(const char*, Token)::iterator& yielded = state.LOCALS.find(state.last_called);
+					state.last_called = calling.intu;
+					const VALUE_TABLE_TYPE::iterator& yielded = state.LOCALS.find(-state.last_called);
 					if (yielded != state.LOCALS.end()) {
 						state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Not pass in the arguments again.
 						thread.calling.push_back(std::move(*yielded->second.exe));
-						const char* yielded_key = yielded->first;
 						state.LOCALS.erase(yielded); // Remove locally stored Execution.
-						delete[] yielded_key; // This could be stored somewhere else instead in case this same function yields.
 						goto execution_end;
 						break;
 					}
 					Function* func = calling.fx;
-					if (func->argnames.size() != nArgs) {
-						printError("Incorrect number of arguments. Expected '%llu' but '%d' were given.", func->argnames.size(), nArgs);
+					if (func->arg_id.size() != nArgs) {
+						printError("Incorrect number of arguments. Expected '%llu' but '%d' were given.", func->arg_id.size(), nArgs);
 						SOLVE_FAILED;
 					}
 					Execution exe{ func, (int)thread.calling.size() };
 					for (int i = state.solution.size() - nArgs, j = 0; i < state.solution.size(); i++, j++) {
-						if (state.solution[i].tag == Token::IDENTIFIER) { // Dereference variables.
+						if (state.solution[i].tag == Token::VARIABLE) { // Dereference variables.
 							const Token* val = nullptr;
-							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
+							const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(state.solution[i].intu);
 							if (local == state.LOCALS.end()) {
-								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
+								const VALUE_TABLE_TYPE::iterator& iter = VALUE_TABLE.find(state.solution[i].intu);
 								if (iter == VALUE_TABLE.end()) {
-									printError("Variable '%s' not initialized.", state.solution[i].var);
+									printError("Variable index = %lld not initialized.", state.solution[i].intu);
 									SOLVE_FAILED;
 								}
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.tag);
+								printDebug("Variable index = %lld found of type '%hhd'", state.solution[i].intu, iter->second.tag);
 								val = &(iter->second);
 							}
 							else {
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.tag);
+								printDebug("Variable index = %lld found of type '%hhd'", state.solution[i].intu, local->second.tag);
 								val = &(local->second);
 							}
-							const int len = func->argnames[j].size() + 1;
-							char* key = new char[len];
-							memset(key, '\0', len);
-							memcpy(key, func->argnames[j].c_str(), len - 1);
-							exe.LOCALS.insert_or_assign(key, *val);
+							exe.LOCALS.insert_or_assign(func->arg_id[j], *val);
 						}
 						else {
-							const int len = func->argnames[j].size() + 1;
-							char* key = new char[len];
-							memset(key, '\0', len);
-							memcpy(key, func->argnames[j].c_str(), len - 1);
-							exe.LOCALS.insert_or_assign(key, std::move(state.solution[i]));
+							exe.LOCALS.insert_or_assign(func->arg_id[j], std::move(state.solution[i]));
 						}
 					}
 					state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Take the function and its arguments out of the solution stack.
@@ -1099,7 +1062,7 @@ char run(Thread& thread)
 						SOLVE_FAILED;
 					}
 					Token& result = state.solution.back();
-					if (result.tag == Token::IDENTIFIER) {
+					if (result.tag == Token::VARIABLE) {
 						GET_VARIABLE_VALUE(result);
 					}
 					thread.calling[state.index - 1].solution.push_back(std::move(result));
@@ -1114,16 +1077,13 @@ char run(Thread& thread)
 				}
 				if (state.solution.size() > 0) {
 					Token& result = state.solution.back();
-					if (result.tag == Token::IDENTIFIER) {
+					if (result.tag == Token::VARIABLE) {
 						GET_VARIABLE_VALUE(result);
 					}
 					thread.calling[state.index - 1].solution.push_back(std::move(result));
 				}
 				state.solution.clear();
-				//const size_t len = strlen(thread.calling[state.index - 1].last_called) + 1;
-				char* yielded_key = new char[ADDR_FORMAT_LEN];
-				memcpy(yielded_key, thread.calling[state.index - 1].last_called, ADDR_FORMAT_LEN);
-				thread.calling[state.index - 1].LOCALS.insert({ yielded_key, Token(new Execution{ std::move(state) }) }); // TODO: This never gets deallocated if this function is not called again.
+				thread.calling[state.index - 1].LOCALS.insert({ -thread.calling[state.index - 1].last_called, Token(new Execution{ std::move(state) }) }); // TODO: This never gets deallocated if this function is not called again.
 				goto execution_terminate;
 			}
 			break;
@@ -1144,19 +1104,19 @@ char run(Thread& thread)
 				}
 				SharedArray* v = new SharedArray{ 0 }; // Build Array.
 				for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
-					if (state.solution[i].tag == Token::IDENTIFIER) { // Dereference variables.
-						const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
+					if (state.solution[i].tag == Token::VARIABLE) { // Dereference variables.
+						const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(state.solution[i].intu);
 						if (local == state.LOCALS.end()) {
-							const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
+							const VALUE_TABLE_TYPE::iterator& iter = VALUE_TABLE.find(state.solution[i].intu);
 							if (iter == VALUE_TABLE.end()) {
-								printError("Variable '%s' not initialized.", state.solution[i].var);
+								printError("Variable id = %lld not initialized.", state.solution[i].intu);
 								SOLVE_FAILED;
 							}
-							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.tag);
+							printDebug("Variable id = %lld found of type '%hhd'", state.solution[i].intu, iter->second.tag);
 							v->a.push_back(iter->second);
 						}
 						else {
-							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.tag);
+							printDebug("Variable id = %lld found of type '%hhd'", state.solution[i].intu, local->second.tag);
 							v->a.push_back(local->second);
 						}
 					}
@@ -1175,14 +1135,14 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& label_name = state.solution.back();
-				if (label_name.tag == Token::IDENTIFIER) {
+				if (label_name.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(label_name);
 				}
 				if (label_name.tag != Token::STRING) {
 					printError("Token::GOTO label must be identified by a string type but found '%hhd'.", label_name.tag);
 					SOLVE_FAILED;
 				}
-				const UMAP_kpCHAR(const char*, const size_t)::iterator& label_num = state.pFunction->labels.find(label_name.str->string);
+				const LABEL_TABLE_TYPE::iterator& label_num = state.pFunction->labels.find(label_name.str->string);
 				if (label_num == state.pFunction->labels.end()) {
 					printError("No label named '%s'.", label_name.str->string);
 					SOLVE_FAILED;
@@ -1198,7 +1158,7 @@ char run(Thread& thread)
 				// TODO: Remove.
 				if (state.solution.size() == 1) {
 					if (state.solution[0].tag == Token::INT) {
-						printInfo("Result is = '%d'.", state.solution[0].intu);
+						printInfo("Result is = '%lld'.", state.solution[0].intu);
 					}
 					else if (state.solution[0].tag == Token::FLOAT) {
 						printInfo("Result is = '%f'.", state.solution[0].floatu);
@@ -1226,7 +1186,7 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& condition = state.solution.back();
-				if (condition.tag == Token::IDENTIFIER) {
+				if (condition.tag == Token::VARIABLE) {
 					GET_VARIABLE_VALUE(condition);
 				}
 				if (condition.tag == Token::INT) {

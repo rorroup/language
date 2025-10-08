@@ -68,7 +68,14 @@ tok_tag Parser::parse_operation(Function& function)
 				printError("Operands may not be immediately followed by another one.");
 				return PARSE_ERROR;
 			}
-			program.push_back(std::move(tokens[tokenIndex]));
+			if (token.tag == Token::IDENTIFIER) {
+				const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ token.var, NAME_TABLE.size() + 1 });
+				program.emplace_back(Token::VARIABLE, insertion.first->second);
+				if (insertion.second) token.var = nullptr; // Steal.
+			}
+			else {
+				program.push_back(std::move(tokens[tokenIndex]));
+			}
 			tokenIndex++;
 			operandLast = true;
 			functionLast = false;
@@ -112,7 +119,7 @@ tok_tag Parser::parse_operation(Function& function)
 			}
 			else { // Array.
 				tokenIndex++;
-				int numer_of_elements = parse_sequence(function, Token::COMMA);
+				short numer_of_elements = parse_sequence(function, Token::COMMA);
 				if (numer_of_elements == PARSE_ERROR) {
 					return PARSE_ERROR;
 				}
@@ -134,7 +141,7 @@ tok_tag Parser::parse_operation(Function& function)
 		case Token::PARENTHESIS_OPEN:
 			if (operandLast) { // Call.
 				tokenIndex++;
-				int numer_of_arguments = parse_sequence(function, Token::COMMA);
+				short numer_of_arguments = parse_sequence(function, Token::COMMA);
 				if (numer_of_arguments == PARSE_ERROR) {
 					return PARSE_ERROR;
 				}
@@ -238,6 +245,7 @@ tok_tag Parser::parse_operation(Function& function)
 			goto flush_hold;
 			break;
 
+		case Token::VARIABLE:
 		case Token::ARRAY:
 		case Token::INDEX:
 		case Token::ARRAY_INIT:
@@ -669,7 +677,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 char Parser::parse_function(Function& function)
 {
 	function.name = nullptr; // TODO: maybe check if a function with the same name was already registered.
-	function.argnames.clear();
+	function.arg_id.clear();
 	function.program.clear();
 
 	if (tokenIndex >= tokens.size()) {
@@ -695,6 +703,9 @@ char Parser::parse_function(Function& function)
 		size_t len = strlen(tokens[tokenIndex].var) + 1;
 		function.name = new char[len];
 		memcpy(function.name, tokens[tokenIndex].var, len);
+		const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].var, NAME_TABLE.size() + 1 });
+		function.variable_id = insertion.first->second;
+		if (insertion.second) tokens[tokenIndex].var = nullptr; // Steal.
 		tokenIndex++;
 	}
 
@@ -712,7 +723,9 @@ char Parser::parse_function(Function& function)
 		if (tokens[tokenIndex].tag != Token::IDENTIFIER) {
 			break;
 		}
-		function.argnames.push_back(tokens[tokenIndex].var);
+		const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].var, NAME_TABLE.size() + 1 });
+		function.arg_id.emplace_back(insertion.first->second);
+		if (insertion.second) tokens[tokenIndex].var = nullptr; // Steal.
 		tokenIndex++;
 
 		if (tokenIndex >= tokens.size()) {
@@ -897,7 +910,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.emplace_back(Token::RETURN, (int)(parse_result != 0));
+				program.emplace_back(Token::RETURN, parse_result != 0);
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
@@ -1003,6 +1016,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 		}
 			break;
 
+		case Token::VARIABLE:
 		case Token::ARRAY:
 		case Token::ARRAY_INIT:
 		case Token::INDEX:

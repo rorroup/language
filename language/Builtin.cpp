@@ -5,16 +5,16 @@ BUILTIN_DEFINE(duplicate)
 	if (arguments.size() != 1)
 	{
 		printError("duplicate: incorrect number of arguments.");
-		return false;
+		return SOLVE_ERROR;
 	}
 	Token& ev = arguments[0];
 	if (ev.tag != Token::INT)
 	{
 		printError("duplicate: incorrect type of argument.");
-		return false;
+		return SOLVE_ERROR;
 	}
 	solution.emplace_back(2 * ev.intu);
-	return true;
+	return SOLVE_OK;
 }
 
 BUILTIN_DEFINE(print)
@@ -22,17 +22,17 @@ BUILTIN_DEFINE(print)
 	if (arguments.size() != 1)
 	{
 		printError("print: incorrect number of arguments.");
-		return false;
+		return SOLVE_ERROR;
 	}
 	Token& ev = arguments[0];
 	if (ev.tag != Token::STRING)
 	{
 		printError("print: incorrect type of argument.");
-		return false;
+		return SOLVE_ERROR;
 	}
 	printf(ANSI_YELLOW "[BUILTIN::PRINT] %s\n", ev.str->string);
 	solution.push_back(TOKEN_TRUE); // To keep the pattern.
-	return true;
+	return SOLVE_OK;
 }
 
 BUILTIN_DEFINE(max)
@@ -56,6 +56,17 @@ BUILTIN_DEFINE(max)
 	}
 	solution.emplace_back(arg0.intu > arg1.intu ? arg0.intu : arg1.intu);
 	return SOLVE_AWAIT;
+}
+
+intt NAME_TABLE_id(const char* name)
+{
+	char* key = (char*)name;
+	if (!NAME_TABLE.count(name)) {
+		const size_t len = strlen(name) + 1;
+		key = new char[len];
+		std::memcpy(key, name, len);
+	}
+	return NAME_TABLE.insert({ key, NAME_TABLE.size() + 1 }).first->second;
 }
 
 int register_function()

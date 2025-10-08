@@ -14,6 +14,12 @@ typedef double floatt;
 typedef float floatt;
 #endif // PTR64
 
+#define LANGUAGE_FALSE ((intt)0)
+constexpr intt LANGUAGE_TRUE = !LANGUAGE_FALSE;
+
+#define LANGUAGE_ZERO_INT LANGUAGE_FALSE
+constexpr floatt LANGUAGE_ZERO_FLOAT = (floatt)(LANGUAGE_ZERO_INT);
+
 /*
 * Variable size struct to store a determined size char array.
 * https://www.geeksforgeeks.org/cpp/overloading-new-delete-operator-c/
@@ -43,8 +49,22 @@ private:
 };
 
 struct SharedArray;
+
+enum SOLVE_RESULT : char
+{
+	SOLVE_AWAIT = -1,
+	SOLVE_ERROR = 0,
+	SOLVE_OK = 1,
+};
+
+#define SOLVE_FAILED return SOLVE_ERROR
+
 struct Function;
 struct Execution;
+
+struct Token;
+
+typedef SOLVE_RESULT fBuiltin(std::vector<Token>&, std::vector<Token>&);
 
 typedef char tok_tag;
 
@@ -62,6 +82,8 @@ public:
 
 		FUNCTION,					// 
 		BUILTIN,					// 
+
+		VARIABLE,					// 
 
 		IDENTIFIER,					// 
 
@@ -149,7 +171,7 @@ public:
 		StringShared* str;
 		SharedArray* vec;
 		Function* fx;
-		char(*func)(std::vector<Token>&, std::vector<Token>&);
+		fBuiltin* func;
 		Execution* exe; // Struct may be trimmed down since only the program counter and the local variables are necesary.
 	};
 	tok_tag tag;
@@ -162,10 +184,10 @@ public:
 	Token(StringShared* s);
 	Token(SharedArray* v);
 	Token(Function* f);
-	Token(char(*f)(std::vector<Token>&, std::vector<Token>&));
+	Token(fBuiltin* f);
 	Token(Execution* e);
 
-	Token(tok_tag t, int i);
+	Token(tok_tag t, intt i);
 
 	// https://en.cppreference.com/w/cpp/language/rule_of_three.html
 	Token(const Token& token); // Copy constructor.
@@ -186,42 +208,56 @@ public:
 	~SharedArray() { a.~vector(); }
 };
 
-enum SOLVE_RESULT : char
-{
-	SOLVE_AWAIT = -1,
-	SOLVE_ERROR = 0,
-	SOLVE_OK = 1,
-};
-
-#define SOLVE_FAILED return SOLVE_ERROR
-
 
 // https://en.cppreference.com/w/cpp/container/unordered_map/unordered_map
-struct kpCHAR_HASH
+struct s_cstring_hash
 {
-	size_t operator()(const char* k) const;
+	// https://stackoverflow.com/questions/34597260/stdhash-value-on-char-value-and-not-on-memory-address
+#if SIZE_MAX >= ULLONG_MAX
+#define FNV_offset_basis UINT64_C(14695981039346656037)
+#define FNV_prime UINT64_C(1099511628211)
+#else
+#define FNV_offset_basis UINT32_C(2166136261)
+#define FNV_prime UINT32_C(16777619)
+#endif // SIZE_MAX >= ULLONG_MAX
+	std::size_t operator()(const char* s) const
+	{
+		size_t i = 0;
+		size_t hash = FNV_offset_basis;
+		while (s[i] != '\0') {
+			hash = (hash ^ s[i]) * FNV_prime;
+			i++;
+		}
+		return hash;
+	}
 };
 
-struct kpCHAR_EQUAL
+struct s_cstring_equal
 {
-	bool operator()(const char* lhs, const char* rhs) const;
+	bool operator()(const char* lhs, const char* rhs) const
+	{
+		return lhs != nullptr && rhs != nullptr && strlen(lhs) == strlen(rhs) && strcmp(lhs, rhs) == 0;
+	}
 };
 
-#define UMAP_kpCHAR(K, V) std::unordered_map<K, V, kpCHAR_HASH, kpCHAR_EQUAL>
+#define umap_cstring_key(V) std::unordered_map<const char*, V, s_cstring_hash, s_cstring_equal>
 
-extern UMAP_kpCHAR(const char*, Token) VALUE_TABLE;
+typedef umap_cstring_key(const intt) NAME_TABLE_TYPE;
+typedef std::unordered_map<intt, Token> VALUE_TABLE_TYPE;
 
+extern NAME_TABLE_TYPE NAME_TABLE;
+extern VALUE_TABLE_TYPE VALUE_TABLE;
+
+typedef umap_cstring_key(const size_t) LABEL_TABLE_TYPE;
 
 struct Function
 {
 	char* name{ nullptr };
-	std::vector<std::string> argnames;
+	intt variable_id{ 0 };
+	std::vector<intt> arg_id;
 	std::vector<Token> program;
-	UMAP_kpCHAR(const char*, const size_t) labels {};
+	LABEL_TABLE_TYPE labels {};
 };
-
-#define CHAR_YIELDED "*" // Invalid symbol can never be part of a variable name.
-constexpr unsigned char ADDR_FORMAT_LEN = 1 + 2 * 8 + 1;
 
 struct Execution
 {
@@ -230,8 +266,8 @@ struct Execution
 	int index{ 0 }; // Current index inside the Thread solution.
 	std::vector<Token> solution{};
 	Function* pFunction;
-	UMAP_kpCHAR(const char*, Token) LOCALS {};
-	char last_called[ADDR_FORMAT_LEN]{ 0x00 };
+	VALUE_TABLE_TYPE LOCALS {};
+	intt last_called{ LANGUAGE_ZERO_INT };
 
 	Execution(Function* p, int idx) : pFunction(p), index(idx) {} // https://stackoverflow.com/a/14789126
 };
@@ -241,13 +277,7 @@ struct Thread
 	std::vector<Execution> calling{};
 };
 
-char run(Thread& thread);
-
-#define LANGUAGE_FALSE ((intt)0)
-constexpr intt LANGUAGE_TRUE = !LANGUAGE_FALSE;
-
-#define LANGUAGE_ZERO_INT LANGUAGE_FALSE
-constexpr floatt LANGUAGE_ZERO_FLOAT = (floatt)(LANGUAGE_ZERO_INT);
+SOLVE_RESULT run(Thread& thread);
 
 extern const Token TOKEN_FALSE;
 extern const Token TOKEN_TRUE;
