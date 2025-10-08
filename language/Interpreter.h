@@ -257,7 +257,14 @@ struct Function
 	std::vector<intt> arg_id;
 	std::vector<Token> program;
 	LABEL_TABLE_TYPE labels {};
+	bool loaded{ true };
+	bool global{ false };
 };
+
+bool GET_VARIABLE_VALUE(Token& variable, Execution& state, bool raw);
+bool GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution& state, bool raw);
+VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution& state);
+VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution& state);
 
 struct Execution
 {
@@ -268,8 +275,67 @@ struct Execution
 	Function* pFunction;
 	VALUE_TABLE_TYPE LOCALS {};
 	intt last_called{ LANGUAGE_ZERO_INT };
+	bool (*GET_VARIABLE_VALUE_)(Token& variable, Execution& state, bool raw) { nullptr };
+	VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution& state) { nullptr };
 
-	Execution(Function* p, int idx) : pFunction(p), index(idx) {} // https://stackoverflow.com/a/14789126
+	Execution(Function* p, int idx) : pFunction(p), index(idx) { // https://stackoverflow.com/a/14789126
+		if (pFunction->global) {
+			GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE_GLOBAL;
+			GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE_GLOBAL;
+		}
+		else {
+			GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE;
+			GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE;
+		}
+	}
+	Execution(const Execution& other) : CP(other.CP), ES(other.ES), index(other.index), pFunction(other.pFunction), last_called(other.last_called) { // TODO: Delete?
+		solution = other.solution;
+		if (!pFunction->global) {
+			LOCALS = other.LOCALS;
+		}
+		GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+		GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+		printError("MAY Execution Copy Constructor NEVER BE CALLED!!");
+	}
+	Execution(Execution&& other) noexcept : CP(other.CP), ES(other.ES), index(other.index), pFunction(other.pFunction), last_called(other.last_called) {
+		solution = std::move(other.solution);
+		if (!pFunction->global) {
+			LOCALS = std::move(other.LOCALS);
+		}
+		GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+		GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+	}
+	Execution& operator=(const Execution& other) { // TODO: Delete?
+		if (this != &other) {
+			CP = other.CP;
+			ES = other.ES;
+			index = other.index;
+			pFunction = other.pFunction;
+			last_called = other.last_called;
+			solution = other.solution;
+			if (!pFunction->global) {
+				LOCALS = other.LOCALS;
+			}
+			GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+			GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+		}
+		printError("MAY Execution Copy Assignment NEVER BE CALLED!!");
+		return *this;
+	}
+	Execution& operator=(Execution&& other) noexcept {
+		CP = other.CP;
+		ES = other.ES;
+		index = other.index;
+		pFunction = other.pFunction;
+		last_called = other.last_called;
+		solution = std::move(other.solution);
+		if (!pFunction->global) {
+			LOCALS = std::move(other.LOCALS);
+		}
+		GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+		GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+		return *this;
+	}
 };
 
 struct Thread

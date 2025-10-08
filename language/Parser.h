@@ -18,7 +18,7 @@ public:
 	std::deque<Token> tokens{};
 	int tokenIndex{ 0 };
 	int scopeLevel{ 0 };
-	std::vector<Function*>* loaded{ nullptr };
+	std::deque<Function>* loaded{ nullptr };
 
 	short int parse_sequence(Function& function, const tok_tag separator_symbol);
 	tok_tag parse_operation(Function& function);
@@ -27,7 +27,7 @@ public:
 	char parse_function(Function& function);
 	char parse_instructions(Function& function, std::vector<int> interrupts[2]);
 
-	bool parse(std::vector<Function*>* file_);
+	bool parse(std::deque<Function>* file_, bool global_first);
 };
 
 #endif // !H_PARSER

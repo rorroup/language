@@ -214,16 +214,16 @@ tok_tag Parser::parse_operation(Function& function)
 				printError("Operands may not be immediately followed by another one.");
 				return PARSE_ERROR;
 			}
-			Function* func = new Function{};
-			if (parse_function(*func) == PARSE_ERROR) {
+			loaded->emplace_back(Function{}); // Register function.
+			Function& func = loaded->back();
+			if (parse_function(func) == PARSE_ERROR) {
 				return PARSE_ERROR;
 			}
-			if (func->name != nullptr) {
+			if (func.name != nullptr) {
 				printError("Global functions can not form part of an operation.");
 				return PARSE_ERROR;
 			}
-			program.emplace_back(func);
-			loaded->push_back(func); // Register function.
+			program.emplace_back(&func);
 			operandLast = true;
 			functionLast = true;
 			typeLast = token.tag;
@@ -869,17 +869,17 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			if (tokenIndex < tokens.size()) {
 				if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
 					tokenIndex--;
-					Function* fx = new Function{};
-					char parse_result = parse_function(*fx);
+					loaded->emplace_back(Function{});
+					Function& fx = loaded->back();
+					char parse_result = parse_function(fx);
 					if (parse_result == PARSE_ERROR) {
 						return PARSE_ERROR;
 					}
-					if (fx->name == nullptr) {
+					if (fx.name == nullptr) {
 						printError("Global functions must have a name.");
 						return PARSE_ERROR;
 					}
-					program.emplace_back(fx);
-					loaded->push_back(fx);
+					program.emplace_back(&fx);
 					program.emplace_back(Token::JUMP_NEXT, 1); // Probably unnecesary.
 					break;
 				}
@@ -1066,11 +1066,12 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 	return true;
 }
 
-bool Parser::parse(std::vector<Function*>* file_)
+bool Parser::parse(std::deque<Function>* file_, bool global_first)
 {
 	loaded = file_;
-	loaded->push_back(new Function{});
-	if (parse_instructions(*loaded->back(), nullptr) == PARSE_ERROR) {
+	loaded->emplace_back(Function{});
+	loaded->back().global = global_first;
+	if (parse_instructions(loaded->back(), nullptr) == PARSE_ERROR) {
 		return false;
 	}
 

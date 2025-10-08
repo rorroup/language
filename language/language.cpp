@@ -35,16 +35,16 @@ int main()
     }
 
     parser.tokenIndex = 0;
-    std::vector<Function*> loaded{};
-    if (!parser.parse(&loaded)) {
+    std::deque<Function> loaded{};
+    if (!parser.parse(&loaded, true)) {
         printError("Parse Failed!");
         return 0;
     }
 
-    printDebug("PROGRAM has '%llu' TOKENS.", loaded[0]->program.size());
+    printDebug("PROGRAM has '%llu' TOKENS.", loaded[0].program.size());
 
     Thread exec{};
-    exec.calling.push_back(Execution{ loaded[0], 0}); // Parsed File as Outermost function.
+    exec.calling.push_back(Execution{ &loaded[0], 0}); // Parsed File as Outermost function.
     if (run(exec) == SOLVE_OK) { // This is the same as thread.calling.empty();
         return 0;
     }
