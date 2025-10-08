@@ -1,6 +1,7 @@
 #ifndef H_BUILTIN
 #define H_BUILTIN
 
+#include <algorithm>
 #include "common.h"
 #include "Interpreter.h"
 

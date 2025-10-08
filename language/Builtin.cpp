@@ -86,6 +86,39 @@ BUILTIN_DEFINE(print)
 	return SOLVE_OK;
 }
 
+BUILTIN_DEFINE(max)
+{
+	if (arguments.size() != 1 || arguments[0].tag != Token::ARRAY || arguments[0].u_array->array.empty())
+	{
+		builtinError("max", "Argument must be a single non-empty '%s'.", tag_name(Token::ARRAY));
+		return SOLVE_ERROR;
+	}
+
+	if (std::find_if(
+		arguments[0].u_array->array.begin(),
+		arguments[0].u_array->array.end(),
+		[](const Token& element) { return element.tag != Token::INT && element.tag != Token::FLOAT; }) ==
+		arguments[0].u_array->array.end())
+	{
+		solution.push_back(
+			std::move(
+				*std::max_element(
+					arguments[0].u_array->array.begin(),
+					arguments[0].u_array->array.end(),
+					[](const Token& left, const Token& right) {
+						return ((left.tag == Token::INT) ? left.u_int : left.u_float) < ((right.tag == Token::INT) ? right.u_int : right.u_float);
+					}
+				)
+			)
+		);
+
+		return SOLVE_OK;
+	}
+
+	builtinError("max", "'%s' must contain only '%s' and '%s'.", tag_name(Token::ARRAY), tag_name(Token::INT), tag_name(Token::FLOAT));
+	return SOLVE_ERROR;
+}
+
 int_tL NAME_TABLE_id(const char* name)
 {
 	char* key = (char*)name;
@@ -103,6 +136,7 @@ int register_function()
 	BUILTIN_REGISTER(load);
 	BUILTIN_REGISTER(version);
 	BUILTIN_REGISTER(print);
+	BUILTIN_REGISTER(max);
 
 	return 0;
 }
