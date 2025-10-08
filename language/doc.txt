@@ -1,0 +1,76 @@
+
+/////////////////////////////////
+Tokenizer
+/////////////////////////////////
+
+"text" -> string -> VALUE(STRING)
+digits -> number -> VALUE(INT / FLOAT)
+symbol -> symbol -> OPERATOR / DELIMITER
+name -> name -> VALUE(BOOL) / IDENTIFIER / KEYWORD
+
+/////////////////////////////////
+Parser
+/////////////////////////////////
+
+VALUE -> VALUE
+OPERATOR -> OPERATION_UNARY / OPERATION_BINARY / OPERATION_TERNARY
+DELIMITER -> -
+IDENTIFIER -> VARIABLE / FUNCTION_CALL
+KEYWORD -> CONSTRUCT
+
+
+    Root
+   / \
+  O   O
+     / \
+    O   O
+   /   / \
+  O   O   Leaf
+
+/////////////////////////////////
+Interpreter
+/////////////////////////////////
+
+Expression(NODE)
+/*
+* can be evaluated to return a VALUE
+*/
+- VALUE(INT, FLOAT, STRING, BOOL, NONE)
+- VARIABLE(name: String)
+- OPERATION()
+- CONSTRUCT***
+
+enum VALUE
+/*
+* A plain language Value
+*/
+- INT(Int)
+- FLOAT(Float)
+- STRING(String)
+- BOOL(Bool)
+- NONE
+
+VARIABLE
+/*
+* Evaluated by looking up its associated value into a table
+*/
+
+/////////////////////////////////
+
+a = 3;
+phrase = "testing";
+result = 1 + 10;
+bigger = max(1, 5);
+thing = (1 + 2) * 3;
+
+fx = function(x){
+	return x;
+}
+
+for(i = 0; i < 10; i += 1){
+	
+}
+
+numbers = [0, 1, 2, 3, 4];
+
+x = y = 3;
