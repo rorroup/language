@@ -1,9 +1,13 @@
 #ifndef H_COMMON
 #define H_COMMON
 
+#include <stdio.h>
+#include <stdarg.h> // va_list // https://stackoverflow.com/questions/695982/passing-an-ellipsis-to-another-variadic-function?noredirect=1&lq=1
 #include <limits.h> // ULLONG_MAX
 #include <stdint.h> // intptr_t
 #include <inttypes.h> // PRI
+
+#define VERSION "b.1.0.0"
 
 // https://stackoverflow.com/questions/51616057/how-to-determine-pointer-size-preprocessor-c
 #if UINTPTR_MAX >= ULLONG_MAX
@@ -15,6 +19,9 @@
 // https://scaryreasoner.wordpress.com/2009/02/28/checking-sizeof-at-compile-time/
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
 
+// https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
+#define STRINGIZING(s) #s
+
 // https://stackoverflow.com/a/3219471
 #define ANSI_RED     "\x1b[31m"
 #define ANSI_GREEN   "\x1b[32m"
@@ -24,10 +31,13 @@
 #define ANSI_CYAN    "\x1b[36m"
 #define ANSI_WHITE   "\x1b[0m"
 
-// https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
-#define printInfo(format, ...)    printf(ANSI_GREEN  "[INFO] "    ANSI_WHITE format "\n", __VA_ARGS__)
-#define printWarning(format, ...) printf(ANSI_YELLOW "[WARNING] " ANSI_WHITE format "\n", __VA_ARGS__)
-#define printError(format, ...)   printf(ANSI_RED    "[ERROR] "   ANSI_WHITE format "\n", __VA_ARGS__)
-#define printDebug(format, ...)   printf(ANSI_CYAN   "[DEBUG] "   ANSI_WHITE format "\n", __VA_ARGS__)
+extern const char* fERROR;
+
+typedef unsigned short lin_num;
+#define fLIN PRIu16
+typedef unsigned short col_num;
+#define fCOL PRIu16
+
+void printLanguageError(const char* type, const char* subtype, const char* filename, lin_num line, col_num column, const char* format, va_list argp);
 
 #endif // !H_COMMON

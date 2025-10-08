@@ -1,436 +1,504 @@
 #include "Interpreter.h"
+#include "Parser.h"
+#include "Lexer.h"
+#include "Builtin.h"
 
-Token::Token() { tag = Token::NONE; intu = 0; }
-Token::Token(intt i) { tag = Token::INT; intu = i; }
-Token::Token(floatt f) { tag = Token::FLOAT; floatu = f; }
-Token::Token(char* s) { tag = Token::IDENTIFIER; var = s; }
-Token::Token(StringShared* s) { tag = Token::STRING; str = s; str->owners++; }
-Token::Token(SharedArray* v) { tag = Token::ARRAY; vec = v; vec->owners++; }
-Token::Token(Function* f) { tag = Token::FUNCTION; fx = f; }
-Token::Token(fBuiltin* f) { tag = Token::BUILTIN; func = f; }
-Token::Token(Execution* e) { tag = Token::YIELDED; exe = e; }
+// https://stackoverflow.com/a/22676401
+// https://cplusplus.com/reference/algorithm/find_if/
+// https://stackoverflow.com/a/14595314
+static const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TAG_END]
+{
+#define TOKEN_NAME_TAG(s) nullptr, STRINGIZING(s), Token::s, NULL
 
-Token::Token(tok_tag t, intt i) { tag = t; intu = i; }
+	// INNER.
+
+	{ TOKEN_NAME_TAG(NONE) },
+	{ TOKEN_NAME_TAG(INT) },
+	{ TOKEN_NAME_TAG(FLOAT) },
+	{ TOKEN_NAME_TAG(STRING) },
+	{ TOKEN_NAME_TAG(ARRAY) },
+	{ TOKEN_NAME_TAG(FUNCTION) },
+	{ TOKEN_NAME_TAG(BUILTIN) },
+
+	{ TOKEN_NAME_TAG(VARIABLE) },
+	{ TOKEN_NAME_TAG(IDENTIFIER) },
+	{ TOKEN_NAME_TAG(REFERENCE) },
+
+	{ TOKEN_NAME_TAG(SEQUENCE) },
+	{ TOKEN_NAME_TAG(INDEX) },
+	{ TOKEN_NAME_TAG(ARRAY_INIT) },
+	{ TOKEN_NAME_TAG(CALL) },
+
+	{ TOKEN_NAME_TAG(JUMP) },
+	{ TOKEN_NAME_TAG(JUMP_ON_FALSE) },
+	{ TOKEN_NAME_TAG(JUMP_ON_NOT_FALSE) },
+
+#undef TOKEN_NAME_TAG
+#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s, NULL
+
+	// KEYWORDS.
+
+	{ "if",			TOKEN_NAME_TAG(IF) },
+	{ "else",		TOKEN_NAME_TAG(ELSE) },
+	{ "for",		TOKEN_NAME_TAG(FOR) },
+	{ "while",		TOKEN_NAME_TAG(WHILE) },
+	{ "do",			TOKEN_NAME_TAG(DO) },
+	{ "break",		TOKEN_NAME_TAG(BREAK) },
+	{ "continue",	TOKEN_NAME_TAG(CONTINUE) },
+	//SWITCH,
+	//CASE,
+	//DEFAULT,
+	{ "function",	TOKEN_NAME_TAG(FUNCTION_DEF) },
+	{ "return",		TOKEN_NAME_TAG(RETURN) },
+	{ "await",		TOKEN_NAME_TAG(AWAIT) },
+	{ "label",		TOKEN_NAME_TAG(LABEL) },
+	{ "goto",		TOKEN_NAME_TAG(GOTO) },
+
+	{ "false",		"FALSE",	Token::INT, LANGUAGE_FALSE_INT },
+	{ "true",		"TRUE",		Token::INT, LANGUAGE_TRUE_INT },
+
+#undef TOKEN_NAME_TAG
+#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s
+
+	// SYMBOLS.
+
+	{ "==",		TOKEN_NAME_TAG(BINARY_EQUAL_DOUBLE),	PRECEDENCE_EQUALITY			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "!=",		TOKEN_NAME_TAG(BINARY_EQUAL_NOT),		PRECEDENCE_EQUALITY			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "<=",		TOKEN_NAME_TAG(BINARY_LESSER_EQUAL),	PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ">=",		TOKEN_NAME_TAG(BINARY_GREATER_EQUAL),	PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "<<",		TOKEN_NAME_TAG(BINARY_SHIFT_LEFT),		PRECEDENCE_SHIFT			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ">>",		TOKEN_NAME_TAG(BINARY_SHIFT_RIGHT),		PRECEDENCE_SHIFT			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "&&",		TOKEN_NAME_TAG(BINARY_AND),				PRECEDENCE_AND				| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "||",		TOKEN_NAME_TAG(BINARY_OR),				PRECEDENCE_OR				| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "&",		TOKEN_NAME_TAG(BINARY_AND_BITWISE),		PRECEDENCE_BITWISE_AND		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "|",		TOKEN_NAME_TAG(BINARY_OR_BITWISE),		PRECEDENCE_BITWISE_OR		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "^",		TOKEN_NAME_TAG(BINARY_OR_EXCLUSIVE),	PRECEDENCE_BITWISE_XOR		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "+",		TOKEN_NAME_TAG(BINARY_ADD),				PRECEDENCE_ADDITIVE			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "-",		TOKEN_NAME_TAG(BINARY_SUBSTRACT),		PRECEDENCE_ADDITIVE			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "*",		TOKEN_NAME_TAG(BINARY_MULTIPLY),		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "/",		TOKEN_NAME_TAG(BINARY_DIVIDE),			PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "%",		TOKEN_NAME_TAG(BINARY_MODULUS),			PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "<",		TOKEN_NAME_TAG(BINARY_LESSER),			PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ">",		TOKEN_NAME_TAG(BINARY_GREATER),			PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "=",		TOKEN_NAME_TAG(BINARY_EQUAL),			PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT	},
+
+	{ "~",		TOKEN_NAME_TAG(UNARY_FLIP),				PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "!",		TOKEN_NAME_TAG(UNARY_NEGATION),			PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "+",		TOKEN_NAME_TAG(UNARY_POSITIVE),			PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "-",		TOKEN_NAME_TAG(UNARY_NEGATIVE),			PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT	},
+
+	{ ";",		TOKEN_NAME_TAG(SEMICOLON),				PRECEDENCE_INVALID											},
+	{ ",",		TOKEN_NAME_TAG(COMMA),					PRECEDENCE_SEQUENCE			| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ":",		TOKEN_NAME_TAG(COLON),					PRECEDENCE_TERNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "(",		TOKEN_NAME_TAG(PARENTHESIS_OPEN),		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ")",		TOKEN_NAME_TAG(PARENTHESIS_CLOSE),		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "[",		TOKEN_NAME_TAG(BRACKET_OPEN),			PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "]",		TOKEN_NAME_TAG(BRACKET_CLOSE),			PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "{",		TOKEN_NAME_TAG(BRACE_OPEN),				PRECEDENCE_INVALID											},
+	{ "}",		TOKEN_NAME_TAG(BRACE_CLOSE),			PRECEDENCE_INVALID											},
+};
+
+LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
+NAME_TABLE_TYPE NAME_TABLE;
+VALUE_TABLE_TYPE VALUE_TABLE;
+
+typedef unsigned char ErrMesType;
+enum : ErrMesType
+{
+	Interpreter = 0,
+	MATH_ERROR,
+	VARIABLE_UNINITIALIZED,
+	ARGUMENTS_MISMATCH,
+	TYPE_ERROR,
+	INDEX_ERROR,
+	FUNCTION_ERROR,
+	LABEL_ERROR,
+};
+
+static const char* ERROR_MESSAGE_TYPES[]
+{
+	STRINGIZING(Interpreter),
+	STRINGIZING(MATH_ERROR),
+	STRINGIZING(VARIABLE_UNINITIALIZED),
+	STRINGIZING(ARGUMENTS_MISMATCH),
+	STRINGIZING(TYPE_ERROR),
+	STRINGIZING(INDEX_ERROR),
+	STRINGIZING(FUNCTION_ERROR),
+	STRINGIZING(LABEL_ERROR),
+};
+
+static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+{
+	{ Interpreter, nullptr },
+	{ MATH_ERROR, "Unable to divide by 'Zero'." },
+	{ VARIABLE_UNINITIALIZED, "Variable '%s' not initialized." },
+	{ ARGUMENTS_MISMATCH, "Operator '%s' expected '%" fINT_TL "' arguments but received '%zu' instead." },
+	{ ARGUMENTS_MISMATCH, "Operator '%s' has no valid matching '%s'." },
+	{ TYPE_ERROR, "Operator '%s' may not operate on '%s' token." },
+	{ TYPE_ERROR, "Operator '%s' may not operate on '%s' and '%s' tokens." },
+	{ TYPE_ERROR, "Operator '%s' expected '%s' token but received '%s' instead." },
+	{ INDEX_ERROR, "Operator '%s' position '%" fINT_TL "' of '%s' is out of bounds." },
+	{ TYPE_ERROR, "An indexed '%s' token may only be assigned a single character '%s'." },
+	{ TYPE_ERROR, "'%s' token is not callable." },
+	{ FUNCTION_ERROR, "Function unloaded." },
+	{ LABEL_ERROR, "'%s %s' is not registered." },
+	{ TYPE_ERROR, "Invalid token '%s' received." },
+	{ ARGUMENTS_MISMATCH, "External '%s' is immutable." },
+};
+
+void interpreterError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+{
+	va_list argp;
+	va_start(argp, f);
+	printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+	va_end(argp);
+}
+
+Token::Token() :														line(0), column(0), tag(Token::NONE),		u_int		(0)		{}
+Token::Token(lin_num l, col_num c,				int_tL			val) :	line(l), column(c), tag(Token::INT),		u_int		(val)	{}
+Token::Token(lin_num l, col_num c,				float_tL		val) :	line(l), column(c), tag(Token::FLOAT),		u_float		(val)	{}
+Token::Token(lin_num l, col_num c,				String_tL*		val) :	line(l), column(c), tag(Token::STRING),		u_string	(val)	{ u_string->owners++; }
+Token::Token(lin_num l, col_num c,				Array_tL*		val) :	line(l), column(c), tag(Token::ARRAY),		u_array		(val)	{ u_array->owners++; }
+Token::Token(lin_num l, col_num c,				Function_tL*	val) :	line(l), column(c), tag(Token::FUNCTION),	u_function	(val)	{}
+Token::Token(									Builtin_tL*		val) :	line(0), column(0), tag(Token::BUILTIN),	u_builtin	(val)	{}
+Token::Token(lin_num l, col_num c,				char*			val) :	line(l), column(c), tag(Token::IDENTIFIER),	u_identifier(val)	{}
+Token::Token(lin_num l, col_num c, tok_tag t,	int_tL			val) :	line(l), column(c), tag(t),					u_int		(val)	{}
 
 Token::Token(const Token& token)
 {
-	switch (token.tag)
-	{
-	case Token::NONE:
-	case Token::INT:
-	case Token::CALL:
-	case Token::RETURN:
-	case Token::ARRAY_INIT:
-	case Token::YIELD:
-	case Token::AWAIT:
-	case Token::GOTO:
-	case Token::JUMP:
-	case Token::JUMP_ON_FALSE:
-	case Token::JUMP_ON_TRUE:
-	case Token::JUMP_NEXT:
-		intu = token.intu;
-		break;
-	case Token::FLOAT:
-		floatu = token.floatu;
-		break;
-	case Token::STRING:
-		str = token.str;
-		str->owners++;
-		break;
-	case Token::IDENTIFIER:
-		//printError("TOKEN COPY CONSTRUCTOR FOR VARIABLE SHOULD NEVER BE CALLED!!! '%s'.", token.var);
-		var = new char[strlen(token.var) + 1];
-		std::memcpy(var, token.var, strlen(token.var) + 1);
-		break;
-	case Token::ARRAY:
-		vec = token.vec;
-		vec->owners++;
-		break;
-	case Token::FUNCTION:
-		fx = token.fx;
-		break;
-	case Token::BUILTIN:
-		func = token.func;
-		break;
-	case Token::YIELDED:
-		exe = token.exe;
-		break;
-	default:
-		intu = token.intu;
-		break;
-	}
 	tag = token.tag;
+	switch (tag) {
+	case Token::FLOAT:		u_float			= token.u_float;																											break;
+	case Token::STRING:		u_string		= token.u_string;							u_string->owners++;																break;
+	case Token::ARRAY:		u_array			= token.u_array;							u_array->owners++;																break;
+	case Token::FUNCTION:	u_function		= token.u_function;																											break;
+	case Token::BUILTIN:	u_builtin		= token.u_builtin;																											break;
+	case Token::IDENTIFIER:	u_identifier	= new char[strlen(token.u_identifier) + 1];	std::memcpy(u_identifier, token.u_identifier, strlen(token.u_identifier) + 1);	break;
+	default:				u_int			= token.u_int;																												break;
+	}
+	line = token.line;
+	column = token.column;
 }
 
 Token::Token(Token&& token) noexcept
 {
 	tag = token.tag;
-	switch (tag)
-	{
-	case Token::FLOAT:
-		floatu = token.floatu;
-		break;
-	case Token::IDENTIFIER:
-		var = token.var;
-		token.var = nullptr;
-		break;
-	case Token::STRING:
-		str = token.str;
-		token.str = nullptr;
-		break;
-	case Token::ARRAY:
-		vec = token.vec;
-		token.vec = nullptr;
-		break;
-	case Token::FUNCTION:
-		fx = token.fx;
-		break;
-	case Token::BUILTIN:
-		func = token.func;
-		break;
-	case Token::YIELDED:
-		exe = token.exe;
-		break;
-	default:
-		intu = token.intu;
-		break;
-	}
+	u_int = token.u_int;
+	token.u_int = NULL;
+	line = token.line;
+	column = token.column;
 }
 
 Token& Token::operator=(const Token& token)
 {
-	if (this != &token) {
-		switch (tag)
-		{
-		case Token::STRING:
-			if (str != nullptr) {
-				str->owners--;
-				if (str->owners <= 0) {
-					delete str;
-				}
-			}
-			break;
-		case Token::ARRAY:
-			if (vec != nullptr) {
-				vec->owners--;
-				if (vec->owners == 0) {
-					delete vec;
-				}
-			}
-			break;
-		case Token::IDENTIFIER:
-			if (var != nullptr)
-				delete[] var;
-			break;
-		case Token::YIELDED:
-			delete exe;
-			break;
-		default:
-			break;
-		}
-
-		tag = token.tag;
-		switch (tag)
-		{
-		case Token::NONE:
-		case Token::INT:
-		case Token::CALL:
-		case Token::RETURN:
-		case Token::YIELD:
-		case Token::ARRAY_INIT:
-		case Token::AWAIT:
-		case Token::GOTO:
-		case Token::JUMP:
-		case Token::JUMP_ON_FALSE:
-		case Token::JUMP_ON_TRUE:
-		case Token::JUMP_NEXT:
-			intu = token.intu;
-			break;
-		case Token::FLOAT:
-			floatu = token.floatu;
-			break;
-		case Token::STRING:
-			str = token.str;
-			str->owners++;
-			break;
-		case Token::IDENTIFIER:
-			var = token.var;
-			break;
-		case Token::ARRAY:
-			vec = token.vec;
-			vec->owners++;
-			break;
-		case Token::FUNCTION:
-			fx = token.fx;
-			break;
-		case Token::BUILTIN:
-			func = token.func;
-			break;
-		case Token::YIELDED:
-			exe = token.exe;
-			break;
-		default:
-			intu = token.intu;
-			break;
-		}
-	}
-	return *this;
+	return (this == &token) ? *this : *this = Token(token);
 }
 
 Token& Token::operator=(Token&& token) noexcept
 {
-	switch (tag)
-	{
-	case Token::STRING:
-		if (str != nullptr) {
-			str->owners--;
-			if (str->owners <= 0) {
-				delete str;
-			}
-		}
-		break;
-	case Token::IDENTIFIER:
-		if (var != nullptr)
-			delete[] var;
-		break;
-	case Token::ARRAY:
-		if (vec != nullptr) {
-			vec->owners--;
-			if (vec->owners == 0) {
-				delete vec;
-			}
-		}
-		break;
-	case Token::YIELDED:
-		delete exe;
-		break;
-	default:
-		break;
-	}
-	
-	tag = token.tag;
-
-	switch (tag)
-	{
-	case Token::FLOAT:
-		floatu = token.floatu;
-		break;
-	case Token::STRING:
-		str = token.str;
-		token.str = nullptr;
-		break;
-	case Token::IDENTIFIER:
-		var = token.var;
-		token.var = nullptr;
-		break;
-	case Token::ARRAY:
-		vec = token.vec;
-		token.vec = nullptr;
-		break;
-	case Token::FUNCTION:
-		fx = token.fx;
-		break;
-	case Token::BUILTIN:
-		func = token.func;
-		break;
-	case Token::YIELDED:
-		exe = token.exe;
-		break;
-	default:
-		intu = token.intu;
-		break;
-	}
-
+	std::swap(tag, token.tag);
+	std::swap(u_int, token.u_int);
+	line = token.line;
+	column = token.column;
 	return *this;
 }
 
 Token::~Token()
 {
 	switch (tag) {
-	case Token::STRING:
-		if (str != nullptr) {
-			str->owners--;
-			if (str->owners <= 0) {
-				delete str;
-			}
-		}
-		break;
-	case Token::IDENTIFIER:
-		if (var != nullptr)
-			delete[] var;
-		break;
-	case Token::ARRAY:
-		if (vec != nullptr) {
-			vec->owners--;
-			if (vec->owners == 0) {
-				delete vec;
-			}
-		}
-		break;
-	default:
-		break;
+	case Token::STRING:		if (u_string != nullptr)	{ u_string->owners--;	if (u_string->owners == 0)	delete u_string; }		break;
+	case Token::ARRAY:		if (u_array != nullptr)		{ u_array->owners--;	if (u_array->owners == 0)	delete u_array; }		break;
+	case Token::IDENTIFIER:	if (u_identifier != nullptr)													delete[] u_identifier;	break;
+	default:																														break;
 	}
 }
 
-NAME_TABLE_TYPE NAME_TABLE;
-VALUE_TABLE_TYPE VALUE_TABLE;
-
-bool GET_VARIABLE_VALUE(Token& variable, Execution& state, bool raw)
+bool Token::as_bool() const
 {
-	const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.intu);
-	if (local != state.LOCALS.end()) {
-		printDebug("Variable id = %lld found of type '%hhd'", variable.intu, local->second.tag);
-		variable = (!raw && local->second.tag == Token::YIELDED) ? Token(local->second.exe->pFunction) : local->second;
-		return variable.tag != Token::FUNCTION || variable.fx->loaded;
+	switch (tag) {
+	case Token::INT:		return u_int != LANGUAGE_ZERO_INT;
+	case Token::FLOAT:		return u_float != LANGUAGE_ZERO_FLOAT;
+	case Token::STRING:		return strlen(u_string->string_get());
+	case Token::ARRAY:		return u_array->array.size();
+	case Token::FUNCTION:	return u_function->loaded;
+	case Token::BUILTIN:	return true;
 	}
-
-	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.intu);
-	if (global != VALUE_TABLE.end()) {
-		printDebug("Variable id = %lld found of type '%hhd'", variable.intu, global->second.tag);
-		variable = (!raw && global->second.tag == Token::YIELDED) ? Token(global->second.exe->pFunction) : global->second;
-		return variable.tag != Token::FUNCTION || variable.fx->loaded;
-	}
-
-	printError("Variable id = %lld not initialized.", variable.intu);
 	return false;
 }
 
-bool GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution& state, bool raw)
+void Token::print() const
+{
+	switch (tag) {
+	case Token::NONE:		printf("NONE");																										break;
+	case Token::INT:		printf("%" fINT_TL, u_int);																							break;
+	case Token::FLOAT:		printf("%f", u_float);																								break;
+	case Token::STRING:		printf("\"%s\"", u_string->string_get());																			break;
+	case Token::ARRAY:		printf("[ "); for (const auto& element : u_array->array) { element.print(); printf(", "); } printf(" ]");			break;
+	case Token::FUNCTION:	printf("<FUNCTION'%s'>", u_function->loaded ? (u_function->name ? u_function->name : "ANONYMOUS") : "UNLOADED");	break;
+	case Token::BUILTIN:	printf("<BUILTIN'%p'>", u_builtin);																					break;
+	default:				printf("<NOT_A_VALUE>");																							break;
+	}
+}
+
+void Token::info() const
+{
+	// https://stackoverflow.com/a/63689821
+	static const int tag_name_width = strlen(std::max_element(std::begin(LANGUAGE_TOKEN_TAG), std::end(LANGUAGE_TOKEN_TAG), [](const RegisteredSequence& left, const RegisteredSequence& right) { return strlen(left.name) < strlen(right.name); })->name);
+
+	printf("%03" fLIN ", %03" fCOL " ", line, column);
+
+	const RegisteredSequence* iter = tag_id(tag);
+
+	if (!iter) {
+		printf("INVALID_TAG(%hhd)", tag);
+	}
+	else if (tag < Token::INNER_END) {
+		printf("[ %-*s ] ", tag_name_width, iter->name);
+
+		if (tag < Token::VALUE_END)			print();
+		else if (tag == Token::VARIABLE
+			|| tag == Token::REFERENCE)		printf("'%s'", variable_name(u_int));
+		else if (tag == Token::IDENTIFIER)	printf("'%s'", u_identifier);
+		else								printf("%" fINT_TL, u_int);
+	}
+	else {
+		printf("[ %-*s ] %s", tag_name_width, iter->name, iter->sequence);
+	}
+
+	printf("\n");
+}
+
+const RegisteredSequence* tag_id(const tok_tag tag)
+{
+	return (tag < Token::TAG_BEGIN || Token::TAG_END <= tag) ?
+		nullptr :
+		(
+			(tag < Token::KEYWORD_END) ?
+			&LANGUAGE_TOKEN_TAG[tag] :
+			std::find_if(
+				std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_BEGIN,
+				std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_END,
+				[tag](const RegisteredSequence& element) { return element.tag == tag; }
+			)
+		);
+}
+
+const char* tag_name(tok_tag tag)
+{
+	const auto iter = tag_id(tag);
+	return iter ? iter->name : nullptr;
+}
+
+const char* variable_name(int_tL id)
+{
+	if (id <= 0 || NAME_TABLE.size() < id)
+		return nullptr;
+	return std::find_if(NAME_TABLE.begin(), NAME_TABLE.end(), [id](const std::pair<const char*, const int_tL>& element) { return element.second == id; })->first; // TODO: Probably have an adjacent std::vector<const char*> to reversely index the name from its index.
+}
+
+#define file_name() state.pFunction->source->name.c_str()
+
+Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
+{
+	const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.u_int);
+	if (local != state.LOCALS.end()) {
+		variable = local->second;
+		return (variable.tag != Token::FUNCTION || variable.u_function->loaded) ? &local->second : nullptr;
+	}
+
+	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.u_int);
+	if (global != VALUE_TABLE.end()) {
+		variable = global->second;
+		return (variable.tag != Token::FUNCTION || variable.u_function->loaded) ? &global->second : nullptr;
+	}
+
+	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.u_int));
+	return nullptr;
+}
+
+Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state)
 {
 	// Global scope File Functions should ALWAYS operate only on the GLOBAL VALUE_TABLE.
-	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.intu);
+	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.u_int);
 	if (global != VALUE_TABLE.end()) {
-		printDebug("Variable id = %lld found of type '%hhd'", variable.intu, global->second.tag);
-		variable = (!raw && global->second.tag == Token::YIELDED) ? Token(global->second.exe->pFunction) : global->second; // return yielded execution or its function instead.
-		return variable.tag != Token::FUNCTION || variable.fx->loaded; // Check unloaded function.
+		variable = global->second;
+		return (variable.tag != Token::FUNCTION || variable.u_function->loaded) ? &global->second : nullptr; // Check unloaded function.
 	}
 
-	printError("Variable id = %lld not initialized.", variable.intu);
-	return false;
+	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.u_int));
+	return nullptr;
 }
 
-VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution& state)
+VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution_tL& state)
 {
 	return state.LOCALS;
 }
 
-VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution& state)
+VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state)
 {
 	return VALUE_TABLE;
 }
 
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
-SOLVE_RESULT run(Thread& thread)
+SOLVE_RESULT run(Thread_tL& thread)
 {
-	while (!thread.calling.empty()) {
-		Execution& state = thread.calling.back();
+	while (!thread.executing.empty()) {
+		Execution_tL& state = thread.executing.back();
 
 		while (true)
 		{
 			if (!state.pFunction->loaded) {
-				printError("Function '%s' UNLOADED!", state.pFunction->name);
-				SOLVE_FAILED;
+				interpreterError(file_name(), 0, 0, ERROR_MESSAGES[11]);
+				return SOLVE_ERROR;
 			}
-			if (state.CP < 0 || state.pFunction->program.size() <= state.CP) {
+			if (state.pFunction->program.size() <= state.program_counter)
 				break;
-			}
-			const Token token = state.pFunction->program[state.CP];
-			printInfo("program_counter = %d.", state.CP);
-			state.CP++;
+			Token token = state.pFunction->program[state.program_counter];
+			state.program_counter++;
 
 			switch (token.tag)
 			{
-				//case Token::NONE:
+			case Token::VARIABLE:
+				if (!state.GET_VARIABLE_VALUE_(token, state)) return SOLVE_ERROR;
+			//case Token::NONE:
 			case Token::INT:
 			case Token::FLOAT:
 			case Token::STRING:
 			case Token::ARRAY:
-			case Token::VARIABLE:
-				state.solution.push_back(token);
+			case Token::REFERENCE:
+				state.solution.push_back(std::move(token));
 				break;
+
 			case Token::FUNCTION:
-				if (token.fx->name != nullptr) {
-					VALUE_TABLE.insert_or_assign(token.fx->variable_id, token);
-					printInfo("Registered global function '%s'(id = %lld).", token.fx->name, token.fx->variable_id);
-					//break; // Push the Token to keep the pattern.
+				if (token.u_function->name != nullptr) { // Global function.
+					VALUE_TABLE.insert_or_assign(token.u_function->variable_id, token);
+					break;
 				}
-				state.solution.push_back(token);
+				state.solution.push_back(std::move(token));
+				break;
+
+			case Token::INDEX:
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				if (state.solution.back().tag != Token::INT) {
+					interpreterError(file_name(), state.solution.back().line, state.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::INDEX), tag_name(Token::INT), tag_name(state.solution.back().tag));
+					return SOLVE_ERROR;
+				}
+
+				if (state.solution[state.solution.size() - 2].tag == Token::REFERENCE || state.solution[state.solution.size() - 2].tag == Token::INDEX) {
+					state.solution.back().tag = Token::INDEX; // Merge the INDEX tag into the u_int index value.
+				}
+				else {
+					Token index = std::move(state.solution.back());
+					state.solution.pop_back();
+
+					Token& arg = state.solution.back();
+					if (arg.tag == Token::ARRAY) {
+						if (index.u_int < 0 || arg.u_array->array.size() <= index.u_int) {
+							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), index.u_int, tag_name(arg.tag));
+							return SOLVE_ERROR;
+						}
+						arg = arg.u_array->array[index.u_int];
+					}
+					else if (arg.tag == Token::STRING) {
+						if (index.u_int < 0 || strlen(arg.u_string->string_get()) <= index.u_int) {
+							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), index.u_int, tag_name(arg.tag));
+							return SOLVE_ERROR;
+						}
+						if (strlen(arg.u_string->string_get()) != 1) {
+							char cc[2]{ arg.u_string->string_get()[index.u_int], '\0' };
+							arg = Token(arg.line, arg.column, String_tL::init(cc, 1));
+						}
+					}
+					else {
+						interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[5], tag_name(Token::INDEX), tag_name(arg.tag));
+						return SOLVE_ERROR;
+					}
+				}
+
+				break;
+
+			case Token::SEQUENCE:
+				token.u_int = state.lastSequence;
+				state.lastSequence = state.solution.size();
+				state.solution.push_back(std::move(token));
 				break;
 
 			case Token::UNARY_FLIP:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(arg, state, true)) SOLVE_FAILED;
-				}
 				if (arg.tag == Token::INT) {
-					arg.intu = ~arg.intu;
+					arg.u_int = ~arg.u_int;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::UNARY_NEGATION:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(arg, state, true)) SOLVE_FAILED;
-				}
 				if (arg.tag == Token::INT) {
-					arg.intu = !arg.intu;
+					arg.u_int = !arg.u_int;
 				}
 				else if (arg.tag == Token::FLOAT) {
-					arg.floatu = !arg.floatu;
+					arg.u_float = !arg.u_float;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::UNARY_POSITIVE:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				const Token& arg = state.solution.back();
 				if (arg.tag != Token::INT && arg.tag != Token::FLOAT) {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::UNARY_NEGATIVE:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(arg, state, true)) SOLVE_FAILED;
-				}
 				if (arg.tag == Token::INT) {
-					arg.intu = -arg.intu;
+					arg.u_int = -arg.u_int;
 				}
 				else if (arg.tag == Token::FLOAT) {
-					arg.floatu = -arg.floatu;
+					arg.u_float = -arg.u_float;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
@@ -438,792 +506,856 @@ SOLVE_RESULT run(Thread& thread)
 			case Token::BINARY_ADD:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu += right.intu;
+					left.u_int += right.u_int;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token((floatt)left.intu + right.floatu); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
+					left = Token(left.line, left.column, (float_tL)left.u_int + right.u_float); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.floatu += (floatt)right.intu;
+					left.u_float += (float_tL)right.u_int;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.floatu += right.floatu;
+					left.u_float += right.u_float;
 					break;
 				case tagCOUPLE(Token::INT, Token::STRING):
 				{
-					const size_t l0 = intlen(left.intu);
-					const size_t l1 = strlen(right.str->string);
-					left = Token(StringShared_init(left.intu, l0, right.str->string, l1));
+					const size_t l0 = intlen(left.u_int);
+					const size_t l1 = strlen(right.u_string->string_get());
+					left = Token(left.line, left.column, String_tL_init(left.u_int, l0, right.u_string->string_get(), l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::INT):
 				{
-					const size_t l0 = strlen(left.str->string);
-					const size_t l1 = intlen(right.intu);
-					left = Token(StringShared_init(left.str->string, l0, right.intu, l1)); // This must trigger constructor on left so its str_tok gets decremented!
+					const size_t l0 = strlen(left.u_string->string_get());
+					const size_t l1 = intlen(right.u_int);
+					left = Token(left.line, left.column, String_tL_init(left.u_string->string_get(), l0, right.u_int, l1)); // This must trigger constructor on left so its str_tok gets decremented!
 				}
 				break;
 				case tagCOUPLE(Token::FLOAT, Token::STRING):
 				{
-					const size_t l0 = snprintf(NULL, 0, "%f", left.floatu);
-					const size_t l1 = strlen(right.str->string);
-					left = Token(StringShared_init(left.floatu, l0, right.str->string, l1));
+					const size_t l0 = snprintf(NULL, 0, "%f", left.u_float);
+					const size_t l1 = strlen(right.u_string->string_get());
+					left = Token(left.line, left.column, String_tL_init(left.u_float, l0, right.u_string->string_get(), l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::FLOAT):
 				{
-					const size_t l0 = strlen(left.str->string);
-					const size_t l1 = snprintf(NULL, 0, "%f", right.floatu);
-					left = Token(StringShared_init(left.str->string, l0, right.floatu, l1));
+					const size_t l0 = strlen(left.u_string->string_get());
+					const size_t l1 = snprintf(NULL, 0, "%f", right.u_float);
+					left = Token(left.line, left.column, String_tL_init(left.u_string->string_get(), l0, right.u_float, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::STRING):
 				{
-					const size_t l0 = strlen(left.str->string);
-					const size_t l1 = strlen(right.str->string);
-					left = Token(StringShared_init(left.str->string, l0, right.str->string, l1));
+					const size_t l0 = strlen(left.u_string->string_get());
+					const size_t l1 = strlen(right.u_string->string_get());
+					left = Token(left.line, left.column, String_tL_init(left.u_string->string_get(), l0, right.u_string->string_get(), l1));
 				}
 				break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_SUBSTRACT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu -= right.intu;
+					left.u_int -= right.u_int;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token((floatt)left.intu - right.floatu);
+					left = Token(left.line, left.column, (float_tL)left.u_int - right.u_float);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.floatu -= (floatt)right.intu;
+					left.u_float -= (float_tL)right.u_int;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.floatu -= right.floatu;
+					left.u_float -= right.u_float;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_MULTIPLY:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu *= right.intu;
+					left.u_int *= right.u_int;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token((floatt)left.intu * right.floatu);
+					left = Token(left.line, left.column, (float_tL)left.u_int * right.u_float);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.floatu *= (floatt)right.intu;
+					left.u_float *= (float_tL)right.u_int;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.floatu *= right.floatu;
+					left.u_float *= right.u_float;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
 			case Token::BINARY_DIVIDE:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					if (right.intu == LANGUAGE_ZERO_INT) {
-						printError("Zero division.");
-						SOLVE_FAILED;
+					if (right.u_int == LANGUAGE_ZERO_INT) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+						return SOLVE_ERROR;
 					}
-					left.intu /= right.intu;
+					left.u_int /= right.u_int;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					if (right.floatu == LANGUAGE_ZERO_FLOAT) {
-						printError("Zero division.");
-						SOLVE_FAILED;
+					if (right.u_float == LANGUAGE_ZERO_FLOAT) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+						return SOLVE_ERROR;
 					}
-					left = Token((floatt)left.intu / right.floatu);
+					left = Token(left.line, left.column, (float_tL)left.u_int / right.u_float);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					if (right.intu == LANGUAGE_ZERO_INT) {
-						printError("Zero division.");
-						SOLVE_FAILED;
+					if (right.u_int == LANGUAGE_ZERO_INT) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+						return SOLVE_ERROR;
 					}
-					left.floatu /= (floatt)right.intu;
+					left.u_float /= (float_tL)right.u_int;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					if (right.floatu == LANGUAGE_ZERO_FLOAT) {
-						printError("Zero division.");
-						SOLVE_FAILED;
+					if (right.u_float == LANGUAGE_ZERO_FLOAT) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+						return SOLVE_ERROR;
 					}
-					left.floatu /= right.floatu;
+					left.u_float /= right.u_float;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_MODULUS:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				if (left.tag == Token::INT && right.tag == Token::INT) {
-					if (right.intu == LANGUAGE_ZERO_INT) {
-						printError("Zero division.");
-						SOLVE_FAILED;
+					if (right.u_int == LANGUAGE_ZERO_INT) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+						return SOLVE_ERROR;
 					}
-					left.intu %= right.intu;
+					left.u_int %= right.u_int;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_SHIFT_LEFT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.intu <<= right.intu;
+					left.u_int <<= right.u_int;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_SHIFT_RIGHT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.intu >>= right.intu;
+					left.u_int >>= right.u_int;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
+			case Token::BINARY_AND_BITWISE:
+			{
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token right = std::move(state.solution.back());
+				state.solution.pop_back();
+
+				Token& left = state.solution.back();
+
+				if (left.tag == Token::INT && right.tag == Token::INT) {
+					left.u_int &= right.u_int;
+				}
+				else {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
+				}
+			}
+			break;
+
+			case Token::BINARY_OR_BITWISE:
+			{
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token right = std::move(state.solution.back());
+				state.solution.pop_back();
+
+				Token& left = state.solution.back();
+
+				if (left.tag == Token::INT && right.tag == Token::INT) {
+					left.u_int |= right.u_int;
+				}
+				else {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
+				}
+			}
+			break;
+
+			case Token::BINARY_OR_EXCLUSIVE:
+			{
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token right = std::move(state.solution.back());
+				state.solution.pop_back();
+
+				Token& left = state.solution.back();
+
+				if (left.tag == Token::INT && right.tag == Token::INT) {
+					left.u_int ^= right.u_int;
+				}
+				else {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
+				}
+			}
+			break;
+
+			case Token::BINARY_AND:
+			{
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token right = std::move(state.solution.back());
+				state.solution.pop_back();
+
+				Token& left = state.solution.back();
+				if (left.tag <= Token::NONE || Token::BUILTIN < left.tag ||
+					right.tag <= Token::NONE || Token::BUILTIN < right.tag) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
+				}
+				left = Token(token.line, token.column, left.as_bool() && right.as_bool() ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+			}
+			break;
+
+			case Token::BINARY_OR:
+			{
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token right = std::move(state.solution.back());
+				state.solution.pop_back();
+
+				Token& left = state.solution.back();
+				if (left.tag <= Token::NONE || Token::BUILTIN < left.tag ||
+					right.tag <= Token::NONE || Token::BUILTIN < right.tag) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
+				}
+				left = Token(token.line, token.column, left.as_bool() || right.as_bool() ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+			}
+			break;
+
 			case Token::BINARY_LESSER:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu = (left.intu < right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = (left.u_int < right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.intu = ((floatt)left.intu < right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = ((float_tL)left.u_int < right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.floatu < (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float < (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.floatu < right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float < right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_GREATER:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu = (left.intu > right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = (left.u_int > right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.intu = ((floatt)left.intu > right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = ((float_tL)left.u_int > right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.floatu > (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float > (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.floatu > right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float > right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_LESSER_EQUAL:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu = (left.intu <= right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = (left.u_int <= right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.intu = ((floatt)left.intu <= right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = ((float_tL)left.u_int <= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.floatu <= (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float <= (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.floatu <= right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float <= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_GREATER_EQUAL:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu = (left.intu >= right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = (left.u_int >= right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.intu = ((floatt)left.intu >= right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = ((float_tL)left.u_int >= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.floatu >= (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float >= (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.floatu >= right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float >= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_EQUAL_DOUBLE:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhu' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu = (left.intu == right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = (left.u_int == right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.intu = ((floatt)left.intu == right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = ((float_tL)left.u_int == right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.floatu == (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float == (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.floatu == right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float == right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
+
 			case Token::BINARY_EQUAL_NOT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
 				}
+
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
+
 				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
+
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.intu = (left.intu != right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = (left.u_int != right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.intu = ((floatt)left.intu != right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.u_int = ((float_tL)left.u_int != right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.floatu != (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float != (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.floatu != right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = Token(left.line, left.column, (left.u_float != right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
-					SOLVE_FAILED;
-					break;
-				}
-			}
-			break;
-			case Token::BINARY_EQUAL:
-			{
-				if (state.solution.size() < 2) {
-					printError("Operator '%hhu' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
-				}
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, false)) SOLVE_FAILED; // Never assign a yielded Execution: 'raw' = false; Only ever assign the underlying function.
-				}
-				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					printInfo("Registered variable id = %lld of type '%hhd'.", left.intu, right.tag);
-					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left.intu, right);
-					left = std::move(right);
-				}
-				else {
-					printError("Can not assign a value to a type '%hhd'.", left.tag);
-					SOLVE_FAILED;
-				}
-			}
-			break;
-			case Token::INDEX:
-			{
-				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
-					SOLVE_FAILED;
-				}
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-				if (right.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(right, state, true)) SOLVE_FAILED;
-				}
-				Token& left = state.solution.back();
-				if (left.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(left, state, true)) SOLVE_FAILED;
-				}
-				if (right.tag != Token::INT) {
-					printError("Index must be an integer but found a '%hhd' instead.", right.tag);
-					SOLVE_FAILED;
-				}
-				if (right.intu < 0) {
-					printError("%d is not a valid index.", right.intu);
-					SOLVE_FAILED;
-				}
-				// TODO: Check for assingment. array[index] = value; If assignment, make sure the assigned value is never YIELDED but its FUNCTION.
-				if (left.tag == Token::STRING) {
-					if (right.intu < strlen(left.str->string)) {
-						char cc[2]{ left.str->string[right.intu], '\0' };
-						state.solution.emplace_back(StringShared::init(cc, 1));
-					}
-					else {
-						printError("Index [%d] is out of bounds [%llu]'%s'.", right.intu, strlen(left.str->string), left.str->string);
-						SOLVE_FAILED;
-					}
-				}
-				else if (left.tag == Token::ARRAY) {
-					if (right.intu < left.vec->a.size()) {
-						state.solution.push_back(left.vec->a[right.intu]);
-					}
-					else {
-						printError("Index '%d' is out of bounds '%llu'.", right.intu, left.vec->a.size());
-						SOLVE_FAILED;
-					}
-				}
-				else {
-					printError("Unable to index a value of type '%hhd'.", left.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
 
-			//else if (nArgs == 3) {} // TODO: Ternary.
+			case Token::BINARY_EQUAL:
+			{
+				// Resolve left-hand variable reference for assignment.
+				std::vector<int_tL> indices;
+				indices.reserve((!state.solution.empty() && state.solution.back().tag == Token::INDEX) ? state.solution.size() / 2 : 0);
+				while (!state.solution.empty() && state.solution.back().tag == Token::INDEX) {
+					Token& index = state.solution.back();
+					indices.push_back(index.u_int);
+					state.solution.pop_back();
+				}
+
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token left = std::move(state.solution.back());
+				state.solution.pop_back();
+				if (left.tag != Token::REFERENCE) {
+					interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::REFERENCE), tag_name(left.tag));
+					return SOLVE_ERROR;
+				}
+
+				void* ref = indices.size() ? state.GET_VARIABLE_VALUE_(left, state) : &left;
+				if (!ref) return SOLVE_ERROR;
+				enum : tok_tag {
+					POINTER_CHAR = -1,
+					POINTER_ARRAY = Token::ARRAY,
+					POINTER_STRING = Token::STRING,
+					POINTER_REFERENCE = Token::REFERENCE,
+				};
+				tok_tag ref_type = static_cast<Token*>(ref)->tag;
+				for (int i = indices.size() - 1; i >= 0; i--) {
+					if (ref_type == POINTER_ARRAY) {
+						if (indices[i] < 0 || static_cast<Token*>(ref)->u_array->array.size() <= indices[i]) {
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), indices[i], tag_name(ref_type));
+							return SOLVE_ERROR;
+						}
+						ref = &static_cast<Token*>(ref)->u_array->array[indices[i]];
+						ref_type = static_cast<Token*>(ref)->tag;
+					}
+					else if (ref_type == POINTER_STRING) {
+						if (indices[i] < 0 || strlen(static_cast<Token*>(ref)->u_string->string_get()) <= indices[i]) {
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), indices[i], tag_name(ref_type));
+							return SOLVE_ERROR;
+						}
+						if (!static_cast<Token*>(ref)->u_string->owned) {
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[14], tag_name(POINTER_STRING));
+							return SOLVE_ERROR;
+						}
+						ref = &static_cast<Token*>(ref)->u_string->string_get()[indices[i]];
+						ref_type = POINTER_CHAR;
+					}
+					else if (ref_type == POINTER_CHAR) {
+						if (indices[i] != 0) {
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), indices[i], tag_name(Token::STRING));
+							return SOLVE_ERROR;
+						}
+					}
+					else {
+						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[5], tag_name(Token::INDEX), tag_name(ref_type));
+						return SOLVE_ERROR;
+					}
+				}
+
+				Token& right = state.solution.back();
+
+				if (ref_type == POINTER_REFERENCE) {
+					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left.u_int, right); // There can never be a REFERENCE inside an ARRAY.
+				}
+				else if (ref_type == POINTER_CHAR) {
+					if (right.tag != Token::STRING || strlen(right.u_string->string_get()) != 1) {
+						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[9], tag_name(Token::STRING), tag_name(Token::STRING));
+						return SOLVE_ERROR;
+					}
+					*static_cast<char*>(ref) = right.u_string->string_get()[0];
+				}
+				else {
+					*static_cast<Token*>(ref) = right;
+				}
+				//left = std::move(right);
+			}
+			break;
+
+			case Token::ARRAY_INIT:
+			{
+				if (state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::SEQUENCE) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::SEQUENCE));
+					return SOLVE_ERROR;
+				}
+
+				Token arr = Token(token.line, token.column, new Array_tL{}); // Build Array.
+				Array_tL* v = arr.u_array;
+				v->array.insert(v->array.end(), std::make_move_iterator(state.solution.begin() + state.lastSequence + 1), std::make_move_iterator(state.solution.end()));
+
+				size_t lastSequence = state.lastSequence;
+				state.lastSequence = state.solution[state.lastSequence].u_int;
+				state.solution.erase(state.solution.begin() + lastSequence, state.solution.end());
+
+				state.solution.push_back(std::move(arr));
+			}
+			break;
 
 			case Token::CALL:
 			{
-				const int nArgs = token.intu;
-				if (nArgs < 0) {
-					printError("Number of arguments must be at least 0 but it was '%d'.", nArgs);
-					SOLVE_FAILED;
+				if (state.lastSequence < 1 || state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::SEQUENCE) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::SEQUENCE));
+					return SOLVE_ERROR;
 				}
-				if (state.solution.size() < nArgs + 1) {
-					printError("Not enough arguments. Call requires '%d' but the stack only has '%llu' elements (function x1 + ARGUMENT NUMBER).", nArgs, state.solution.size());
-					SOLVE_FAILED;
-				}
-				Token calling = state.solution[state.solution.size() - 1 - nArgs]; // TODO: This may be a reference.
-				state.last_called = 0;
-				if (calling.tag == Token::VARIABLE) {
-					state.last_called = calling.intu;
-					if (!state.GET_VARIABLE_VALUE_(calling, state, true)) SOLVE_FAILED;
-				}
+
+				const size_t nArgs = state.solution.size() - state.lastSequence - 1;
+				const size_t sArgs = state.lastSequence;
+
+				Token calling = std::move(state.solution[state.lastSequence - 1]);
+
 				if (calling.tag == Token::BUILTIN) {
-					std::vector<Token> arguments{};
+					std::vector<Token> arguments;
 					arguments.reserve(nArgs);
-					for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
-						if (state.solution[i].tag == Token::VARIABLE) {
-							if (!state.GET_VARIABLE_VALUE_(state.solution[i], state, false)) SOLVE_FAILED; // Dereference variables.
-						}
-						arguments.emplace_back(std::move(state.solution[i]));
+					arguments.insert(arguments.end(), std::make_move_iterator(state.solution.begin() + state.lastSequence + 1), std::make_move_iterator(state.solution.end()));
+
+					Builtin_tL* builtin = calling.u_builtin;
+					state.lastSequence = state.solution[state.lastSequence].u_int;
+					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
+					size_t stack_size = state.solution.size();
+					SOLVE_RESULT answer = builtin(arguments, state.solution, &thread);
+					if (answer == SOLVE_ERROR) return answer;
+					// Enforce ONE return value only.
+					if (state.solution.size() == stack_size) {
+						state.solution.emplace_back(token.line, token.column, LANGUAGE_TRUE_INT);
 					}
-					state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Take the function and its arguments out of the solution stack.
-					SOLVE_RESULT answer = calling.func(arguments, state.solution);
+					else if (state.solution.size() != stack_size + 1) {
+						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), LANGUAGE_INT(1), state.solution.size() - stack_size);
+						return SOLVE_ERROR;
+					}
 					if (answer != SOLVE_OK) {
 						return answer;
 					}
 				}
 				else if (calling.tag == Token::FUNCTION) {
-					Function* func = calling.fx;
+					Function_tL* func = calling.u_function;
 					if (!func->loaded) {
-						printError("Function unloaded!");
-						SOLVE_FAILED;
+						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[11]);
+						return SOLVE_ERROR;
 					}
 					if (func->arg_id.size() != nArgs) {
-						printError("Incorrect number of arguments. Expected '%llu' but '%d' were given.", func->arg_id.size(), nArgs);
-						SOLVE_FAILED;
+						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), (int_tL)func->arg_id.size(), (size_t)nArgs);
+						return SOLVE_ERROR;
 					}
-					Execution exe{ func, (int)thread.calling.size() };
-					for (int i = state.solution.size() - nArgs, j = 0; i < state.solution.size(); i++, j++) {
-						if (state.solution[i].tag == Token::VARIABLE) { // Dereference variables.
-							if (!state.GET_VARIABLE_VALUE_(state.solution[i], state, false)) SOLVE_FAILED;
-						}
-						state.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[j], std::move(state.solution[i]));
+					Execution_tL exe(func);
+					for (size_t i = 0, j = state.lastSequence + 1; i < nArgs; i++, j++) {
+						state.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[i], std::move(state.solution[j]));
 					}
-					state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Take the function and its arguments out of the solution stack.
-					thread.calling.emplace_back(std::move(exe)); // Modifying the thread as the last step since it invalidates references.
-					goto execution_end;
-				}
-				else if (calling.tag == Token::YIELDED) {
-					Function* func = calling.exe->pFunction;
-					if (!func->loaded) {
-						printError("Function unloaded!");
-						SOLVE_FAILED;
-					}
-					state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Not pass in the arguments again.
-					//calling.exe->index = thread.calling.size(); // Reassign the Execution index to the last one. // Unnecessary.
-					thread.calling.emplace_back(std::move(*calling.exe));
-					if (state.last_called != 0) {
-						state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(state.last_called, Token(func)); // Replace locally stored Execution with its Function. // TODO: Check if this is necessary.
-					}
-					goto execution_end;
-					break;
+					state.lastSequence = state.solution[state.lastSequence].u_int;
+					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
+					thread.executing.emplace_back(std::move(exe)); // Modifying the thread as the last step since it invalidates references.
+					goto execution_end; // https://en.cppreference.com/w/cpp/language/goto
 				}
 				else {
-					printError("Element of type '%hhd' is not callable.", calling.tag);
-					SOLVE_FAILED;
+					interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[10], tag_name(calling.tag));
+					return SOLVE_ERROR;
 				}
 			}
 			break;
-			case Token::RETURN:
-				if (token.intu > 0) {
-					if (state.index <= 0) {
-						printError("Outermost function has nowhere to return to.");
-						SOLVE_FAILED;
-					}
-					if (state.solution.size() <= 0) {
-						printError("Expected to return results but the solution stack was empty.");
-						SOLVE_FAILED;
-					}
-					Token& result = state.solution.back();
-					if (result.tag == Token::VARIABLE) {
-						if (!state.GET_VARIABLE_VALUE_(result, state, false)) SOLVE_FAILED;
-					}
-					thread.calling[state.index - 1].solution.push_back(std::move(result));
-				}
-				goto execution_terminate; // This could just be state.CP = -1; to break out of the loop, but goto is probably better here.
-				break;
-			case Token::YIELD:
-			{
-				if (state.index <= 0) {
-					printError("Yielding function has no outer function to come back to.");
-					SOLVE_FAILED;
-				}
-				if (state.solution.size() > 0) {
-					Token& result = state.solution.back();
-					if (result.tag == Token::VARIABLE) {
-						if (!state.GET_VARIABLE_VALUE_(result, state, false)) SOLVE_FAILED;
-					}
-					thread.calling[state.index - 1].solution.push_back(std::move(result));
-				}
-				state.solution.clear();
-				if (thread.calling[state.index - 1].last_called != 0) {
-					thread.calling[state.index - 1].GET_ASSIGNMENT_TABLE_(thread.calling[state.index - 1]).insert_or_assign(thread.calling[state.index - 1].last_called, Token(new Execution(std::move(state))));
-				}
-				goto execution_terminate;
-			}
-			break;
-			case Token::AWAIT:
-				state.solution.emplace_back((intt)1); // To keep the pattern.
-				return SOLVE_AWAIT;
-				break;
-			case Token::ARRAY_INIT:
-			{
-				const int nArgs = token.intu;
-				if (nArgs < 0) {
-					printError("Number of array elements must be at least 0 but it was '%d'.", nArgs);
-					SOLVE_FAILED;
-				}
-				if (state.solution.size() < nArgs) {
-					printError("Not enough elements. Array requires '%d' but the stack only has '%llu' elements.", nArgs, state.solution.size());
-					SOLVE_FAILED;
-				}
-				SharedArray* v = new SharedArray{ 0 }; // Build Array.
-				for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
-					if (state.solution[i].tag == Token::VARIABLE) { // Dereference variables.
-						if (!state.GET_VARIABLE_VALUE_(state.solution[i], state, false)) SOLVE_FAILED;
-					}
-					v->a.emplace_back(std::move(state.solution[i]));
-				}
-				state.solution.erase(state.solution.end() - nArgs, state.solution.end());
-				state.solution.emplace_back(v);
-			}
-			break;
+
 			case Token::GOTO:
 			{
 				if (state.solution.size() != 1) {
-					printError("Token::GOTO requires only '1' value on the stack but '%llu' were found.", state.solution.size());
-					SOLVE_FAILED;
-				}
-				Token& label_name = state.solution.back();
-				if (label_name.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(label_name, state, true)) SOLVE_FAILED;
-				}
-				if (label_name.tag != Token::STRING) {
-					printError("Token::GOTO label must be identified by a string type but found '%hhd'.", label_name.tag);
-					SOLVE_FAILED;
-				}
-				const LABEL_TABLE_TYPE::iterator& label_num = state.pFunction->labels.find(label_name.str->string);
-				if (label_num == state.pFunction->labels.end()) {
-					printError("No label named '%s'.", label_name.str->string);
-					SOLVE_FAILED;
-				}
-				state.CP = label_num->second;
-				state.solution.clear();
-			}
-			break;
-			case Token::JUMP:
-				state.solution.emplace_back(token.intu); // TODO: Remove
-				state.CP = token.intu;
-			case Token::JUMP_NEXT:
-				// TODO: Remove.
-				if (state.solution.size() == 1) {
-					if (state.solution[0].tag == Token::INT) {
-						printInfo("Result is = '%lld'.", state.solution[0].intu);
-					}
-					else if (state.solution[0].tag == Token::FLOAT) {
-						printInfo("Result is = '%f'.", state.solution[0].floatu);
-					}
-					else if (state.solution[0].tag == Token::STRING) {
-						printInfo("Result is = '%s'.", state.solution[0].str->string);
-					}
-					state.ES++;
-					if (state.ES >= 60) {
-						printInfo("EMERGENCY STOP!!!");
-						return SOLVE_ERROR;
-					}
-				}
-				else {
-					printError("HAHAHAHAHA!!");
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
 					return SOLVE_ERROR;
 				}
+				Token& label_name = state.solution.back();
+				if (label_name.tag != Token::STRING) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::STRING), tag_name(label_name.tag));
+					return SOLVE_ERROR;
+				}
+				const LABEL_TABLE_TYPE::iterator& label_num = state.pFunction->labels.find(label_name.u_string->string_get());
+				if (label_num == state.pFunction->labels.end()) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[12], tag_name(Token::LABEL), label_name.u_string->string_get());
+					return SOLVE_ERROR;
+				}
+				state.program_counter = label_num->second;
 				state.solution.clear();
-				break;
-			case Token::JUMP_ON_FALSE:
-			case Token::JUMP_ON_TRUE:
-			{
-				if (state.solution.size() != 1) {
-					printError("JUMP_ON should evaluate a single condition but the solution stack contains '%llu' elements instead.", state.solution.size());
-					SOLVE_FAILED;
-				}
-				Token& condition = state.solution.back();
-				if (condition.tag == Token::VARIABLE) {
-					if (!state.GET_VARIABLE_VALUE_(condition, state, true)) SOLVE_FAILED;
-				}
-				if (condition.tag == Token::INT) {
-					if ((condition.intu == LANGUAGE_FALSE) == (token.tag != Token::JUMP_ON_TRUE)) {
-						state.CP = token.intu;
-					}
-					state.solution.clear();
-				}
-				else if (condition.tag == Token::FLOAT) {
-					if ((condition.floatu == LANGUAGE_ZERO_FLOAT) == (token.tag != Token::JUMP_ON_TRUE)) {
-						state.CP = token.intu;
-					}
-					state.solution.clear();
-				}
-				else {
-					printError("Can not resolve a '%hhd' type to a boolean.", condition.tag);
-					SOLVE_FAILED;
-				}
+				state.lastSequence = -1;
 			}
 			break;
+
+			case Token::JUMP:
+				state.program_counter = token.u_int;
+				state.solution.clear();
+				state.lastSequence = -1;
+				break;
+
+			case Token::JUMP_ON_FALSE:
+			case Token::JUMP_ON_NOT_FALSE:
+			{
+				if (state.solution.size() != 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+					return SOLVE_ERROR;
+				}
+				Token& condition = state.solution.back();
+				if (condition.as_bool() == (token.tag == Token::JUMP_ON_NOT_FALSE))
+					state.program_counter = token.u_int;
+				state.solution.clear();
+				state.lastSequence = -1;
+			}
+			break;
+
+			case Token::AWAIT:
+				return SOLVE_AWAIT;
+
+			case Token::RETURN:
+				goto execution_return;
+
 			default:
-				printError("AAAAAAAAAAAAAAAHHHH!!!");
-				SOLVE_FAILED;
+				interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[13], tag_name(token.tag));
+				return SOLVE_ERROR;
 			}
 		}
-	execution_terminate:
-		thread.calling.pop_back();
+	execution_return:
+		{
+			std::vector<Token> solution = std::move(state.solution);
+			thread.executing.pop_back();
+			if (!thread.executing.empty()) {
+				// Enforce single return.
+				if (solution.empty())			thread.executing.back().solution.emplace_back(0, 0, LANGUAGE_TRUE_INT);
+				else if (solution.size() == 1)	thread.executing.back().solution.push_back(std::move(solution.back()));
+				else							thread.executing.back().solution.emplace_back(0, 0, new Array_tL{ std::move(solution) });
+			}
+		}
 	execution_end:
-		; // Empty statement to allow compiling.
+		; // Empty statement to allow compilation.
 	}
 
 	return SOLVE_OK;
+}
+
+Function_tL* file_load(const char* filename)
+{
+	Function_tL* function = nullptr;
+
+	const char* source = readfile(filename);
+	if (source)
+	{
+		const auto& loaded = LOADED_SOURCEFILE.insert({ filename, { filename } });
+		loaded.first->second.unload();
+
+		Parser parser;
+		if (tokenize_source(filename, source, parser.tokens))
+			function = parser.parse(&loaded.first->second, true);
+
+		delete[] source;
+
+		if (!function)
+			loaded.first->second.unload();
+	}
+
+	return function;
+}
+
+SOLVE_RESULT file_import(const char* filename)
+{
+	Function_tL* loaded_file = file_load(filename);
+
+	if (loaded_file)
+	{
+		Thread_tL thread{ { Execution_tL(loaded_file) } };
+
+		return run(thread);
+	}
+
+	return SOLVE_ERROR;
+}
+
+void file_unload(const char* filename)
+{
+	const auto& loaded = LOADED_SOURCEFILE.find(filename);
+	if (loaded != LOADED_SOURCEFILE.end())
+		loaded->second.unload();
+}
+
+void LANGUAGE_initialize()
+{
+	register_function();
+}
+
+void LANGUAGE_terminate()
+{
+	// Terminate all Thread_tL.
+
+	LOADED_SOURCEFILE.clear();
+	for (auto& variable : NAME_TABLE) delete[] variable.first;
+	NAME_TABLE.clear();
+	VALUE_TABLE.clear();
+}
+
+void LANGUAGE_reload()
+{
+	LANGUAGE_terminate();
+	LANGUAGE_initialize();
 }

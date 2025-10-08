@@ -1,19 +1,74 @@
 #include "Builtin.h"
 
-BUILTIN_DEFINE(duplicate)
+void builtinErrorVA(const char* format, va_list argp)
 {
-	if (arguments.size() != 1)
+	vprintf(format, argp);
+}
+
+void builtinError_(const char* filename, const char* builtin_name, const char* f, ...)
+{
+	printf(fERROR);
+	printf("Builtin <%s> '%s'. ", builtin_name, filename);
+	va_list argp;
+	va_start(argp, f);
+	builtinErrorVA(f, argp);
+	va_end(argp);
+	printf("\n");
+}
+
+#define file_name() thread->executing.back().pFunction->source->name.c_str()
+
+// https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
+#define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
+
+BUILTIN_DEFINE(import)
+{
+	if (arguments.size() != 1 || arguments[0].tag != Token::STRING)
 	{
-		printError("duplicate: incorrect number of arguments.");
+		builtinError("import", "Argument must be a single '%s'.", tag_name(Token::STRING));
 		return SOLVE_ERROR;
 	}
-	Token& ev = arguments[0];
-	if (ev.tag != Token::INT)
+
+	SOLVE_RESULT solve = file_import(arguments[0].u_string->string_get());
+
+	if (solve == SOLVE_ERROR)
+		builtinError("import", "Failed to import file '%s'.", arguments[0].u_string->string_get());
+
+	solution.emplace_back(0, 0, (int_tL)solve);
+
+	return solve;
+}
+
+BUILTIN_DEFINE(load)
+{
+	if (arguments.size() != 1 || arguments[0].tag != Token::STRING)
 	{
-		printError("duplicate: incorrect type of argument.");
+		builtinError("load", "Argument must be a single '%s'.", tag_name(Token::STRING));
 		return SOLVE_ERROR;
 	}
-	solution.emplace_back(2 * ev.intu);
+
+	Function_tL* func = file_load(arguments[0].u_string->string_get());
+
+	if (!func)
+	{
+		builtinError("load", "Failed to load file '%s'.", arguments[0].u_string->string_get());
+		return SOLVE_ERROR;
+	}
+
+	solution.emplace_back(0, 0, func);
+
+	return SOLVE_OK;
+}
+
+BUILTIN_DEFINE(version)
+{
+	if (!arguments.empty())
+	{
+		builtinError("version", "This function takes no arguments.");
+		return SOLVE_ERROR;
+	}
+
+	solution.emplace_back(0, 0, String_tL_external(VERSION));
 	return SOLVE_OK;
 }
 
@@ -21,44 +76,17 @@ BUILTIN_DEFINE(print)
 {
 	if (arguments.size() != 1)
 	{
-		printError("print: incorrect number of arguments.");
+		builtinError("print", "This function takes a single argument.");
 		return SOLVE_ERROR;
 	}
-	Token& ev = arguments[0];
-	if (ev.tag != Token::STRING)
-	{
-		printError("print: incorrect type of argument.");
-		return SOLVE_ERROR;
-	}
-	printf(ANSI_YELLOW "[BUILTIN::PRINT] %s\n", ev.str->string);
-	solution.push_back(TOKEN_TRUE); // To keep the pattern.
+
+	arguments[0].print();
+	printf("\n");
+
 	return SOLVE_OK;
 }
 
-BUILTIN_DEFINE(max)
-{
-	if (arguments.size() != 2)
-	{
-		printError("max: incorrect number of arguments.");
-		return SOLVE_ERROR;
-	}
-	Token& arg0 = arguments[0];
-	if (arg0.tag != Token::INT)
-	{
-		printError("max: incorrect type of argument 0.");
-		return SOLVE_ERROR;
-	}
-	Token& arg1 = arguments[1];
-	if (arg1.tag != Token::INT)
-	{
-		printError("max: incorrect type of argument 1.");
-		return SOLVE_ERROR;
-	}
-	solution.emplace_back(arg0.intu > arg1.intu ? arg0.intu : arg1.intu);
-	return SOLVE_AWAIT;
-}
-
-intt NAME_TABLE_id(const char* name)
+int_tL NAME_TABLE_id(const char* name)
 {
 	char* key = (char*)name;
 	if (!NAME_TABLE.count(name)) {
@@ -71,9 +99,10 @@ intt NAME_TABLE_id(const char* name)
 
 int register_function()
 {
-	BUILTIN_REGISTER(duplicate);
+	BUILTIN_REGISTER(import);
+	BUILTIN_REGISTER(load);
+	BUILTIN_REGISTER(version);
 	BUILTIN_REGISTER(print);
-	BUILTIN_REGISTER(max);
 
 	return 0;
 }

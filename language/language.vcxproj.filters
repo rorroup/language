@@ -33,6 +33,9 @@
     <ClCompile Include="Parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Builtin.h">
@@ -55,7 +58,19 @@
     <Text Include="doc.txt">
       <Filter>example</Filter>
     </Text>
-    <Text Include="test.txt">
+    <Text Include="example\arrays_and_indices.txt">
+      <Filter>example</Filter>
+    </Text>
+    <Text Include="example\control_flow.txt">
+      <Filter>example</Filter>
+    </Text>
+    <Text Include="example\import.txt">
+      <Filter>example</Filter>
+    </Text>
+    <Text Include="example\order_of_operations.txt">
+      <Filter>example</Filter>
+    </Text>
+    <Text Include="example\variables_scope.txt">
       <Filter>example</Filter>
     </Text>
   </ItemGroup>

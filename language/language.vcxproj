@@ -124,6 +124,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Builtin.cpp" />
+    <ClCompile Include="common.cpp" />
     <ClCompile Include="Interpreter.cpp" />
     <ClCompile Include="language.cpp" />
     <ClCompile Include="Lexer.cpp" />
@@ -138,7 +139,11 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="doc.txt" />
-    <Text Include="test.txt" />
+    <Text Include="example\arrays_and_indices.txt" />
+    <Text Include="example\control_flow.txt" />
+    <Text Include="example\import.txt" />
+    <Text Include="example\order_of_operations.txt" />
+    <Text Include="example\variables_scope.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

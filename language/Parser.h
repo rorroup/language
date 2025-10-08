@@ -1,16 +1,13 @@
 #ifndef H_PARSER
 #define H_PARSER
 
+#include <iterator>
+#include <algorithm>
 #include <vector>
 #include <deque>
 #include <string>
 #include "common.h"
 #include "Interpreter.h"
-
-#define parserError(format, ...) printError("Parser: " format, __VA_ARGS__)
-
-typedef int tok_size;
-#define TOKEN_MAX 12000
 
 struct Parser
 {
@@ -18,16 +15,23 @@ public:
 	std::deque<Token> tokens{};
 	int tokenIndex{ 0 };
 	int scopeLevel{ 0 };
-	std::deque<Function>* loaded{ nullptr };
+	SourceFile* loaded{ nullptr };
 
-	short int parse_sequence(Function& function, const tok_tag separator_symbol);
-	tok_tag parse_operation(Function& function);
-	char parse_if(Function& function, std::vector<int> interrupts[2]);
-	char parse_loop(Function& function, std::vector<int> interrupts[2]);
-	char parse_function(Function& function);
-	char parse_instructions(Function& function, std::vector<int> interrupts[2]);
+	// TODO: Deprecate function argument. Keep its labels though.
+	tok_tag parse_sequence(Function_tL& function, std::vector<Token>& program, const tok_tag separator_symbol);
+	tok_tag parse_operand(Function_tL& function, std::vector<Token>& program);
+	tok_tag parse_operation(Function_tL& function, std::vector<Token>& program, int_tL precedence_min);
+	short parse_if(Function_tL& function, std::vector<int> interrupts[2]);
+	char parse_loop(Function_tL& function, std::vector<int> interrupts[2]);
+	char parse_function(Function_tL& function);
+	char parse_instructions(Function_tL& function, std::vector<int> interrupts[2]);
 
-	bool parse(std::deque<Function>* file_, bool global_first);
+	Function_tL* parse(SourceFile* file_, bool global_first);
+
+private:
+	const char* file_name();
+	static bool tag_unary(tok_tag tag);
+	static bool tag_binary(tok_tag tag);
 };
 
 #endif // !H_PARSER

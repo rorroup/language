@@ -1,0 +1,38 @@
+print("========== VARIABLES SCOPE ============");
+
+x = "global x";
+y = "global y";
+z = "global z";
+
+print("Global context:");
+print("x = " + x);
+print("y = " + y);
+print("z = " + z);
+
+function set_variables(w){
+	// x;
+	y = "set_variables y";
+	z = w;
+	
+	print("Function context:");
+	print("x = " + x);
+	print("y = " + y);
+	print("z = " + z);
+	
+	f = function(y, z){
+		// x;
+		// y = y;
+		z = "anonymous z";
+		
+		print("Anonymous context:");
+		print("x = " + x);
+		print("y = " + y);
+		print("z = " + z);
+	}
+	
+	f(y, z);
+}
+
+set_variables(z);
+
+print("");

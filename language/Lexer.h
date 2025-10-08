@@ -9,15 +9,16 @@
 #include "Parser.h"
 #include "Interpreter.h"
 
-typedef short int buf_size; // TODO: Rename.
+#define TAB_COLUMN 4
+
+typedef unsigned short buf_size;
 #define LENGTH_NUMBER 100
 #define LENGTH_STRING 1000
 #define LENGTH_NAME 100
 #define LENGTH_SYMBOL 100
-
-#define tokenizerError(format, ...) printError("Tokenizer: " format, __VA_ARGS__)
+#define BUFFER_MAX LENGTH_STRING
 
 const char* readfile(const char* file_name);
-bool tokenize_source(const char* source, std::deque<Token>& tokens);
+bool tokenize_source(const char* filename, const char* source, std::deque<Token>& tokens);
 
 #endif // !H_TOKENIZER

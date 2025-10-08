@@ -55,3 +55,45 @@ VARIABLE
 * Evaluated by looking up its associated value into a table
 */
 
+
+/////////////////////////////////
+ TODO?
+/////////////////////////////////
+
+Make labels identifier instead of string?
+Allow await keyword to return something?
+The array implementation is a wrapper for C++ std::vector. Maybe explore if there is a better option?
+Check unloading functions safety.
+
+
+/////////////////////////////////
+ Grammar (but not really).
+/////////////////////////////////
+
+operand :=      int || float || string ||
+                array ||
+                parenthesis_expression ||
+                function ||
+
+                array_index ||
+
+                array_init ||
+                function_call
+
+operation :=    operand (operator operand)? endl
+
+expression :=   operation; ||
+                await; ||
+                return operation?; ||
+                yield operation?; ||
+
+                function name(){} ||
+
+                label "name" ||
+                goto operation;
+				
+				if(){} (else if(){})? (else{})? ||
+                for(;;){} ||
+                while(){} ||
+                do{}while(); ||
+

@@ -1,69 +1,12 @@
 #include "Lexer.h"
 
-static const Token TOKEN_FALSE(LANGUAGE_FALSE);
-static const Token TOKEN_TRUE(LANGUAGE_TRUE);
-
-// https://stackoverflow.com/a/22676401
-// https://cplusplus.com/reference/algorithm/find_if/
-// https://stackoverflow.com/a/14595314
-static const std::pair<const char*, const Token> LanguageKeywords[]
-{
-	{ "true", TOKEN_TRUE },
-	{ "false", TOKEN_FALSE },
-	{ "if", Token(Token::IF, 0) },
-	{ "else", Token(Token::ELSE, 0) },
-	{ "for", Token(Token::FOR, 0) },
-	{ "while", Token(Token::WHILE, 0) },
-	{ "do", Token(Token::DO, 0) },
-	{ "break", Token(Token::BREAK, 0) },
-	{ "continue", Token(Token::CONTINUE, 0) },
-	//{ "switch", Token(TOKEN_KEYWORD, Token::SWITCH) },
-	//{ "case", Token(TOKEN_KEYWORD, Token::CASE) },
-	//{ "default", Token(TOKEN_KEYWORD, Token::DEFAULT) },
-	{ "function", Token(Token::FUNCTION_DEF, 0) },
-	{ "return", Token(Token::RETURN, 0) },
-	{ "yield", Token(Token::YIELD, 0) },
-	{ "await", Token(Token::AWAIT, 0) },
-	{ "label", Token(Token::LABEL, 0) },
-	{ "goto", Token(Token::GOTO, 0) },
-};
-
-static const std::pair<const char*, const Token> LanguageSymbols[]
-{
-	{ "==", Token(Token::BINARY_EQUAL_DOUBLE, 1) },
-	{ "!=", Token(Token::BINARY_EQUAL_NOT, 1) },
-	{ "<=", Token(Token::BINARY_LESSER_EQUAL, 1) },
-	{ ">=", Token(Token::BINARY_GREATER_EQUAL, 1) },
-	{ "<<", Token(Token::BINARY_SHIFT_LEFT, 20) },
-	{ ">>", Token(Token::BINARY_SHIFT_RIGHT, 20) },
-	{ "~", Token(Token::UNARY_FLIP, 100) },
-	{ "!", Token(Token::UNARY_NEGATION, 100) },
-	{ "+", Token(Token::BINARY_ADD, 10) },
-	{ "-", Token(Token::BINARY_SUBSTRACT, 10) },
-	{ "*", Token(Token::BINARY_MULTIPLY, 20) },
-	{ "/", Token(Token::BINARY_DIVIDE, 20) },
-	{ "%", Token(Token::BINARY_MODULUS, 20) },
-	{ "<", Token(Token::BINARY_LESSER, 1) },
-	{ ">", Token(Token::BINARY_GREATER, 1) },
-	{ "=", Token(Token::BINARY_EQUAL, 0) },
-	{ ";", Token(Token::SEMICOLON, -1) },
-	{ ",", Token(Token::COMMA, -1) },
-	{ ":", Token(Token::COLON, -20) },
-	{ "(", Token(Token::PARENTHESIS_OPEN, -10) },
-	{ ")", Token(Token::PARENTHESIS_CLOSE, -10) },
-	{ "[", Token(Token::BRACKET_OPEN, -10) },
-	{ "]", Token(Token::BRACKET_CLOSE, -10) },
-	{ "{", Token(Token::BRACE_OPEN, -100) },
-	{ "}", Token(Token::BRACE_CLOSE, -100) },
-};
-
 // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
 const char* readfile(const char* file_name)
 {
 	std::ifstream file_(file_name, std::ifstream::in);
 	if (file_.is_open()) {
 		file_.seekg(0, std::ifstream::end);
-		const unsigned int length = file_.tellg();
+		const size_t length = file_.tellg();
 		file_.seekg(0, std::ifstream::beg);
 
 		char* buffer = new char[length + 1];
@@ -73,217 +16,317 @@ const char* readfile(const char* file_name)
 		file_.close();
 		return buffer;
 	}
-	printError("Failed to open file '%s'.", file_name);
+
+	printf(fERROR);
+	printf("Failed to open file '%s'.\n", file_name);
 	return nullptr;
 }
 
-bool tokenize_source(const char* source, std::deque<Token>& tokens)
+typedef unsigned char ErrMesType;
+enum : ErrMesType
 {
-	while (*source != '\0') {
-		if (isspace(*source))
+	Tokenizer = 0,
+	MALFORMED_TOKEN,
+	BUFFER_OVERFLOW,
+};
+
+static const char* ERROR_MESSAGE_TYPES[]
+{
+	STRINGIZING(Tokenizer),
+	STRINGIZING(MALFORMED_TOKEN),
+	STRINGIZING(BUFFER_OVERFLOW),
+};
+
+static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+{
+	{ Tokenizer, nullptr },
+	{ MALFORMED_TOKEN, "Number is empty." },
+	{ MALFORMED_TOKEN, "Unterminated string." },
+	{ MALFORMED_TOKEN, "Failed to interpret '%s' as a supported symbol." },
+	{ BUFFER_OVERFLOW, "'%s' tokens can not be more than '%d' characters long." },
+};
+
+void tokenizerError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+{
+	va_list argp;
+	va_start(argp, f);
+	printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+	va_end(argp);
+}
+
+bool tokenize_source(const char* filename, const char* source, std::deque<Token>& tokens)
+{
+	enum class TOKEN_TYPE : char
+	{
+		COMMENT_LINE = -1,
+		COMMENT_BLOCK = -2,
+		NONE = 0,
+		NUMBER,
+		IDENTIFIER,
+		STRING,
+		SYMBOL,
+	} tokenizing{ TOKEN_TYPE::NONE };
+
+	enum : char
+	{
+		NUMBER_FLOAT		=  0,
+		NUMBER_DECIMAL		= 10,
+		NUMBER_BINARY		=  2,
+		NUMBER_HEXADECIMAL	= 16,
+	};
+
+	char EscDotCom = 0; // Escape, Decimal point, Comment.
+
+	lin_num line = 1, line_start;
+	col_num column = 0, tok_start;
+
+	buf_size i;
+	char buffer[BUFFER_MAX];
+#define bufferReset() i = 0; memset(buffer, '\0', BUFFER_MAX);
+	bufferReset();
+
+	source--;
+	bool increment = true;
+
+	do
+	{
+		if (increment)
 		{
 			source++;
-			continue;
+			if (*source == '\n') {
+				line++;
+				column = 0;
+			}
+			else if (*source == '\t') {
+				column += TAB_COLUMN - column % TAB_COLUMN;
+			}
+			else if (isprint(*source)) {
+				column++;
+			}
 		}
-		if (tokens.size() >= TOKEN_MAX) { // Check container size before pushing more tokens.
-			tokenizerError("Unable to contain more than %d tokens at a time.", TOKEN_MAX);
-			return false;
-		}
-		buf_size i = 0;
-		if (isdigit(*source))
+		increment = false;
+
+		switch (tokenizing)
 		{
-			enum NUMBER_TYPE : unsigned char {
-				NUMBER_DECIMAL = 0,
-				NUMBER_FLOAT = 1,
-				NUMBER_BINARY = 2,
-				NUMBER_HEXADECIMAL = 3,
-			} modifier = NUMBER_DECIMAL;
-			char buffer[LENGTH_NUMBER];
-			memset(buffer, '\0', LENGTH_NUMBER);
-			while (true)
-			{
-				if (isxdigit(*source))
-				{
-					if (*source == 'b' && i == 1 && buffer[0] == '0' && modifier == NUMBER_DECIMAL) {
-						modifier = NUMBER_BINARY;
-					}
-					else if (((modifier == NUMBER_DECIMAL || modifier == NUMBER_FLOAT) && !isdigit(*source)) || (modifier == NUMBER_BINARY && *source != '0' && *source != '1')) {
-						tokenizerError("Character '%c' is incompatible with number '%s' of type '%d'.", *source, buffer, modifier);
-						return false;
-					}
-					buffer[i] = *source;
-					i++;
+		case TOKEN_TYPE::NONE:
+			if (isspace(*source)) {
+				increment = true;
+			}
+			else if (isdigit(*source)) {
+				tokenizing = TOKEN_TYPE::NUMBER;
+				bufferReset();
+				line_start = line;
+				tok_start = column;
+				EscDotCom = NUMBER_DECIMAL;
+			}
+			else if (isalpha(*source) || *source == '_') {
+				tokenizing = TOKEN_TYPE::IDENTIFIER;
+				bufferReset();
+				line_start = line;
+				tok_start = column;
+				EscDotCom = 0;
+			}
+			else if (*source == '"') {
+				tokenizing = TOKEN_TYPE::STRING;
+				bufferReset();
+				line_start = line;
+				tok_start = column;
+				EscDotCom = 0;
+				increment = true;
+			}
+			else {
+				tokenizing = TOKEN_TYPE::SYMBOL;
+				bufferReset();
+				line_start = line;
+				tok_start = column;
+				EscDotCom = 0;
+			}
+			break;
+
+		case TOKEN_TYPE::NUMBER:
+			if (EscDotCom == NUMBER_DECIMAL && (*source == 'b' || *source == 'B') && i == 1 && buffer[0] == '0') {
+				memset(buffer, '\0', i);
+				i = 0;
+				EscDotCom = NUMBER_BINARY;
+			}
+			else if (EscDotCom == NUMBER_DECIMAL && (*source == 'x' || *source == 'X') && i == 1 && buffer[0] == '0') {
+				memset(buffer, '\0', i);
+				i = 0;
+				EscDotCom = NUMBER_HEXADECIMAL;
+			}
+			else if (EscDotCom == NUMBER_DECIMAL && *source == '.') {
+				buffer[i] = '.';
+				i++;
+				EscDotCom = NUMBER_FLOAT;
+			}
+			else if (((EscDotCom == NUMBER_DECIMAL || EscDotCom == NUMBER_FLOAT) && isdigit(*source)) ||
+				(EscDotCom == NUMBER_HEXADECIMAL && isxdigit(*source)) ||
+				(EscDotCom == NUMBER_BINARY && (*source == '0' || *source == '1'))) {
+				buffer[i] = *source;
+				i++;
+			}
+			else {
+				if (i <= 0) {
+					tokenizerError(filename, line_start, tok_start, ERROR_MESSAGES[1]);
+					return false;
 				}
-				else if (*source == '.')
-				{
-					if (modifier == NUMBER_DECIMAL) {
-						buffer[i] = '.';
-						i++;
-						modifier = NUMBER_FLOAT;
-					}
-					else {
-						tokenizerError("Number '%s' can not contain an additional period.", buffer);
-						return false;
-					}
-				}
-				else if (*source == 'x') {
-					if (modifier == NUMBER_DECIMAL && i == 1 && buffer[0] == '0') {
-						buffer[i] = 'x';
-						i++;
-						modifier = NUMBER_HEXADECIMAL;
-					}
-					else {
-						tokenizerError("Number '%s' can not be treated as hexadecimal.", buffer);
-						return false;
-					}
-				}
-				else /*TODO: Support comments.*/
-				{
+
 #ifdef PTR64
-#define str2intt strtoll
-#define str2floatt strtod
+#define str2int_tL strtoll
+#define str2float_tL strtod
 #else
-#define str2intt strtol
-#define str2floatt strtof
+#define str2int_tL strtol
+#define str2float_tL strtof
 #endif // PTR64
-					switch (modifier)
-					{
-					case NUMBER_DECIMAL:
-						tokens.emplace_back(str2intt(buffer, NULL, 10));
-						break;
-					case NUMBER_FLOAT:
-						tokens.emplace_back(str2floatt(buffer, nullptr));
-						break;
-					case NUMBER_BINARY:
-						if (i <= 2) {
-							tokenizerError("Binary number '%s' is empty.", buffer);
-							return false;
-						}
-						tokens.emplace_back(str2intt(&buffer[2], NULL, 2));
-						break;
-					case NUMBER_HEXADECIMAL:
-						if (i <= 2) {
-							tokenizerError("Hexadecimal number '%s' is empty.", buffer);
-							return false;
-						}
-						tokens.emplace_back(str2intt(&buffer[2], NULL, 16));
-						break;
-					default:
-						tokenizerError("Unknown number type '%d'.", modifier);
-						return false;
-					}
-					break;
-				}
-				if (i >= LENGTH_NUMBER) {
-					tokenizerError("Numbers can not be more than '%d' characters long.", LENGTH_NUMBER);
-					return false;
-				}
-				source++;
+
+				if (EscDotCom == NUMBER_FLOAT)	tokens.emplace_back(line_start, tok_start, str2float_tL(buffer, nullptr));
+				else							tokens.emplace_back(line_start, tok_start, str2int_tL(buffer, nullptr, EscDotCom));
+
+				tokenizing = TOKEN_TYPE::NONE;
+				EscDotCom = 0;
+				break;
 			}
-		}
-		else if (isalpha(*source) || *source == '_')
-		{
-			char buffer[LENGTH_NAME];
-			memset(buffer, '\0', LENGTH_NAME);
-			while (true)
-			{
-				if (isalnum(*source) || *source == '_')
-				{
-					buffer[i] = *source;
-					i++;
-				}
-				else /*TODO: Support comments.*/
-				{
-					const std::pair<const char*, const Token>* iter = std::find_if(std::begin(LanguageKeywords), std::end(LanguageKeywords), [buffer, i](std::pair<const char*, const Token> element) { return strlen(element.first) == i && strcmp(buffer, element.first) == 0; });
-					if (iter == std::end(LanguageKeywords))
-					{
-						char* s = new char[i + 1];
-						memcpy(s, buffer, i + 1);
-						printDebug("'%s' is not a reserved word. Treating as identifier.", s); // TODO: Remove.
-						tokens.emplace_back(s);
-					}
-					else
-					{
-						printDebug("Found reserved word '%s'", buffer); // TODO: Remove.
-						tokens.push_back(iter->second);
-					}
-					break;
-				}
-				if (i >= LENGTH_NAME)
-				{
-					tokenizerError("Names can not be more than '%d' characters long.", LENGTH_NAME);
-					return false;
-				}
-				source++;
+
+			if (i >= LENGTH_NUMBER) {
+				tokenizerError(filename, line, column, ERROR_MESSAGES[4], "Number", LENGTH_NUMBER);
+				return false;
 			}
-		}
-		else if (*source == '"')
-		{
-			char buffer[LENGTH_STRING];
-			memset(buffer, '\0', LENGTH_STRING);
-			char escaped = 0; // TODO: Support escaped characters.
-			source++;
-			while (true)
+			increment = true;
+			break;
+
+		case TOKEN_TYPE::IDENTIFIER:
+			if (isalnum(*source) || *source == '_')
 			{
-				if (*source == '\0') // Unterminated String Token
-				{
-					tokenizerError("Unterminated string.");
-					return false;
-				}
-				else if (*source == '"' && escaped == 0)
-				{
-					tokens.emplace_back(StringShared::init(buffer, i));
-					source++;
-					break;
-				}
-				else
-				{
-					buffer[i] = *source;
-					i++;
-				}
-				if (i >= LENGTH_STRING) {
-					tokenizerError("Strings can not be more than '%d' characters long.", LENGTH_STRING);
-					return false;
-				}
-				source++;
+				buffer[i] = *source;
+				i++;
 			}
-		}
-		else // TODO: Support comments.
-		{
-			char buffer[LENGTH_SYMBOL];
-			memset(buffer, '\0', LENGTH_SYMBOL);
-			while (true)
+			else
 			{
-				if (isalnum(*source) || *source == '_' || *source == '"' || *source == '\0' || isspace(*source))
-				{
-					buf_size j = 0;
-					while (j < i)
-					{
-						const std::pair<const char*, const Token>* iter = std::find_if(std::begin(LanguageSymbols), std::end(LanguageSymbols), [buffer, j](std::pair<const char*, const Token> element) {return strncmp(&buffer[j], element.first, strlen(element.first)) == 0; });
-						if (iter != std::end(LanguageSymbols)) {
-							tokens.push_back(iter->second);
-							j += strlen(iter->first);
-						}
-						else // Unsupported symbol.
-						{
-							tokenizerError("Unable to interpret '%s' as a known symbol.", &buffer[j]);
-							return false;
-						}
-					}
-					break;
+				const RegisteredSequence* iter = std::find_if(
+					std::begin(LANGUAGE_TOKEN_TAG) + Token::KEYWORD_BEGIN,
+					std::begin(LANGUAGE_TOKEN_TAG) + Token::KEYWORD_END,
+					[buffer, i](const RegisteredSequence& element) { return strlen(element.sequence) == i && strcmp(element.sequence, buffer) == 0; }
+				);
+				if (iter == std::begin(LANGUAGE_TOKEN_TAG) + Token::KEYWORD_END) {
+					char* s = new char[i + 1];
+					memcpy(s, buffer, i + 1);
+					tokens.emplace_back(line_start, tok_start, s);
 				}
 				else {
-					buffer[i] = *source;
-					i++;
+					tokens.emplace_back(line_start, tok_start, iter->tag, iter->value);
 				}
-				if (i >= LENGTH_SYMBOL) {
-					tokenizerError("Symbols can not be more than '%d' characters long.", LENGTH_SYMBOL);
-					return false;
-				}
-				source++;
+
+				tokenizing = TOKEN_TYPE::NONE;
+				EscDotCom = 0;
+				break;
 			}
+
+			if (i >= LENGTH_NAME) {
+				tokenizerError(filename, line, column, ERROR_MESSAGES[4], "Name", LENGTH_NAME);
+				return false;
+			}
+			increment = true;
+			break;
+
+		case TOKEN_TYPE::STRING:
+			if (*source == '\0') // Unterminated String Token.
+			{
+				tokenizerError(filename, line_start, tok_start, ERROR_MESSAGES[2]);
+				return false;
+			}
+			else if (*source == '"' && EscDotCom == 0)
+			{
+				tokens.emplace_back(line_start, tok_start, String_tL::init(buffer, i));
+				tokenizing = TOKEN_TYPE::NONE;
+			}
+			else if (*source == '\\' && EscDotCom == 0) {
+				EscDotCom = 1;
+			}
+			else if (EscDotCom == 1 && *source == 'n') {
+				buffer[i] = '\n';
+				i++;
+				EscDotCom = 0;
+			}
+			else if (EscDotCom == 1 && *source == 't') {
+				buffer[i] = '\t';
+				i++;
+				EscDotCom = 0;
+			}
+			else
+			{
+				buffer[i] = *source;
+				i++;
+				EscDotCom = 0;
+			}
+
+			if (i >= LENGTH_STRING) {
+				tokenizerError(filename, line, column, ERROR_MESSAGES[4], "String", LENGTH_STRING);
+				return false;
+			}
+			increment = true;
+			break;
+
+		case TOKEN_TYPE::SYMBOL:
+			if (ispunct(*source) && *source != '"' && *source != '_' && !(EscDotCom && (*source == '/' || *source == '*'))) {
+				buffer[i] = *source;
+				i++;
+				EscDotCom = *source == '/';
+			}
+			else
+			{
+				tokenizing = TOKEN_TYPE::NONE;
+				if (EscDotCom && (*source == '/' || *source == '*')) {
+					tokenizing = *source == '/' ? TOKEN_TYPE::COMMENT_LINE : TOKEN_TYPE::COMMENT_BLOCK;
+					i--;
+					buffer[i] = '\0';
+					increment = true;
+				}
+
+				buf_size j = 0;
+				while (j < i)
+				{
+					const RegisteredSequence* iter = std::find_if(
+						std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_BEGIN,
+						std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_END,
+						[buffer, j](const RegisteredSequence& element) { return strncmp(&buffer[j], element.sequence, strlen(element.sequence)) == 0; }
+					);
+					if (iter != std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_END) {
+						tokens.emplace_back(line_start, tok_start, iter->tag, iter->value);
+						j += strlen(iter->sequence);
+						tok_start += strlen(iter->sequence);
+					}
+					else // Unsupported symbol.
+					{
+						tokenizerError(filename, line_start, tok_start, ERROR_MESSAGES[3], &buffer[j]);
+						return false;
+					}
+				}
+
+				EscDotCom = 0;
+				break;
+			}
+
+			if (i >= LENGTH_SYMBOL) {
+				tokenizerError(filename, line, column, ERROR_MESSAGES[4], "Symbol", LENGTH_SYMBOL);
+				return false;
+			}
+			increment = true;
+			break;
+
+		case TOKEN_TYPE::COMMENT_LINE:
+			if (*source == '\n')
+				tokenizing = TOKEN_TYPE::NONE;
+			increment = true;
+			break;
+
+		case TOKEN_TYPE::COMMENT_BLOCK:
+			if (EscDotCom && *source == '/')
+				tokenizing = TOKEN_TYPE::NONE;
+			EscDotCom = *source == '*';
+			increment = true;
+			break;
 		}
-	}
+	} while (*source != '\0');
 
 	return true;
 }

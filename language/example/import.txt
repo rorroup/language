@@ -1,0 +1,6 @@
+print(version());
+
+import("example/order_of_operations.txt");
+import("example/variables_scope.txt");
+import("example/arrays_and_indices.txt");
+import("example/control_flow.txt");

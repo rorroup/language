@@ -1,0 +1,29 @@
+print("============ CONTROL FLOW =============");
+
+target = 0;
+
+goto "position_" + target;
+
+label "position_2":
+
+target = 1;
+print("target = " + target);
+
+goto "position_" + target;
+
+label "position_0":
+
+i = 7;
+do{
+	print("i = " + i);
+	i = i + 4;
+}while(i < 17);
+else{ // no break;
+	print("The loop ended naturally. i = " + i);
+}
+
+goto "position_2";
+
+label "position_1":
+
+print("");
