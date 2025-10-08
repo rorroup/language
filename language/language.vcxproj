@@ -138,7 +138,6 @@
     <ClInclude Include="Parser.h" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="doc.txt" />
     <Text Include="example\arrays_and_indices.txt" />
     <Text Include="example\control_flow.txt" />
     <Text Include="example\import.txt" />

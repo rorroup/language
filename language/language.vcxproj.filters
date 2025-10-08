@@ -55,9 +55,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="doc.txt">
-      <Filter>example</Filter>
-    </Text>
     <Text Include="example\arrays_and_indices.txt">
       <Filter>example</Filter>
     </Text>
