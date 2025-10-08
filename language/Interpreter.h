@@ -8,6 +8,8 @@
 #include <string>
 #include "common.h"
 
+#define FUNCTION_RETURN_SINGLE
+
 // https://en.cppreference.com/w/cpp/container/unordered_map/unordered_map
 struct s_cstring_hash
 {

@@ -1182,10 +1182,12 @@ SOLVE_RESULT run(Thread_tL& thread)
 					Builtin_tL* builtin = calling.u_builtin;
 					state.lastSequence = state.solution[state.lastSequence].u_int;
 					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
+#ifdef FUNCTION_RETURN_SINGLE
 					size_t stack_size = state.solution.size();
+#endif // FUNCTION_RETURN_SINGLE
 					SOLVE_RESULT answer = builtin(arguments, state.solution, &thread);
+#ifdef FUNCTION_RETURN_SINGLE
 					if (answer == SOLVE_ERROR) return answer;
-					// Enforce ONE return value only.
 					if (state.solution.size() == stack_size) {
 						state.solution.emplace_back(token.line, token.column, LANGUAGE_TRUE_INT);
 					}
@@ -1193,6 +1195,7 @@ SOLVE_RESULT run(Thread_tL& thread)
 						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), LANGUAGE_INT(1), state.solution.size() - stack_size);
 						return SOLVE_ERROR;
 					}
+#endif // FUNCTION_RETURN_SINGLE
 					if (answer != SOLVE_OK) {
 						return answer;
 					}
@@ -1282,10 +1285,13 @@ SOLVE_RESULT run(Thread_tL& thread)
 			std::vector<Token> solution = std::move(state.solution);
 			thread.executing.pop_back();
 			if (!thread.executing.empty()) {
-				// Enforce single return.
+#ifdef FUNCTION_RETURN_SINGLE
 				if (solution.empty())			thread.executing.back().solution.emplace_back(0, 0, LANGUAGE_TRUE_INT);
 				else if (solution.size() == 1)	thread.executing.back().solution.push_back(std::move(solution.back()));
 				else							thread.executing.back().solution.emplace_back(0, 0, new Array_tL{ std::move(solution) });
+#else
+				thread.executing.back().solution.insert(thread.executing.back().solution.end(), std::make_move_iterator(solution.begin()), std::make_move_iterator(solution.end()));
+#endif // FUNCTION_RETURN_SINGLE
 			}
 		}
 	execution_end:
