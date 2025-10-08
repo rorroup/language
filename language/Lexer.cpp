@@ -1,51 +1,58 @@
 #include "Lexer.h"
 
+static const Token TOKEN_FALSE{ Token::INT, (long int)LANGUAGE_FALSE };
+static const Token TOKEN_TRUE{ Token::INT, (long int)LANGUAGE_TRUE };
+
 // https://stackoverflow.com/a/22676401
 // https://cplusplus.com/reference/algorithm/find_if/
 // https://stackoverflow.com/a/14595314
 static const std::pair<const char*, const Token> LanguageKeywords[] = {
-	{"true", Token{TOKEN_VALUE, (s_lang)(&VALUE_BOOL_TRUE)}},
-	{"false", Token{TOKEN_VALUE, (s_lang)(&VALUE_BOOL_FALSE)}},
-	{"if", Token{TOKEN_KEYWORD, KEYWORD_IF}},
-	{"elseif", Token{TOKEN_KEYWORD, KEYWORD_ELSEIF}},
-	{"else", Token{TOKEN_KEYWORD, KEYWORD_ELSE}},
-	{"for", Token{TOKEN_KEYWORD, KEYWORD_FOR}},
-	{"while", Token{TOKEN_KEYWORD, KEYWORD_WHILE}},
-	{"break", Token{TOKEN_KEYWORD, KEYWORD_BREAK}},
-	{"continue", Token{TOKEN_KEYWORD, KEYWORD_CONTINUE}},
-	//{"switch", Token{TOKEN_KEYWORD, KEYWORD_SWITCH}},
-	//{"case", Token{TOKEN_KEYWORD, KEYWORD_CASE}},
-	//{"default", Token{TOKEN_KEYWORD, KEYWORD_DEFAULT}},
-	{"function", Token{TOKEN_KEYWORD, KEYWORD_FUNCTION}},
-	{"return", Token{TOKEN_KEYWORD, KEYWORD_RETURN}},
+	{"true", TOKEN_TRUE},
+	{"false", TOKEN_FALSE},
+	{"if", Token{Token::IF, (long int)0}},
+	{"else", Token{Token::ELSE, (long int)0}},
+	{"for", Token{Token::FOR, (long int)0}},
+	{"while", Token{Token::WHILE, (long int)0}},
+	{"do", Token{Token::DO, (long int)0}},
+	{"break", Token{Token::BREAK, (long int)0}},
+	{"continue", Token{Token::CONTINUE, (long int)0}},
+	//{"switch", Token{TOKEN_KEYWORD, Token::SWITCH}},
+	//{"case", Token{TOKEN_KEYWORD, Token::CASE}},
+	//{"default", Token{TOKEN_KEYWORD, Token::DEFAULT}},
+	{"function", Token{Token::FUNCTION_DEF, (long int)0}},
+	{"return", Token{Token::RETURN, (long int)0}},
+	{"yield", Token{Token::YIELD, (long int)0}},
+	{"await", Token{Token::AWAIT, (long int)0}},
+	{"label", Token{Token::LABEL, (long int)0}},
+	{"goto", Token{Token::GOTO, (long int)0}},
 };
 
 static const std::pair<const char*, const Token> LanguageSymbols[] = {
-	{"==", Token{TOKEN_OPERATOR, OPERATOR_EQUAL_DOUBLE}},
-	{"!=", Token{TOKEN_OPERATOR, OPERATOR_EQUAL_NOT}},
-	{"<=", Token{TOKEN_OPERATOR, OPERATOR_LESSER_EQUAL}},
-	{">=", Token{TOKEN_OPERATOR, OPERATOR_GREATER_EQUAL}},
-	{"<<", Token{TOKEN_OPERATOR, OPERATOR_SHIFT_LEFT}},
-	{">>", Token{TOKEN_OPERATOR, OPERATOR_SHIFT_RIGHT}},
-	{"~", Token{TOKEN_OPERATOR, OPERATOR_FLIP}},
-	{"!", Token{TOKEN_OPERATOR, OPERATOR_NEGATION}},
-	{"+", Token{TOKEN_OPERATOR, OPERATOR_PLUS}},
-	{"-", Token{TOKEN_OPERATOR, OPERATOR_MINUS}},
-	{"*", Token{TOKEN_OPERATOR, OPERATOR_MULTIPLY}},
-	{"/", Token{TOKEN_OPERATOR, OPERATOR_DIVIDE}},
-	{"%", Token{TOKEN_OPERATOR, OPERATOR_REMAINDER}},
-	{"<", Token{TOKEN_OPERATOR, OPERATOR_LESSER}},
-	{">", Token{TOKEN_OPERATOR, OPERATOR_GREATER}},
-	{"=", Token{TOKEN_OPERATOR, OPERATOR_EQUAL}},
-	{";", Token{TOKEN_DELIMITER, DELIMITER_SEMICOLON}},
-	{",", Token{TOKEN_DELIMITER, DELIMITER_COMMA}},
-	//{":", Token{TOKEN_DELIMITER, DELIMITER_COLON}},
-	{"(", Token{TOKEN_DELIMITER, DELIMITER_PARENTHESIS_LEFT}},
-	{")", Token{TOKEN_DELIMITER, DELIMITER_PARENTHESIS_RIGHT}},
-	{"[", Token{TOKEN_DELIMITER, DELIMITER_BRACKET_LEFT}},
-	{"]", Token{TOKEN_DELIMITER, DELIMITER_BRACKET_RIGHT}},
-	{"{", Token{TOKEN_DELIMITER, DELIMITER_BRACE_LEFT}},
-	{"}", Token{TOKEN_DELIMITER, DELIMITER_BRACE_RIGHT}},
+	{"==", Token{Token::BINARY_EQUAL_DOUBLE, (long int)1}},
+	{"!=", Token{Token::BINARY_EQUAL_NOT, (long int)1}},
+	{"<=", Token{Token::BINARY_LESSER_EQUAL, (long int)1}},
+	{">=", Token{Token::BINARY_GREATER_EQUAL, (long int)1}},
+	{"<<", Token{Token::BINARY_SHIFT_LEFT, (long int)20}},
+	{">>", Token{Token::BINARY_SHIFT_RIGHT, (long int)20}},
+	{"~", Token{Token::UNARY_FLIP, (long int)100}},
+	{"!", Token{Token::UNARY_NEGATION, (long int)100}},
+	{"+", Token{Token::BINARY_ADD, (long int)10}},
+	{"-", Token{Token::BINARY_SUBSTRACT, (long int)10}},
+	{"*", Token{Token::BINARY_MULTIPLY, (long int)20}},
+	{"/", Token{Token::BINARY_DIVIDE, (long int)20}},
+	{"%", Token{Token::BINARY_MODULUS, (long int)20}},
+	{"<", Token{Token::BINARY_LESSER, (long int)1}},
+	{">", Token{Token::BINARY_GREATER, (long int)1}},
+	{"=", Token{Token::BINARY_EQUAL, (long int)0}},
+	{";", Token{Token::SEMICOLON, (long int)-1}},
+	{",", Token{Token::COMMA, (long int)-1}},
+	{":", Token{Token::COLON, (long int)-20}},
+	{"(", Token{Token::PARENTHESIS_OPEN, (long int)-10}},
+	{")", Token{Token::PARENTHESIS_CLOSE, (long int)-10}},
+	{"[", Token{Token::BRACKET_OPEN, (long int)-10}},
+	{"]", Token{Token::BRACKET_CLOSE, (long int)-10}},
+	{"{", Token{Token::BRACE_OPEN, (long int)-100}},
+	{"}", Token{Token::BRACE_CLOSE, (long int)-100}},
 };
 
 // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
@@ -70,27 +77,38 @@ const char* readfile(const char* file_name)
 
 bool tokenize_source(const char* source, std::vector<Token>& tokens)
 {
-	tokens.clear();
 	while (*source != '\0') {
 		if (isspace(*source))
 		{
 			source++;
 			continue;
 		}
-		if (tokens.size() == TOKEN_MAX) { // Check container size before pushing more tokens.
+		if (tokens.size() >= TOKEN_MAX) { // Check container size before pushing more tokens.
 			tokenizerError("Unable to contain more than %d tokens at a time.", TOKEN_MAX);
 			return false;
 		}
 		buf_size i = 0;
 		if (isdigit(*source))
 		{
+			enum NUMBER_TYPE : unsigned char {
+				NUMBER_DECIMAL = 0,
+				NUMBER_FLOAT = 1,
+				NUMBER_BINARY = 2,
+				NUMBER_HEXADECIMAL = 3,
+			} modifier = NUMBER_DECIMAL;
 			char buffer[LENGTH_NUMBER];
 			memset(buffer, '\0', LENGTH_NUMBER);
-			unsigned char modifier = NUMBER_DECIMAL;
 			while (true)
 			{
-				if (isdigit(*source))
+				if (isxdigit(*source))
 				{
+					if (*source == 'b' && i == 1 && buffer[0] == '0' && modifier == NUMBER_DECIMAL) {
+						modifier = NUMBER_BINARY;
+					}
+					else if (((modifier == NUMBER_DECIMAL || modifier == NUMBER_FLOAT) && !isdigit(*source)) || (modifier == NUMBER_BINARY && *source != '0' && *source != '1')) {
+						tokenizerError("Character '%c' is incompatible with number '%s' of type '%d'.", *source, buffer, modifier);
+						return false;
+					}
 					buffer[i] = *source;
 					i++;
 				}
@@ -103,17 +121,6 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 					}
 					else {
 						tokenizerError("Number '%s' can not contain an additional period.", buffer);
-						return false;
-					}
-				}
-				else if (*source == 'b') {
-					if (modifier == NUMBER_DECIMAL && i == 1 && buffer[0] == '0') {
-						buffer[i] = 'b';
-						i++;
-						modifier = NUMBER_BINARY;
-					}
-					else {
-						tokenizerError("Number '%s' can not be treated as binary.", buffer);
 						return false;
 					}
 				}
@@ -133,29 +140,24 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 					switch (modifier)
 					{
 					case NUMBER_DECIMAL:
-						tokens.push_back(Token{ TOKEN_VALUE, (s_lang)(new Value{VALUE_INT, (t_value)strtoll(buffer, NULL, 10)}) });
+						tokens.push_back(Token(Token::INT, strtol(buffer, NULL, 10)));
 						break;
 					case NUMBER_FLOAT:
-						{
-							float f = (float)atof(buffer);
-							t_value n = 0;
-							memcpy(&n, &f, sizeof(float));
-							tokens.push_back(Token{ TOKEN_VALUE, (s_lang)(new Value{VALUE_FLOAT, n}) });
-						}
+						tokens.push_back((Token{ Token::FLOAT, (float)atof(buffer) }));
 						break;
 					case NUMBER_BINARY:
 						if (i <= 2) {
 							tokenizerError("Binary number '%s' is empty.", buffer);
 							return false;
 						}
-						tokens.push_back(Token{ TOKEN_VALUE, (s_lang)(new Value{VALUE_INT, (t_value)strtoll(&buffer[2], NULL, 2)}) });
+						tokens.push_back((Token(Token::INT, strtol(&buffer[2], NULL, 2))));
 						break;
 					case NUMBER_HEXADECIMAL:
 						if (i <= 2) {
 							tokenizerError("Hexadecimal number '%s' is empty.", buffer);
 							return false;
 						}
-						tokens.push_back(Token{ TOKEN_VALUE, (s_lang)(new Value{VALUE_INT, (t_value)strtoll(&buffer[2], NULL, 16)}) });
+						tokens.push_back((Token(Token::INT, strtol(&buffer[2], NULL, 16))));
 						break;
 					default:
 						tokenizerError("Unknown number type '%d'.", modifier);
@@ -183,18 +185,18 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 				}
 				else /*TODO: Support comments.*/
 				{
-					const std::pair<const char*, const Token>* iter = std::find_if(std::begin(LanguageKeywords), std::end(LanguageKeywords), [buffer](std::pair<const char*, const Token> element) {return strlen(buffer) == strlen(element.first) && strcmp(buffer, element.first) == 0; });
+					const std::pair<const char*, const Token>* iter = std::find_if(std::begin(LanguageKeywords), std::end(LanguageKeywords), [buffer, i](std::pair<const char*, const Token> element) { return strlen(element.first) == i && strcmp(buffer, element.first) == 0; });
 					if (iter == std::end(LanguageKeywords))
 					{
-						printDebug("'%s' is not a reserved word. Treating as identifier.", buffer); // TODO: Remove.
-						char* identifier = new char[i + 1];
-						memcpy(identifier, buffer, i + 1);
-						tokens.push_back(Token{ TOKEN_IDENTIFIER, (s_lang)identifier });
+						char* s = new char[i + 1];
+						memcpy(s, buffer, i + 1);
+						printDebug("'%s' is not a reserved word. Treating as identifier.", s); // TODO: Remove.
+						tokens.push_back((Token{ Token::IDENTIFIER, s }));
 					}
 					else
 					{
 						printDebug("Found reserved word '%s'", buffer); // TODO: Remove.
-						tokens.push_back(iter->second);
+						tokens.push_back((iter->second));
 					}
 					break;
 				}
@@ -221,9 +223,10 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 				}
 				else if (*source == '"' && escaped == 0)
 				{
-					char* text = new char[i + 1];
-					memcpy(text, buffer, i + 1);
-					tokens.push_back(Token{ TOKEN_VALUE, (s_lang)(new Value{VALUE_STRING, text}) });
+					str_tok s = new char[STR_OWN_STR(i + 1)];
+					STR_OWNERS(s) = 1;
+					memcpy(STR_OWN_STR(s), buffer, i + 1);
+					tokens.push_back((Token{ Token::STRING, s }));
 					source++;
 					break;
 				}
@@ -250,9 +253,9 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 					buf_size j = 0;
 					while (j < i)
 					{
-						const std::pair<const char*, const Token>* iter = std::find_if(std::begin(LanguageSymbols), std::end(LanguageSymbols), [buffer, j](std::pair<const char*, const Token> element) {return strlen(&buffer[j]) >= strlen(element.first) && strncmp(&buffer[j], element.first, strlen(element.first)) == 0; });
+						const std::pair<const char*, const Token>* iter = std::find_if(std::begin(LanguageSymbols), std::end(LanguageSymbols), [buffer, j](std::pair<const char*, const Token> element) {return strncmp(&buffer[j], element.first, strlen(element.first)) == 0; });
 						if (iter != std::end(LanguageSymbols)) {
-							tokens.push_back(iter->second);
+							tokens.push_back((iter->second));
 							j += strlen(iter->first);
 						}
 						else // Unsupported symbol.
@@ -275,5 +278,7 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 			}
 		}
 	}
+
+	// TODO: Resize to its size?
 	return true;
 }

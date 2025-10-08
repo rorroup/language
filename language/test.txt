@@ -1,12 +1,87 @@
 
-n = 12;
-i = 0;
+x = 2;
 
-x = 3;
-
-while(i < n){
-	x = x+1;
-	i = i + 1;
+function yield_test(){
+	v = 11;
+	yield v;
+	v = 22;
+	yield v;
+	v = 33;
+	return v;
 }
 
-x;
+goto "skipped_" + x;
+
+print("Got " + yield_test());
+
+label "skipped_1":
+
+print("Got " + yield_test());
+
+label "skipped_2":
+
+print("Got " + yield_test());
+print("Got " + yield_test());
+
+
+
+set_x_and_y = function(a, b){
+	x = a;
+	y = b;
+	print("a is " + a + " and b is " + b + ".");
+	print("x is " + x + " and y is " + y + ".");
+	return 0;
+}
+
+set_x_and_y(77, 99);
+
+print("x is " + x);
+
+
+j = 26;
+do{
+	print("It has the value " + j + ".");
+	j = j + 5;
+}while(j < 42);
+else{
+	print("It ended up being " + j + ".");
+}
+print("????");
+
+
+function f_inner(){
+	print("THIS IS THE INNERMOST FUNCTION!");
+	await;
+	return 0;
+}
+
+function dialogue(n){
+	print(n + " is a very interesting number");
+	await;
+	f_inner();
+	print("'dialogue' function end.");
+	return 0;
+}
+
+function talk(a, b){
+	print("I received numbers " + a + " and " + b + ".");
+	await;
+	w = a + b;
+	dialogue(w);
+	print(w + " is my final answer?");
+	await;
+	print("How the maximium??");
+	q = max(a, b);
+	dialogue(q);
+	print("'talk' is over!!!");
+	return 0;
+}
+
+
+talk(5, 2);
+dialogue(33);
+
+"test" + " " + 42;
+
+return;
+

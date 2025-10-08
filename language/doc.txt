@@ -55,22 +55,3 @@ VARIABLE
 * Evaluated by looking up its associated value into a table
 */
 
-/////////////////////////////////
-
-a = 3;
-phrase = "testing";
-result = 1 + 10;
-bigger = max(1, 5);
-thing = (1 + 2) * 3;
-
-fx = function(x){
-	return x;
-}
-
-for(i = 0; i < 10; i += 1){
-	
-}
-
-numbers = [0, 1, 2, 3, 4];
-
-x = y = 3;

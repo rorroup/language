@@ -1,771 +1,1069 @@
 #include "Parser.h"
 
-Parser::Parser()
+#define PARSE_ERROR -1
+
+/*
+Returns the number of elements in the sequence.
+*/
+short int Parser::parse_sequence(Function& function, const tok_tag separator_symbol = Token::COMMA)
 {
-	index = 0;
-	tokens.clear();
+	std::vector<Token>& program = function.program;
+	int elements = 0;
+	while (tokenIndex < tokens.size())
+	{
+		tok_tag parsed = parse_operation(function);
+		if (parsed == PARSE_ERROR) {
+			return PARSE_ERROR;
+		}
+		if (parsed == 0) {
+			break;
+		}
+		if (elements >= SHRT_MAX) {
+			printError("Sequences can not be grater that '%d' elements long.", SHRT_MAX);
+			return PARSE_ERROR;
+		}
+		elements++;
+		if (tokenIndex >= tokens.size()) {
+			break;
+		}
+		if (tokens[tokenIndex].type_ != separator_symbol) {
+			break;
+		}
+		tokenIndex++;
+	}
+	return elements;
 }
 
-bool Parser::tokenRetrieve(Token& hold, char offset = 0)
+/*
+Returns the id of the last parsed structure.
+*/
+tok_tag Parser::parse_operation(Function& function)
 {
-	if (tokens.size() == 0)
-	{
-		printWarning("tokenRetrieve: No tokens.");
-		return false;
-	}
-	if ((index + offset) < 0 || tokens.size() <= (index + offset))
-	{
-		printWarning("index %hd out of bounds.", index + offset);
-		return false;
-	}
-	hold = tokens[index + offset];
-	return true;
-}
+	static const Token TOKEN_POSITIVE{ Token::UNARY_POSITIVE, (long int)100 };
+	static const Token TOKEN_NEGATIVE{ Token::UNARY_NEGATIVE, (long int)100 };
 
-bool Parser::parse_operand(Expression*& root)
-{
-	root = nullptr;
-	Expression** leaf = &root;
-	Token current;
-	while (tokenRetrieve(current))
+	std::vector<Token>& program = function.program;
+	std::vector<Token> hold;
+	bool operandLast = false; // TODO: deprecate in favor of typeLast.
+	bool functionLast = false; // TODO: deprecate in favor of typeLast.
+	tok_tag typeLast = 0;
+	int parenthesis = 0;
+
+	while (tokenIndex < tokens.size())
 	{
-		switch (current.type_)
+		Token& token = tokens[tokenIndex];
+
+		switch (token.type_)
 		{
-		case TOKEN_VALUE:
-			*leaf = (Value*)(current.value);
-			index++;
-			return true;
-		case TOKEN_IDENTIFIER:
-			{
-				index++;
-				Token following;
-				if (tokenRetrieve(following)) // Discern between variable and function call.
-				{
-					if (following.type_ == TOKEN_DELIMITER && following.value == DELIMITER_PARENTHESIS_LEFT)
-					{
-						index++;
-						FunctionCall* x = new FunctionCall{ (char*)(current.value) };
-						build_sequence(x->args, DELIMITER_COMMA, EXPRESSION_OPERATION);
-						Token closing;
-						if (tokenRetrieve(closing))
-						{
-							if (closing.type_ == TOKEN_DELIMITER && closing.value == DELIMITER_PARENTHESIS_RIGHT)
-							{
-								*leaf = x;
-								index++;
-								return true;
-							}
-						}
-						parserError("Missing closing parenthesis in function call.");
-						return false;
-					}
+		case Token::NONE:
+		case Token::INT:
+		case Token::FLOAT:
+		case Token::STRING:
+		case Token::IDENTIFIER:
+			if (operandLast) {
+				if (functionLast) { // No operator thus assume new instruction.
+					goto flush_hold;
+					break;
 				}
-				Variable* v = new Variable{ (char*)(current.value) };
-				*leaf = v;
-				return true;
+				printError("Operands may not be immediately followed by another one.");
+				return PARSE_ERROR;
 			}
-		case TOKEN_OPERATOR:
-			switch (current.value)
-			{
-			case OPERATOR_FLIP:
-			case OPERATOR_NEGATION:
-			case OPERATOR_PLUS:
-			case OPERATOR_MINUS:
-				{
-					Unary* u = new Unary{ current.value, nullptr };
-					*leaf = u;
-					leaf = &u->child;
-					// TODO: leaf = new Unary{current.value, leaf};
+			program.push_back(tokens[tokenIndex]);
+			tokenIndex++;
+			operandLast = true;
+			functionLast = false;
+			typeLast = token.type_;
+			break;
+
+		case Token::SEMICOLON:
+		case Token::COMMA:
+		case Token::BRACE_OPEN:
+		case Token::BRACE_CLOSE:
+		case Token::BRACKET_CLOSE:
+		case Token::COLON:
+			goto flush_hold; //https://en.cppreference.com/w/cpp/language/goto
+			break;
+		case Token::BINARY_EQUAL:
+			hold.push_back(tokens[tokenIndex]);
+			tokenIndex++;
+			operandLast = false;
+			functionLast = false;
+			typeLast = token.type_;
+			break;
+		case Token::BRACKET_OPEN:
+			if (operandLast) { // Index.
+				tokenIndex++;
+				if (parse_operation(function) == PARSE_ERROR) {
+					return PARSE_ERROR;
 				}
-				break;
-			default:
-				parserError("'%llu' is an invalid unary operator.", current.value); // TODO: revert from operator enum to human readable symbol.
-				return false;
+				if (tokenIndex >= tokens.size()) {
+					printError("Expected ']' to indicate array index.");
+					return PARSE_ERROR;
+				}
+				if (tokens[tokenIndex].type_ != Token::BRACKET_CLOSE) {
+					printError("Expected ']' to indicate array index.");
+					return PARSE_ERROR;
+				}
+				tokenIndex++;
+				program.push_back(Token(Token::INDEX, (long int)0));
+				operandLast = true;
+				functionLast = false;
+				typeLast = tokens[tokenIndex].type_;
+			}
+			else { // Array.
+				tokenIndex++;
+				short int numer_of_elements = parse_sequence(function, Token::COMMA);
+				if (numer_of_elements == PARSE_ERROR) {
+					return PARSE_ERROR;
+				}
+				if (tokenIndex >= tokens.size()) {
+					printError("Expected ']' to end the array.");
+					return PARSE_ERROR;
+				}
+				if (tokens[tokenIndex].type_ != Token::BRACKET_CLOSE) {
+					printError("Expected ']' to end the array.");
+					return PARSE_ERROR;
+				}
+				tokenIndex++;
+				program.push_back(Token(Token::ARRAY_INIT, (long int)numer_of_elements));
+				operandLast = true;
+				functionLast = false;
+				typeLast = tokens[tokenIndex].type_;
 			}
 			break;
-		case TOKEN_DELIMITER:
-			switch (current.value)
+		case Token::PARENTHESIS_OPEN:
+			if (operandLast) { // Call.
+				tokenIndex++;
+				short int numer_of_arguments = parse_sequence(function, Token::COMMA);
+				if (numer_of_arguments == PARSE_ERROR) {
+					return PARSE_ERROR;
+				}
+				if (tokenIndex >= tokens.size()) {
+					printError("Expected ')' to end the function call.");
+					return PARSE_ERROR;
+				}
+				if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+					printError("Expected ')' to end the function call.");
+					return PARSE_ERROR;
+				}
+				tokenIndex++;
+				program.push_back(Token(Token::CALL, (long int)numer_of_arguments));
+				operandLast = true;
+				functionLast = false;
+				typeLast = tokens[tokenIndex].type_;
+			}
+			else { // Parenthesised expression.
+				hold.push_back(tokens[tokenIndex]);
+				tokenIndex++;
+				parenthesis++;
+				operandLast = false;
+				functionLast = false;
+				typeLast = token.type_; // TODO: Review.
+			}
+			break;
+		case Token::PARENTHESIS_CLOSE:
+			if (parenthesis == 0) {
+				goto flush_hold;
+				break;
+			}
+			if (!operandLast) {
+				printError("Parenthesis content must end in an operand.");
+				return PARSE_ERROR;
+				break;
+			}
+			parenthesis--;
+			while (!hold.empty())
 			{
-			case DELIMITER_PARENTHESIS_LEFT:
-				{
-					index++;
-					Expression* inner;
-					if (!parse_operation(inner)) {
-						return false;
-					}
-					if (inner == nullptr) {
-						parserError("Parenthesis is empty or not properly closed.");
-						return false;
-					}
-					Token closing;
-					if (tokenRetrieve(closing))
-					{
-						if (closing.type_ == TOKEN_DELIMITER && closing.value == DELIMITER_PARENTHESIS_RIGHT)
-						{
-							*leaf = inner;
-							index++;
-							return true;
-						}
-					}
-					parserError("Mismatched Parenthesis.");
-					return false;
+				if (hold.back().type_ == Token::PARENTHESIS_OPEN) {
+					break;
 				}
-			case DELIMITER_BRACKET_LEFT:
-				{
-					index++;
-					Array* v = new Array{};
-					if (!build_sequence(v->el, DELIMITER_COMMA, EXPRESSION_OPERATION))
-					{
-						return false;
-					}
-					Token closing;
-					if (tokenRetrieve(closing))
-					{
-						if (closing.type_ == TOKEN_DELIMITER && closing.value == DELIMITER_BRACKET_RIGHT)
-						{
-							*leaf = v;
-							index++;
-							return true;
-						}
-					}
-					parserError("Mismatched Brackets.");
-					return false;
-				}
-			case DELIMITER_PARENTHESIS_RIGHT:
-			case DELIMITER_BRACKET_RIGHT:
-			case DELIMITER_BRACE_RIGHT:
-			case DELIMITER_COMMA:
-			case DELIMITER_SEMICOLON:
-				if (root == nullptr) {
-					return true;
-				}
-				else {
-					parserError("Unexpected delimiter %lld.", current.value); // TODO: revert to symbol.
-					return false;
-				}
-			case DELIMITER_BRACE_LEFT:
-			default:
-				parserError("Unexpected delimiter %lld.", current.value); // TODO: revert to symbol.
-				return false;
+				program.push_back(hold.back());
+				hold.pop_back();
 			}
-		case TOKEN_KEYWORD:
-			if (current.value == KEYWORD_FUNCTION) {
-				if (!build_function(*leaf))
-				{
-					return false;
-				}
-				if (*leaf == nullptr)
-				{
-					parserError("Function Expression returned 'NULL' which is impossible.(2)"); // TODO: Remove.
-					return false;
-				}
-				if ((*leaf)->exp != EXPRESSION_FUNCTION)
-				{
-					parserError("Returned Expression is not a Function which is impossible.(3)"); // TODO: Remove.
-					return false;
-				}
-				return true;
+			if (hold.empty()) {
+				printError("Mismatched Parenthesis! 0");
+				return PARSE_ERROR;
+				break;
 			}
-			parserError("Keyword '%lld' can not form an operand."); // TODO: revert enum.
-			return false;
-		default:
-			parserError("Invalid Token type '%lld'.", current.type_);
-			return false;
-		}
-		index++;
-	}
-	parserError("Failed to form a valid operand.");
-	return false;
-}
+			if (hold.back().type_ != Token::PARENTHESIS_OPEN) {
+				printError("Mismatched Parenthesis!");
+				return PARSE_ERROR;
+				break;
+			}
+			hold.pop_back();
+			tokenIndex++;
+			operandLast = true;
+			functionLast = false;
+			typeLast = token.type_;
+			break;
 
-bool Parser::parse_operandIndex(Expression*& root)
-{
-	if (!parse_operand(root)) {
-		return false;
-	}
-	Token current;
-	if (tokenRetrieve(current)) {
-		if (current.type_ == TOKEN_DELIMITER && current.value == DELIMITER_BRACKET_LEFT) {
-			index++;
-			Expression* e = nullptr;
-			if (parse_operation(e)) {
-				if (e != nullptr) {
-					root = new Index{ root, e };
-					Token closing;
-					if (tokenRetrieve(closing)) {
-						if (closing.type_ == TOKEN_DELIMITER && closing.value == DELIMITER_BRACKET_RIGHT) {
-							index++;
-							return true;
-						}
-					}
-					parserError("Missing Right Bracket for Array indexing.");
-				}
-				else {
-					parserError("Brackets are empty or not properly closed.");
-				}
-			}
-			return false;
-		}
-	}
-	return true;
-}
-
-bool Parser::parse_operation(Expression*& root)
-{
-	if (!parse_operandIndex(root)) {
-		return false;
-	}
-	if (root == nullptr) {
-		return true;
-	}
-	Expression** leaves[3] = { &root, &root, &root }; // 0 is the leaf-most.
-	Token current;
-	while (tokenRetrieve(current))
-	{
-		if (current.type_ == TOKEN_OPERATOR)
+		case Token::FUNCTION_DEF:
 		{
-			switch (current.value)
-			{
-			case OPERATOR_MULTIPLY:
-			case OPERATOR_DIVIDE:
-			case OPERATOR_REMAINDER:
-			case OPERATOR_SHIFT_LEFT:
-			case OPERATOR_SHIFT_RIGHT:
-				{
-					index++;
-					Expression* operand;
-					if (!parse_operandIndex(operand)) {
-						return false;
-					}
-					Binary* bin = new Binary{ current.value, *leaves[1], operand };
-					*leaves[1] = bin;
-					leaves[0] = &bin->right;
+			if (operandLast) {
+				if (functionLast) {
+					goto flush_hold;
+					break;
 				}
-				break;
-			case OPERATOR_PLUS:
-			case OPERATOR_MINUS:
-			case OPERATOR_LESSER:
-			case OPERATOR_GREATER:
-			case OPERATOR_LESSER_EQUAL:
-			case OPERATOR_GREATER_EQUAL:
-			case OPERATOR_EQUAL_DOUBLE:
-				{
-					index++;
-					Expression* operand;
-					if (!parse_operandIndex(operand)) {
-						return false;
-					}
-					Binary* bin = new Binary{ current.value, *leaves[2], operand };
-					*leaves[2] = bin;
-					leaves[1] = &bin->right;
-					leaves[0] = &bin->right;
-				}
-				break;
-			case OPERATOR_EQUAL:
-				{
-					index++;
-					Expression* operand;
-					if (!parse_operandIndex(operand)) {
-						return false;
-					}
-					Binary* bin = new Binary{ current.value, *leaves[0], operand };
-					*leaves[0] = bin;
-					leaves[0] = &bin->right;
-					leaves[1] = &bin->right;
-					leaves[2] = &bin->right;
-				}
-				break;
-			default:
-				parserError("Unknown Operator '%lld'.", current.value);
-				return false;
+				printError("Operands may not be immediately followed by another one.");
+				return PARSE_ERROR;
 			}
+			Function* func = new Function{};
+			if (parse_function(*func) == PARSE_ERROR) {
+				return PARSE_ERROR;
+			}
+			if (func->name != nullptr) {
+				printError("Global functions can not form part of an operation.");
+				return PARSE_ERROR;
+			}
+			program.push_back(Token(Token::FUNCTION, func));
+			loaded->push_back(func); // Register function.
+			operandLast = true;
+			functionLast = true;
+			typeLast = token.type_;
 		}
-		else {
+		break;
+
+		case Token::IF:
+		case Token::ELSE:
+		case Token::FOR:
+		case Token::WHILE:
+		case Token::DO:
+		case Token::BREAK:
+		case Token::CONTINUE:
+		case Token::LABEL:
+		case Token::RETURN:
+		case Token::YIELD:
+		case Token::AWAIT:
+		case Token::GOTO:
+			goto flush_hold;
+			break;
+
+		case Token::ARRAY:
+		case Token::INDEX:
+		case Token::ARRAY_INIT:
+		case Token::CALL:
+		case Token::BUILTIN:
+		case Token::FUNCTION:
+		case Token::YIELDED:
+
+		case Token::JUMP:
+		case Token::JUMP_ON_FALSE:
+		case Token::JUMP_ON_TRUE:
+		case Token::JUMP_NEXT:
+			printError("Token type '%hhd' may never come from the tokenized stream.", token.type_);
+			return PARSE_ERROR;
+			break;
+
+		default: // Operator.
+			if (!operandLast) {
+				if (token.type_ == Token::BINARY_ADD) token = TOKEN_POSITIVE;
+				if (token.type_ == Token::BINARY_SUBSTRACT) token = TOKEN_NEGATIVE;
+			}
+			while (!hold.empty())
+			{
+				if (token.num <= hold.back().num) { // Left Parenthesis and Equal have the lowest precedence.
+					program.push_back(hold.back());
+					hold.pop_back();
+				}
+				else {
+					break;
+				}
+			}
+			hold.push_back(tokens[tokenIndex]);
+			tokenIndex++;
+			operandLast = false;
+			functionLast = false;
+			typeLast = token.type_;
 			break;
 		}
 	}
-	return true;
+
+flush_hold:
+	while (!hold.empty())
+	{
+		program.push_back(std::move(hold.back()));
+		hold.pop_back();
+	}
+
+	if (parenthesis != 0) {
+		printError("Parenthesis are mismatched.");
+		return PARSE_ERROR;
+	}
+
+	if (Token::UNARY_FLIP <= typeLast && typeLast < Token::SEMICOLON) {
+		printError("Non empty operations must end in an operand.");
+		return PARSE_ERROR;
+	}
+
+	return typeLast;
 }
 
-bool Parser::build_sequence(std::vector<Expression*>& sequence, s_lang delimiter = DELIMITER_COMMA, s_lang allowed = EXPRESSION_OPERATION)
+char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 {
-	sequence.clear();
-	while (true)
-	{
-		Expression* element = nullptr;
-		if (!parse_operation(element))
-		{
-			return false;
-		}
-		if (element == nullptr) {
-			return true;
-		}
+	std::vector<Token>& program = function.program;
+	bool branches = false;
+	int condition_index = -1;
+	std::vector<size_t> block_end_index{};
 
-		if (element->exp & allowed & LANGUAGE_MASK)
-		{
-			sequence.push_back(element);
-			Token separator;
-			if (!tokenRetrieve(separator)) {
+	while (tokenIndex < tokens.size()) {
+		int keyword_num = tokens[tokenIndex].type_;
+
+		if (keyword_num == Token::IF) {
+			if (branches) {
 				break;
 			}
-			if (separator.type_ == TOKEN_DELIMITER && separator.value == delimiter) {
-				index++;
+		}
+		else if (keyword_num == Token::ELSE) {
+			if (!branches) { // IF
+				printError("Expected 'if'.");
+				return PARSE_ERROR;
+			}
+
+			tokenIndex++;
+			if (tokenIndex < tokens.size()) {
+				if (tokens[tokenIndex].type_ == Token::IF) {
+					keyword_num = Token::IF; // ELSE IF
+				}
+				else {
+					tokenIndex--;
+				}
 			}
 			else {
-				return true;
+				tokenIndex--;
 			}
 		}
 		else {
-			parserError("Sequence can not contain Expression of type '%lld'.", element->exp);
-			return false;
+			if (!branches) { // IF
+				printError("Expected 'if'.");
+				return PARSE_ERROR;
+			}
+			break;
+		}
+		tokenIndex++;
+
+		if (branches) {
+			block_end_index.push_back(program.size());
+			program.push_back(Token(Token::JUMP, (long int)-1));
+
+			program[condition_index].num = program.size();
+		}
+
+		condition_index = -1;
+		if (keyword_num == Token::IF) {
+			if (tokenIndex >= tokens.size()) {
+				printError("Expected '('.");
+				return PARSE_ERROR;
+			}
+			if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+				printError("Expected '('.");
+				return PARSE_ERROR;
+			}
+			tokenIndex++;
+
+			tok_tag parsed = parse_operation(function);
+			if (parsed == PARSE_ERROR) {
+				return PARSE_ERROR;
+			}
+			if (parsed == 0) {
+				printError("If condition can not be empty.");
+				return PARSE_ERROR;
+			}
+			condition_index = program.size();
+			program.push_back(Token(Token::JUMP_ON_FALSE, (long int)-1));
+
+			if (tokenIndex >= tokens.size()) {
+				printError("Expected ')'.");
+				return PARSE_ERROR;
+			}
+			if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+				printError("Expected ')'.");
+				return PARSE_ERROR;
+			}
+			tokenIndex++;
+		}
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected '{'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+			printError("Expected '{'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+
+		if (parse_instructions(function, interrupts) == PARSE_ERROR) {
+			return PARSE_ERROR;
+		}
+
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected '}'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+			printError("Expected '}'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+
+		branches = true;
+		if (keyword_num == Token::ELSE) {
+			break;
 		}
 	}
-	return ERROR_NONE;
+
+	if (condition_index >= 0) {
+		program[condition_index].num = program.size();
+	}
+
+	for (const size_t& index : block_end_index) {
+		program[index].num = program.size();
+	}
+
+	return true;
 }
 
-bool Parser::build_loop(Expression*& root)
+char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 {
-	Token loop_type;
-	if (!tokenRetrieve(loop_type)) {
-		return true;
+	std::vector<Token>& program = function.program;
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected loop formulation.");
+		return PARSE_ERROR;
 	}
-	if (loop_type.type_ != TOKEN_KEYWORD || (loop_type.value != KEYWORD_FOR && loop_type.value != KEYWORD_WHILE)) {
-		parserError("Invalid loop type.");
-		return false;
+	const Token& keyword = tokens[tokenIndex];
+	if (keyword.type_ != Token::FOR && keyword.type_ != Token::WHILE && keyword.type_ != Token::DO) {
+		printError("Expected loop formulation.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	if (keyword.type_ != Token::DO) {
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected '('.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+			printError("Expected '('.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
 	}
 
-	index++;
-	Token current;
-	if (!tokenRetrieve(current)) {
-		parserError("Unfinished loop definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_PARENTHESIS_LEFT) {
-		parserError("Loop definition expected left Parenthesis.");
-		return false;
+	if (keyword.type_ == Token::FOR) {
+		tok_tag loop_init = parse_operation(function);
+		if (loop_init == PARSE_ERROR) {
+			return PARSE_ERROR;
+		}
+		if (loop_init != 0) {
+			program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+		}
+
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected ';'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::SEMICOLON) {
+			printError("Expected ';'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
 	}
 
-	index++;
-	std::vector<Expression*> loop_guard;
-	loop_guard.clear();
-	if (!build_sequence(loop_guard, DELIMITER_SEMICOLON)) {
-		return false;
+	Function condition_content{};
+	tok_tag loop_condition = 0;
+	if (keyword.type_ != Token::DO) {
+		loop_condition = parse_operation(condition_content);
+		if (loop_condition == PARSE_ERROR) {
+			return PARSE_ERROR;
+		}
+		if (loop_condition == 0 && keyword.type_ == Token::WHILE) {
+			printError("While loop condition can not be missing.");
+			return PARSE_ERROR;
+		}
 	}
-	std::vector<Expression*>* instructions;
-	if (loop_type.value == KEYWORD_WHILE && loop_guard.size() == 1)
-	{
-		WhileLoop* loop = new WhileLoop{};
-		loop->condition = loop_guard[0];
-		instructions = &loop->instructions;
-		root = loop;
+
+	tok_tag loop_increment = 0;
+	Function increment_content{};
+	if (keyword.type_ == Token::FOR) {
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected ';'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::SEMICOLON) {
+			printError("Expected ';'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+
+		loop_increment = parse_operation(increment_content);
+		if (loop_increment == PARSE_ERROR) {
+			return PARSE_ERROR;
+		}
 	}
-	else if (loop_type.value == KEYWORD_FOR && loop_guard.size() == 3)
-	{
-		ForLoop* loop = new ForLoop{};
-		memcpy(loop->guard, &loop_guard[0], 3 * (sizeof(Expression*)));
-		instructions = &loop->instructions;
-		root = loop;
+
+	tok_size loop_start = program.size();
+
+	if (keyword.type_ == Token::FOR && loop_increment != 0) {
+		const tok_size init_jump = program.size();
+		program.push_back(Token(Token::JUMP, (long int)-1));
+		loop_start = program.size();
+		for (Token& token : increment_content.program) {
+			program.push_back(std::move(token));
+		}
+		program.push_back(Token(Token::JUMP_NEXT, (long int)1));
+		program[init_jump].num = program.size();
+	}
+
+	tok_size condition_jump = -1;
+	if (keyword.type_ != Token::DO && loop_condition != 0) {
+		for (Token& token : condition_content.program) {
+			program.push_back(std::move(token));
+		}
+		condition_jump = program.size();
+		program.push_back(Token(Token::JUMP_ON_FALSE, (long int)-1));
+	}
+
+	if (keyword.type_ != Token::DO) {
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected ')'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+			printError("Expected ')'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+	}
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected '{'.");
+		return PARSE_ERROR;
+	}
+	if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+		printError("Expected '{'.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	std::vector<int> interruptions[2] = { std::vector<int>{}, std::vector<int>{} };
+	if (parse_instructions(function, interruptions) == PARSE_ERROR) {
+		return PARSE_ERROR;
+	}
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected '}'.");
+		return PARSE_ERROR;
+	}
+	if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+		printError("Expected '}'.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	if (keyword.type_ == Token::DO) {
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected 'while'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::WHILE) {
+			printError("Expected 'while'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected '('.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+			printError("Expected '('.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+
+		for (const auto& index : interruptions[1]) // continue;
+		{
+			program[index].num = program.size();
+		}
+
+		loop_condition = parse_operation(function);
+		if (loop_condition == PARSE_ERROR) {
+			return PARSE_ERROR;
+		}
+		if (loop_condition == 0) {
+			printError("Do While loop condition can not be missing.");
+			return PARSE_ERROR;
+		}
+		program.push_back(Token(Token::JUMP_ON_TRUE, (long int)loop_start));
+
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected ')'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+			printError("Expected ')'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
+
+		if (tokenIndex >= tokens.size()) {
+			printError("Expected ';'.");
+			return PARSE_ERROR;
+		}
+		if (tokens[tokenIndex].type_ != Token::SEMICOLON) {
+			printError("Expected ';'.");
+			return PARSE_ERROR;
+		}
+		tokenIndex++;
 	}
 	else {
-		parserError("Mismatched loop guard size %d.", loop_guard.size());
-		return false;
-	}
+		program.push_back(Token(Token::JUMP, (long int)loop_start));
 
-	if (!tokenRetrieve(current)) {
-		parserError("Unterminated loop definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_PARENTHESIS_RIGHT) {
-		parserError("Missing closing Parenthesis.");
-		return false;
-	}
-
-	index++;
-	if (!tokenRetrieve(current)) {
-		parserError("Unterminated loop definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_BRACE_LEFT) {
-		parserError("Missing opening Brace.");
-		return false;
-	}
-
-	index++;
-	if (!build_program(*instructions)) {
-		return false;
-	}
-
-	if (!tokenRetrieve(current)) {
-		parserError("Unterminated loop definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_BRACE_RIGHT) {
-		parserError("Missing closing Brace.");
-		return false;
-	}
-
-	index++;
-	return true;
-}
-
-bool Parser::build_function(Expression*& root)
-{
-	Token current;
-	if (!tokenRetrieve(current)) {
-		parserError("Missing function declaration.");
-		return false;
-	}
-	if (current.type_ != TOKEN_KEYWORD || current.value != KEYWORD_FUNCTION) {
-		parserError("Missing function declaration.");
-		return false;
-	}
-
-	index++;
-	Function* func = new Function{ (t_value)"funcName" };
-	if (!tokenRetrieve(current)) {
-		parserError("Unterminated function definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_PARENTHESIS_LEFT) {
-		parserError("Malformed function definition missing opening Parenthesis.");
-		return false;
-	}
-
-	do {
-		index++;
-		if (!tokenRetrieve(current)) {
-			parserError("Unterminated function definition.");
-			return false;
+		if (loop_condition != 0) {
+			program[condition_jump].num = program.size();
 		}
-		if (current.type_ == TOKEN_IDENTIFIER)
+
+		for (const auto& index : interruptions[1]) // continue;
 		{
-			func->argnames.push_back((char*)current.value);
-			index++;
-			if (!tokenRetrieve(current)) {
-				parserError("Unterminated function arguments.");
-				return false;
+			program[index].num = loop_start;
+		}
+	}
+
+	if (tokenIndex < tokens.size()) {
+		if (tokens[tokenIndex].type_ == Token::ELSE) { // NO BREAK.
+			tokenIndex++;
+
+			if (tokenIndex >= tokens.size()) {
+				printError("Expected '{'.");
+				return PARSE_ERROR;
 			}
+			if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+				printError("Expected '{'.");
+				return PARSE_ERROR;
+			}
+			tokenIndex++;
+
+			if (parse_instructions(function, interrupts) == PARSE_ERROR) {
+				return PARSE_ERROR;
+			}
+
+			if (tokenIndex >= tokens.size()) {
+				printError("Expected '}'.");
+				return PARSE_ERROR;
+			}
+			if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+				printError("Expected '}'.");
+				return PARSE_ERROR;
+			}
+			tokenIndex++;
 		}
-		else {
+	}
+
+	for (const auto& index : interruptions[0]) // break;
+	{
+		program[index].num = program.size();
+	}
+
+	return true;
+}
+
+char Parser::parse_function(Function& function)
+{
+	function.name = nullptr; // TODO: maybe check if a function with the same name was already registered.
+	function.argnames.clear();
+	function.program.clear();
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected 'function' keyword.");
+		return PARSE_ERROR;
+	}
+	const Token keyword = tokens[tokenIndex];
+	if (keyword.type_ != Token::FUNCTION_DEF) {
+		printError("Expected 'function' keyword.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected function definition.");
+		return PARSE_ERROR;
+	}
+	if (tokens[tokenIndex].type_ == Token::IDENTIFIER) {
+		if (scopeLevel != 0) {
+			printError("Global functions may not be defined inside another function.");
+			return PARSE_ERROR;
+		}
+		size_t len = strlen(tokens[tokenIndex].str) + 1;
+		function.name = new char[len];
+		memcpy(function.name, tokens[tokenIndex].str, len);
+		tokenIndex++;
+	}
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected '('.");
+		return PARSE_ERROR;
+	}
+	if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+		printError("Expected '('.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	while (tokenIndex < tokens.size()) {
+		if (tokens[tokenIndex].type_ != Token::IDENTIFIER) {
 			break;
 		}
-	} while (current.type_ == TOKEN_DELIMITER && current.value == DELIMITER_COMMA);
+		function.argnames.push_back(tokens[tokenIndex].str);
+		tokenIndex++;
 
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_PARENTHESIS_RIGHT)
-	{
-		parserError("Missing closing Parenthesis.");
-		return false;
-	}
-
-	index++;
-	if (!tokenRetrieve(current)) {
-		parserError("Unterminated function definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_BRACE_LEFT) {
-		parserError("Missing opening Brace.");
-		return false;
-	}
-
-	index++;
-	if (!build_program(func->instructions)) {
-		return false;
-	}
-
-	if (!tokenRetrieve(current)) {
-		parserError("Unterminated function definition.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_BRACE_RIGHT) {
-		parserError("Missing closing Brace.");
-		return false;
-	}
-
-	index++;
-	root = func;
-	return true;
-}
-
-bool Parser::parse_conditionBranch_sub(ConditionalBranch& branch)
-{
-	Token current;
-	if (!tokenRetrieve(current)) {
-		parserError("Unfinished If Else block.");
-		return false;
-	}
-	if (current.type_ != TOKEN_KEYWORD || ((current.value != KEYWORD_IF && current.value != KEYWORD_ELSEIF && current.value != KEYWORD_ELSE))) {
-		parserError("Expected If Else statement.");
-		return false;
-	}
-
-	index++;
-	if (current.value == KEYWORD_IF || current.value == KEYWORD_ELSEIF)
-	{
-		if (!tokenRetrieve(current)) {
-			parserError("Unfinished If Else block.");
-			return false;
-		}
-		if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_PARENTHESIS_LEFT) {
-			parserError("Expected opening Parenthesis.");
-			return false;
-		}
-
-		index++;
-		if (!parse_operation(branch.condition)) {
-			return false;
-		}
-		if (branch.condition == nullptr) {
-			parserError("Condition is empty.");
-			return false;
-		}
-
-		if (!tokenRetrieve(current)) {
-			parserError("Unfinished If Else block.");
-			return false;
-		}
-		if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_PARENTHESIS_RIGHT) {
-			parserError("Expected closing Parenthesis.");
-			return false;
-		}
-
-		index++;
-	}
-	if (!tokenRetrieve(current)) {
-		parserError("Unfinished If Else block.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_BRACE_LEFT) {
-		parserError("Expected opening Brace.");
-		return false;
-	}
-
-	index++;
-	if (!build_program(branch.instructions)) {
-		return false;
-	}
-
-	if (!tokenRetrieve(current)) {
-		parserError("Unfinished If Else block.");
-		return false;
-	}
-	if (current.type_ != TOKEN_DELIMITER || current.value != DELIMITER_BRACE_RIGHT) {
-		parserError("Expected closing Brace.");
-		return false;
-	}
-
-	index++;
-	return true;
-}
-
-bool Parser::parse_conditionBranch(Expression*& root)
-{
-	root = nullptr;
-	Token current;
-	if (!tokenRetrieve(current)) {
-		parserError("Unfinished If Else block.");
-		return false;
-	}
-	if (current.type_ != TOKEN_KEYWORD || current.value != KEYWORD_IF) {
-		parserError("Expected 'If' keyword.");
-		return false;
-	}
-	ConditionalBranch branchIf = ConditionalBranch{};
-	if (!parse_conditionBranch_sub(branchIf)) {
-		return false;
-	}
-
-	Conditional* conditional = new Conditional();
-	conditional->branches.push_back(branchIf);
-	while (tokenRetrieve(current))
-	{
-		if (current.type_ != TOKEN_KEYWORD || current.value != KEYWORD_ELSEIF) {
+		if (tokenIndex >= tokens.size()) {
 			break;
 		}
-		ConditionalBranch branchElseif = ConditionalBranch{};
-		if (!parse_conditionBranch_sub(branchElseif)) {
-			return false;
+		if (tokens[tokenIndex].type_ != Token::COMMA) {
+			break;
 		}
-		conditional->branches.push_back(branchElseif);
+		tokenIndex++;
 	}
 
-	if (!tokenRetrieve(current)) {
-		return true;
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected ')'.");
+		return PARSE_ERROR;
 	}
-	if (current.type_ == TOKEN_KEYWORD && current.value == KEYWORD_ELSE) {
-		ConditionalBranch branchElse = ConditionalBranch{};
-		if (!parse_conditionBranch_sub(branchElse)) {
-			return false;
-		}
-		conditional->branches.push_back(branchElse);
+	if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+		printError("Expected ')'.");
+		return PARSE_ERROR;
 	}
-	root = conditional;
+	tokenIndex++;
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected '{'.");
+		return PARSE_ERROR;
+	}
+	if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+		printError("Expected '{'.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	scopeLevel++;
+	if (parse_instructions(function, nullptr) == PARSE_ERROR) {
+		return PARSE_ERROR;
+	}
+	scopeLevel--;
+
+	if (tokenIndex >= tokens.size()) {
+		printError("Expected '}'.");
+		return PARSE_ERROR;
+	}
+	if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+		printError("Expected '}'.");
+		return PARSE_ERROR;
+	}
+	tokenIndex++;
+
+	if (function.program.size() >= TOKEN_MAX) {
+		printError("Function reached the maximum amount of Tokens.");
+		return PARSE_ERROR;
+	}
+
 	return true;
 }
 
-bool Parser::parse_instruction(Expression*& root, s_lang terminated = EXPRESSION_OPERATION | EXPRESSION_INTERRUPT)
+char Parser::parse_instructions(Function& function, std::vector<int> interrupts[2] = nullptr)
 {
-	root = nullptr;
-	Token start;
-	if (!tokenRetrieve(start)) {
-		return true;
-	}
-	bool validate = true;
-	switch (start.type_)
+	std::vector<Token>& program = function.program;
+	while (tokenIndex < tokens.size())
 	{
-	case TOKEN_VALUE:
-	case TOKEN_IDENTIFIER:
-	case TOKEN_OPERATOR:
-		validate = parse_operation(root);
-		break;
-	case TOKEN_DELIMITER:
-		switch (start.value)
+		const Token& token = tokens[tokenIndex];
+
+		switch (token.type_)
 		{
-		
-		case DELIMITER_PARENTHESIS_LEFT:
-		case DELIMITER_BRACKET_LEFT:
-			validate = parse_operation(root);
-			break;
-		case DELIMITER_SEMICOLON:
-			index++;
-		case DELIMITER_PARENTHESIS_RIGHT:
-		case DELIMITER_BRACKET_RIGHT:
-		case DELIMITER_BRACE_RIGHT:
-			return true;
-		default:
-			parserError("Instruction can not begin with delimiter '%lld'.", start.value); // TODO: Revert.
-			return false;
-		}
-		break;
-	case TOKEN_KEYWORD:
-		switch (start.value)
+		case Token::NONE:
+		case Token::INT:
+		case Token::FLOAT:
+		case Token::STRING:
+		case Token::IDENTIFIER:
 		{
-		case KEYWORD_IF:
-			validate = parse_conditionBranch(root);
-			break;
-		case KEYWORD_FOR:
-		case KEYWORD_WHILE:
-			validate = build_loop(root);
-			break;
-			//case KEYWORD_SWITCH:
-			//	return ERROR_SYNTAX_ERROR;
-			//	break;
-		case KEYWORD_BREAK:
-			index++;
-			root = new Break{};
-			break;
-		case KEYWORD_CONTINUE:
-			index++;
-			root = new Continue{};
-			break;
-		case KEYWORD_FUNCTION:
-			validate = parse_operation(root);
-			break;
-		case KEYWORD_RETURN:
-			{
-				index++;
-				Expression* returned = nullptr;
-				validate = parse_operation(returned);
-				if (returned == nullptr) {
-					returned = (Expression*)(&VALUE_NULL_NULL);
+			tok_tag parse_result = parse_operation(function);
+			if (parse_result != PARSE_ERROR) {
+				if (parse_result != Token::FUNCTION_DEF) {
+					if (tokenIndex < tokens.size()) {
+						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+							tokenIndex++;
+							program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+							break;
+						}
+					}
+					printError("Expected semicolon.");
+					return PARSE_ERROR;
 				}
-				root = new Return{ returned };
-			}
-			break;
-		default:
-			parserError("Instruction can not begin with keyword '%lld'.", start.value);
-			return false;
-		}
-		break;
-	default:
-		parserError("Instruction can not begin with token of type '%lld'.", start.type_);
-		return false;
-	}
-
-	if (!validate) {
-		return false;
-	}
-	else if (root == nullptr) {
-		parserError("Intruction can not be NULL.");
-		return false;
-	}
-	else if (root->exp & terminated & LANGUAGE_MASK)
-	{
-		// Walk to the right-most leaf and check if it is not a function expression.
-		Expression* leaf = root;
-		while (leaf != nullptr) {
-			if (leaf->exp == EXPRESSION_UNARY) {
-				Unary* e = static_cast<Unary*>(leaf);
-				leaf = e->child;
-			}
-			else if (leaf->exp == EXPRESSION_BINARY) {
-				Binary* e = static_cast<Binary*>(leaf);
-				leaf = e->right;
-			}
-			//else if (leaf->exp == EXPRESSION_TERNARY) {
-			//	Ternary* e = static_cast<Ternary*>(leaf);
-			//	leaf = e->no;
-			//}
-			else if (leaf->exp == EXPRESSION_RETURN) {
-				Return* e = static_cast<Return*>(leaf);
-				leaf = e->val;
+				program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
 			}
 			else {
+				return PARSE_ERROR;
+			}
+		}
+			break;
+		case Token::COMMA:
+		case Token::COLON:
+		case Token::BRACE_OPEN:
+			printError("Unexpected symbol '%hhd'.", token.type_);
+			return PARSE_ERROR;
+			break;
+		case Token::BRACE_CLOSE:
+			return true;
+			break;
+
+		case Token::IF:
+			if (parse_if(function, interrupts) != PARSE_ERROR) {
 				break;
 			}
-		}
-		if (leaf->exp != EXPRESSION_FUNCTION) {
-			Token end;
-			if (!tokenRetrieve(end)) {
-				parserError("End of file reached before instruction was terminated.");
-				return false;
+			else {
+				return PARSE_ERROR;
 			}
-			if (end.type_ != TOKEN_DELIMITER || end.value != DELIMITER_SEMICOLON) {
-				parserError("Instruction must terminate with a semicolon.");
-				return false;
+			break;
+		case Token::ELSE:
+			printError("'else' keyword may not be used in this context.");
+			return PARSE_ERROR;
+			break;
+		case Token::FOR:
+		case Token::WHILE:
+		case Token::DO:
+			if (parse_loop(function, interrupts) == PARSE_ERROR) {
+				return PARSE_ERROR;
 			}
-			index++;
+			break;
+		case Token::BREAK:
+			if (interrupts == nullptr) {
+				printError("'break' keyword may not be used in this context.");
+				return PARSE_ERROR;
+			}
+			interrupts[0].push_back(program.size());
+			program.push_back(Token(Token::JUMP, (long int)-1));
+			tokenIndex++;
+			break;
+		case Token::CONTINUE:
+			if (interrupts == nullptr) {
+				printError("'continue' keyword may not be used in this context.");
+				return PARSE_ERROR;
+			}
+			interrupts[1].push_back(program.size());
+			program.push_back(Token(Token::JUMP, (long int)-1));
+			tokenIndex++;
+			break;
+		case Token::FUNCTION_DEF:
+		{
+			tokenIndex++;
+			if (tokenIndex < tokens.size()) {
+				if (tokens[tokenIndex].type_ == Token::IDENTIFIER) {
+					tokenIndex--;
+					Function* fx = new Function{};
+					char parse_result = parse_function(*fx);
+					if (parse_result == PARSE_ERROR) {
+						return PARSE_ERROR;
+					}
+					if (fx->name == nullptr) {
+						printError("Global functions must have a name.");
+						return PARSE_ERROR;
+					}
+					program.push_back(Token{ Token::FUNCTION, fx });
+					loaded->push_back(fx);
+					program.push_back(Token{ Token::JUMP_NEXT, (long int)1 }); // Probably unnecesary.
+					break;
+				}
+			}
+			tokenIndex--;
+			tok_tag parse_result = parse_operation(function);
+			if (parse_result != PARSE_ERROR) {
+				if (parse_result != Token::FUNCTION_DEF) {
+					if (tokenIndex < tokens.size()) {
+						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+							tokenIndex++;
+							program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+							break;
+						}
+					}
+					printError("Expected semicolon.");
+					return PARSE_ERROR;
+				}
+				program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+			}
+			else {
+				return PARSE_ERROR;
+			}
 		}
-	}
-	return true;
-}
+			break;
+		case Token::RETURN:
+		{
+			tokenIndex++;
+			tok_tag parse_result = parse_operation(function);
+			if (parse_result != PARSE_ERROR) {
+				program.push_back(Token(Token::RETURN, (long int)(parse_result != 0)));
+				if (parse_result != Token::FUNCTION_DEF) {
+					if (tokenIndex < tokens.size()) {
+						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+							tokenIndex++;
+							break;
+						}
+					}
+					printError("Expected semicolon.");
+					return PARSE_ERROR;
+				}
+			}
+			else {
+				return PARSE_ERROR;
+			}
+		}
+			break;
+		case Token::YIELD:
+		{
+			tokenIndex++;
+			tok_tag parse_result = parse_operation(function);
+			if (parse_result != PARSE_ERROR) {
+				program.push_back(Token(Token::YIELD, (long int)1));
+				if (parse_result != Token::FUNCTION_DEF) {
+					if (tokenIndex < tokens.size()) {
+						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+							tokenIndex++;
+							break;
+						}
+					}
+					printError("Expected semicolon.");
+					return PARSE_ERROR;
+				}
+			}
+			else {
+				return PARSE_ERROR;
+			}
+		}
+			break;
+		case Token::AWAIT:
+			program.push_back(Token(Token::AWAIT, (long int)0));
+			tokenIndex++;
+			if (tokenIndex < tokens.size()) {
+				if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+					tokenIndex++;
+					program.push_back(Token{ Token::JUMP_NEXT, (long int)1 }); // To properly end to clear the solution stack after yielding. TODO: Remove.
+					break;
+				}
+			}
+			printError("Expected semicolon.");
+			return PARSE_ERROR;
+			break;
+		case Token::LABEL:
+		{
+			tokenIndex++;
+			if (tokenIndex >= tokens.size()) {
+				printError("Expected label name.");
+				return PARSE_ERROR;
+			}
+			if (tokens[tokenIndex].type_ != Token::STRING) {
+				printError("Expected a \"string\" for the label name.");
+				return PARSE_ERROR;
+			}
+			if (function.labels.find(STR_OWN_STR(tokens[tokenIndex].str)) != function.labels.end()) {
+				printError("Can not have more than 1 label with the same name.");
+				return PARSE_ERROR;
+			}
+			const size_t len = strlen(STR_OWN_STR(tokens[tokenIndex].str)) + 1;
+			char* label_name = new char[len];
+			memcpy(label_name, STR_OWN_STR(tokens[tokenIndex].str), len);
+			function.labels.insert({ label_name, function.program.size() }); // Labels are not OWNED. // TODO: Deallocate label names on erase.
+			tokenIndex++;
+			if (tokenIndex >= tokens.size()) {
+				printError("Expected ':'.");
+				return PARSE_ERROR;
+			}
+			if (tokens[tokenIndex].type_ != Token::COLON) {
+				printError("Expected ':'.");
+				return PARSE_ERROR;
+			}
+			tokenIndex++;
+		}
+			break;
+		case Token::GOTO:
+		{
+			tokenIndex++;
+			tok_tag parse_result = parse_operation(function);
+			if (parse_result != PARSE_ERROR) {
+				program.push_back(Token(Token::GOTO, (long int)1));
+				if (parse_result != Token::FUNCTION_DEF) { // Token::GOTO should never actually end in a function.
+					if (tokenIndex < tokens.size()) {
+						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+							tokenIndex++;
+							break;
+						}
+					}
+					printError("Expected semicolon.");
+					return PARSE_ERROR;
+				}
+			}
+			else {
+				return PARSE_ERROR;
+			}
+		}
+			break;
 
-bool Parser::build_program(std::vector<Expression*>& program)
-{
-	program.clear();
-	Token start;
-	while (tokenRetrieve(start))
-	{
-		if (start.type_ == TOKEN_DELIMITER && (start.value & (DELIMITER_PARENTHESIS_RIGHT | DELIMITER_BRACKET_RIGHT | DELIMITER_BRACE_RIGHT) & LANGUAGE_MASK)) {
+		case Token::ARRAY:
+		case Token::ARRAY_INIT:
+		case Token::INDEX:
+		case Token::CALL:
+		case Token::BUILTIN:
+		case Token::FUNCTION:
+		case Token::JUMP:
+		case Token::JUMP_ON_FALSE:
+		case Token::JUMP_ON_TRUE:
+		case Token::JUMP_NEXT:
+
+		case Token::YIELDED:
+			printError("Token type '%hhd' may never come from the parsed stream.", token.type_);
+			return PARSE_ERROR;
+			break;
+
+		default: // All Operators and Operation Delimiters.
+		{
+			tok_tag parse_result = parse_operation(function);
+			if (parse_result != PARSE_ERROR) {
+				if (parse_result != Token::FUNCTION_DEF) {
+					if (tokenIndex < tokens.size()) {
+						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+							tokenIndex++;
+							program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+							break;
+						}
+					}
+					printError("Expected semicolon.");
+					return PARSE_ERROR;
+				}
+				program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+			}
+			else {
+				return PARSE_ERROR;
+			}
+		}
 			break;
 		}
 
-		Expression* root = nullptr;
-		if (!parse_instruction(root)) {
-			return false;
-		}
-		if (root != nullptr) {
-			program.push_back(root);
+		if (program.size() >= TOKEN_MAX) {
+			printError("Program exceeds the maximum amount of tokens.");
+			return PARSE_ERROR;
 		}
 	}
+
 	return true;
 }
 
-bool Parser::build_file(std::vector<Expression*>& program)
+bool Parser::parse(std::vector<Function*>* file_)
 {
-	program.clear();
-	if (!build_program(program))
-	{
-		parserError("Parse FAILED.");
+	loaded = file_;
+	loaded->push_back(new Function{});
+	if (parse_instructions(*loaded->back(), nullptr) == PARSE_ERROR) {
 		return false;
 	}
 
-	Token end;
-	if (tokenRetrieve(end)) {
-		parserError("build_file: tokens remaining after program finished building.");
+	if (tokenIndex < tokens.size()) {
+		printError("Tokens remaining unprocessed.");
 		return false;
 	}
-	if (program.size() <= 0) {
-		printWarning("build_file: Program is empty.");
-	}
+
 	return true;
 }
