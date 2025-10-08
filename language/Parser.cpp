@@ -26,7 +26,7 @@ short int Parser::parse_sequence(Function& function, const tok_tag separator_sym
 		if (tokenIndex >= tokens.size()) {
 			break;
 		}
-		if (tokens[tokenIndex].type_ != separator_symbol) {
+		if (tokens[tokenIndex].tag != separator_symbol) {
 			break;
 		}
 		tokenIndex++;
@@ -39,8 +39,8 @@ Returns the id of the last parsed structure.
 */
 tok_tag Parser::parse_operation(Function& function)
 {
-	static const Token TOKEN_POSITIVE{ Token::UNARY_POSITIVE, 100 };
-	static const Token TOKEN_NEGATIVE{ Token::UNARY_NEGATIVE, 100 };
+	static const Token TOKEN_POSITIVE(Token::UNARY_POSITIVE, 100);
+	static const Token TOKEN_NEGATIVE(Token::UNARY_NEGATIVE, 100);
 
 	std::vector<Token>& program = function.program;
 	std::vector<Token> hold;
@@ -53,7 +53,7 @@ tok_tag Parser::parse_operation(Function& function)
 	{
 		Token& token = tokens[tokenIndex];
 
-		switch (token.type_)
+		switch (token.tag)
 		{
 		case Token::NONE:
 		case Token::INT:
@@ -72,7 +72,7 @@ tok_tag Parser::parse_operation(Function& function)
 			tokenIndex++;
 			operandLast = true;
 			functionLast = false;
-			typeLast = token.type_; // type_ is being interrogated after Token was moved. TODO: Move this code up.
+			typeLast = token.tag; // tag is being interrogated after Token was moved. TODO: Move this code up.
 			break;
 
 		case Token::SEMICOLON:
@@ -88,7 +88,7 @@ tok_tag Parser::parse_operation(Function& function)
 			tokenIndex++;
 			operandLast = false;
 			functionLast = false;
-			typeLast = token.type_;
+			typeLast = token.tag;
 			break;
 		case Token::BRACKET_OPEN:
 			if (operandLast) { // Index.
@@ -100,19 +100,19 @@ tok_tag Parser::parse_operation(Function& function)
 					printError("Expected ']' to indicate array index.");
 					return PARSE_ERROR;
 				}
-				if (tokens[tokenIndex].type_ != Token::BRACKET_CLOSE) {
+				if (tokens[tokenIndex].tag != Token::BRACKET_CLOSE) {
 					printError("Expected ']' to indicate array index.");
 					return PARSE_ERROR;
 				}
 				tokenIndex++;
-				program.emplace_back(Token::INDEX, (intt)0);
+				program.emplace_back(Token::INDEX, 0);
 				operandLast = true;
 				functionLast = false;
-				typeLast = tokens[tokenIndex].type_;
+				typeLast = tokens[tokenIndex].tag;
 			}
 			else { // Array.
 				tokenIndex++;
-				short int numer_of_elements = parse_sequence(function, Token::COMMA);
+				int numer_of_elements = parse_sequence(function, Token::COMMA);
 				if (numer_of_elements == PARSE_ERROR) {
 					return PARSE_ERROR;
 				}
@@ -120,21 +120,21 @@ tok_tag Parser::parse_operation(Function& function)
 					printError("Expected ']' to end the array.");
 					return PARSE_ERROR;
 				}
-				if (tokens[tokenIndex].type_ != Token::BRACKET_CLOSE) {
+				if (tokens[tokenIndex].tag != Token::BRACKET_CLOSE) {
 					printError("Expected ']' to end the array.");
 					return PARSE_ERROR;
 				}
 				tokenIndex++;
-				program.emplace_back(Token::ARRAY_INIT, (intt)numer_of_elements);
+				program.emplace_back(Token::ARRAY_INIT, numer_of_elements);
 				operandLast = true;
 				functionLast = false;
-				typeLast = tokens[tokenIndex].type_;
+				typeLast = tokens[tokenIndex].tag;
 			}
 			break;
 		case Token::PARENTHESIS_OPEN:
 			if (operandLast) { // Call.
 				tokenIndex++;
-				short int numer_of_arguments = parse_sequence(function, Token::COMMA);
+				int numer_of_arguments = parse_sequence(function, Token::COMMA);
 				if (numer_of_arguments == PARSE_ERROR) {
 					return PARSE_ERROR;
 				}
@@ -142,15 +142,15 @@ tok_tag Parser::parse_operation(Function& function)
 					printError("Expected ')' to end the function call.");
 					return PARSE_ERROR;
 				}
-				if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+				if (tokens[tokenIndex].tag != Token::PARENTHESIS_CLOSE) {
 					printError("Expected ')' to end the function call.");
 					return PARSE_ERROR;
 				}
 				tokenIndex++;
-				program.emplace_back(Token::CALL, (intt)numer_of_arguments);
+				program.emplace_back(Token::CALL, numer_of_arguments);
 				operandLast = true;
 				functionLast = false;
-				typeLast = tokens[tokenIndex].type_; // TODO: Check. type is being assigned after the index has been increased.
+				typeLast = tokens[tokenIndex].tag; // TODO: Check. type is being assigned after the index has been increased.
 			}
 			else { // Parenthesised expression.
 				hold.push_back(std::move(tokens[tokenIndex]));
@@ -158,7 +158,7 @@ tok_tag Parser::parse_operation(Function& function)
 				parenthesis++;
 				operandLast = false;
 				functionLast = false;
-				typeLast = token.type_; // TODO: Review.
+				typeLast = token.tag; // TODO: Review.
 			}
 			break;
 		case Token::PARENTHESIS_CLOSE:
@@ -174,7 +174,7 @@ tok_tag Parser::parse_operation(Function& function)
 			parenthesis--;
 			while (!hold.empty())
 			{
-				if (hold.back().type_ == Token::PARENTHESIS_OPEN) {
+				if (hold.back().tag == Token::PARENTHESIS_OPEN) {
 					break;
 				}
 				program.push_back(std::move(hold.back()));
@@ -185,7 +185,7 @@ tok_tag Parser::parse_operation(Function& function)
 				return PARSE_ERROR;
 				break;
 			}
-			if (hold.back().type_ != Token::PARENTHESIS_OPEN) {
+			if (hold.back().tag != Token::PARENTHESIS_OPEN) {
 				printError("Mismatched Parenthesis!");
 				return PARSE_ERROR;
 				break;
@@ -194,7 +194,7 @@ tok_tag Parser::parse_operation(Function& function)
 			tokenIndex++;
 			operandLast = true;
 			functionLast = false;
-			typeLast = token.type_;
+			typeLast = token.tag;
 			break;
 
 		case Token::FUNCTION_DEF:
@@ -215,11 +215,11 @@ tok_tag Parser::parse_operation(Function& function)
 				printError("Global functions can not form part of an operation.");
 				return PARSE_ERROR;
 			}
-			program.emplace_back(Token::FUNCTION, func);
+			program.emplace_back(func);
 			loaded->push_back(func); // Register function.
 			operandLast = true;
 			functionLast = true;
-			typeLast = token.type_;
+			typeLast = token.tag;
 		}
 		break;
 
@@ -250,19 +250,19 @@ tok_tag Parser::parse_operation(Function& function)
 		case Token::JUMP_ON_FALSE:
 		case Token::JUMP_ON_TRUE:
 		case Token::JUMP_NEXT:
-			printError("Token type '%hhd' may never come from the tokenized stream.", token.type_);
+			printError("Token type '%hhd' may never come from the tokenized stream.", token.tag);
 			return PARSE_ERROR;
 			break;
 
 		default: // Operator.
 			if (!operandLast) {
-				if (token.type_ == Token::BINARY_ADD) token = TOKEN_POSITIVE;
-				if (token.type_ == Token::BINARY_SUBSTRACT) token = TOKEN_NEGATIVE;
+				if (token.tag == Token::BINARY_ADD) token = TOKEN_POSITIVE;
+				if (token.tag == Token::BINARY_SUBSTRACT) token = TOKEN_NEGATIVE;
 			}
 			while (!hold.empty())
 			{
 				if (token.intu <= hold.back().intu) { // Left Parenthesis and Equal have the lowest precedence.
-					program.push_back(hold.back());
+					program.push_back(std::move(hold.back()));
 					hold.pop_back();
 				}
 				else {
@@ -273,7 +273,7 @@ tok_tag Parser::parse_operation(Function& function)
 			tokenIndex++;
 			operandLast = false;
 			functionLast = false;
-			typeLast = token.type_;
+			typeLast = token.tag;
 			break;
 		}
 	}
@@ -306,7 +306,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 	std::vector<size_t> block_end_index{};
 
 	while (tokenIndex < tokens.size()) {
-		int keyword_num = tokens[tokenIndex].type_;
+		int keyword_num = tokens[tokenIndex].tag;
 
 		if (keyword_num == Token::IF) {
 			if (branches) {
@@ -321,7 +321,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 
 			tokenIndex++;
 			if (tokenIndex < tokens.size()) {
-				if (tokens[tokenIndex].type_ == Token::IF) {
+				if (tokens[tokenIndex].tag == Token::IF) {
 					keyword_num = Token::IF; // ELSE IF
 				}
 				else {
@@ -343,7 +343,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 
 		if (branches) {
 			block_end_index.push_back(program.size());
-			program.emplace_back(Token::JUMP, (intt)-1);
+			program.emplace_back(Token::JUMP, -1);
 
 			program[condition_index].intu = program.size();
 		}
@@ -354,7 +354,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 				printError("Expected '('.");
 				return PARSE_ERROR;
 			}
-			if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+			if (tokens[tokenIndex].tag != Token::PARENTHESIS_OPEN) {
 				printError("Expected '('.");
 				return PARSE_ERROR;
 			}
@@ -369,13 +369,13 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 				return PARSE_ERROR;
 			}
 			condition_index = program.size();
-			program.emplace_back(Token::JUMP_ON_FALSE, (intt)-1);
+			program.emplace_back(Token::JUMP_ON_FALSE, -1);
 
 			if (tokenIndex >= tokens.size()) {
 				printError("Expected ')'.");
 				return PARSE_ERROR;
 			}
-			if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+			if (tokens[tokenIndex].tag != Token::PARENTHESIS_CLOSE) {
 				printError("Expected ')'.");
 				return PARSE_ERROR;
 			}
@@ -385,7 +385,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 			printError("Expected '{'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+		if (tokens[tokenIndex].tag != Token::BRACE_OPEN) {
 			printError("Expected '{'.");
 			return PARSE_ERROR;
 		}
@@ -399,7 +399,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 			printError("Expected '}'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+		if (tokens[tokenIndex].tag != Token::BRACE_CLOSE) {
 			printError("Expected '}'.");
 			return PARSE_ERROR;
 		}
@@ -430,38 +430,38 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 		return PARSE_ERROR;
 	}
 	const Token& keyword = tokens[tokenIndex];
-	if (keyword.type_ != Token::FOR && keyword.type_ != Token::WHILE && keyword.type_ != Token::DO) {
+	if (keyword.tag != Token::FOR && keyword.tag != Token::WHILE && keyword.tag != Token::DO) {
 		printError("Expected loop formulation.");
 		return PARSE_ERROR;
 	}
 	tokenIndex++;
 
-	if (keyword.type_ != Token::DO) {
+	if (keyword.tag != Token::DO) {
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected '('.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+		if (tokens[tokenIndex].tag != Token::PARENTHESIS_OPEN) {
 			printError("Expected '('.");
 			return PARSE_ERROR;
 		}
 		tokenIndex++;
 	}
 
-	if (keyword.type_ == Token::FOR) {
+	if (keyword.tag == Token::FOR) {
 		tok_tag loop_init = parse_operation(function);
 		if (loop_init == PARSE_ERROR) {
 			return PARSE_ERROR;
 		}
 		if (loop_init != 0) {
-			program.emplace_back(Token::JUMP_NEXT, (intt)1);
+			program.emplace_back(Token::JUMP_NEXT, 1);
 		}
 
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected ';'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::SEMICOLON) {
+		if (tokens[tokenIndex].tag != Token::SEMICOLON) {
 			printError("Expected ';'.");
 			return PARSE_ERROR;
 		}
@@ -470,12 +470,12 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 
 	Function condition_content{};
 	tok_tag loop_condition = 0;
-	if (keyword.type_ != Token::DO) {
+	if (keyword.tag != Token::DO) {
 		loop_condition = parse_operation(condition_content);
 		if (loop_condition == PARSE_ERROR) {
 			return PARSE_ERROR;
 		}
-		if (loop_condition == 0 && keyword.type_ == Token::WHILE) {
+		if (loop_condition == 0 && keyword.tag == Token::WHILE) {
 			printError("While loop condition can not be missing.");
 			return PARSE_ERROR;
 		}
@@ -483,12 +483,12 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 
 	tok_tag loop_increment = 0;
 	Function increment_content{};
-	if (keyword.type_ == Token::FOR) {
+	if (keyword.tag == Token::FOR) {
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected ';'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::SEMICOLON) {
+		if (tokens[tokenIndex].tag != Token::SEMICOLON) {
 			printError("Expected ';'.");
 			return PARSE_ERROR;
 		}
@@ -502,32 +502,32 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 
 	tok_size loop_start = program.size();
 
-	if (keyword.type_ == Token::FOR && loop_increment != 0) {
+	if (keyword.tag == Token::FOR && loop_increment != 0) {
 		const tok_size init_jump = program.size();
-		program.emplace_back(Token::JUMP, (intt)-1);
+		program.emplace_back(Token::JUMP, -1);
 		loop_start = program.size();
 		for (Token& token : increment_content.program) {
 			program.push_back(std::move(token)); // TODO: Concatenate. Iterator or something probably.
 		}
-		program.emplace_back(Token::JUMP_NEXT, (intt)1);
+		program.emplace_back(Token::JUMP_NEXT, 1);
 		program[init_jump].intu = program.size();
 	}
 
 	tok_size condition_jump = -1;
-	if (keyword.type_ != Token::DO && loop_condition != 0) {
+	if (keyword.tag != Token::DO && loop_condition != 0) {
 		for (Token& token : condition_content.program) {
 			program.push_back(std::move(token)); // TODO: Concatenate.
 		}
 		condition_jump = program.size();
-		program.emplace_back(Token::JUMP_ON_FALSE, (intt)-1);
+		program.emplace_back(Token::JUMP_ON_FALSE, -1);
 	}
 
-	if (keyword.type_ != Token::DO) {
+	if (keyword.tag != Token::DO) {
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected ')'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+		if (tokens[tokenIndex].tag != Token::PARENTHESIS_CLOSE) {
 			printError("Expected ')'.");
 			return PARSE_ERROR;
 		}
@@ -538,7 +538,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 		printError("Expected '{'.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+	if (tokens[tokenIndex].tag != Token::BRACE_OPEN) {
 		printError("Expected '{'.");
 		return PARSE_ERROR;
 	}
@@ -553,18 +553,18 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 		printError("Expected '}'.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+	if (tokens[tokenIndex].tag != Token::BRACE_CLOSE) {
 		printError("Expected '}'.");
 		return PARSE_ERROR;
 	}
 	tokenIndex++;
 
-	if (keyword.type_ == Token::DO) {
+	if (keyword.tag == Token::DO) {
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected 'while'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::WHILE) {
+		if (tokens[tokenIndex].tag != Token::WHILE) {
 			printError("Expected 'while'.");
 			return PARSE_ERROR;
 		}
@@ -574,7 +574,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 			printError("Expected '('.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+		if (tokens[tokenIndex].tag != Token::PARENTHESIS_OPEN) {
 			printError("Expected '('.");
 			return PARSE_ERROR;
 		}
@@ -593,13 +593,13 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 			printError("Do While loop condition can not be missing.");
 			return PARSE_ERROR;
 		}
-		program.emplace_back(Token::JUMP_ON_TRUE, (intt)loop_start);
+		program.emplace_back(Token::JUMP_ON_TRUE, loop_start);
 
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected ')'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+		if (tokens[tokenIndex].tag != Token::PARENTHESIS_CLOSE) {
 			printError("Expected ')'.");
 			return PARSE_ERROR;
 		}
@@ -609,14 +609,14 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 			printError("Expected ';'.");
 			return PARSE_ERROR;
 		}
-		if (tokens[tokenIndex].type_ != Token::SEMICOLON) {
+		if (tokens[tokenIndex].tag != Token::SEMICOLON) {
 			printError("Expected ';'.");
 			return PARSE_ERROR;
 		}
 		tokenIndex++;
 	}
 	else {
-		program.emplace_back(Token::JUMP, (intt)loop_start);
+		program.emplace_back(Token::JUMP, loop_start);
 
 		if (loop_condition != 0) {
 			program[condition_jump].intu = program.size();
@@ -629,14 +629,14 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 	}
 
 	if (tokenIndex < tokens.size()) {
-		if (tokens[tokenIndex].type_ == Token::ELSE) { // NO BREAK.
+		if (tokens[tokenIndex].tag == Token::ELSE) { // NO BREAK.
 			tokenIndex++;
 
 			if (tokenIndex >= tokens.size()) {
 				printError("Expected '{'.");
 				return PARSE_ERROR;
 			}
-			if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+			if (tokens[tokenIndex].tag != Token::BRACE_OPEN) {
 				printError("Expected '{'.");
 				return PARSE_ERROR;
 			}
@@ -650,7 +650,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 				printError("Expected '}'.");
 				return PARSE_ERROR;
 			}
-			if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+			if (tokens[tokenIndex].tag != Token::BRACE_CLOSE) {
 				printError("Expected '}'.");
 				return PARSE_ERROR;
 			}
@@ -677,7 +677,7 @@ char Parser::parse_function(Function& function)
 		return PARSE_ERROR;
 	}
 	const Token keyword = tokens[tokenIndex];
-	if (keyword.type_ != Token::FUNCTION_DEF) {
+	if (keyword.tag != Token::FUNCTION_DEF) {
 		printError("Expected 'function' keyword.");
 		return PARSE_ERROR;
 	}
@@ -687,7 +687,7 @@ char Parser::parse_function(Function& function)
 		printError("Expected function definition.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ == Token::IDENTIFIER) {
+	if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
 		if (scopeLevel != 0) {
 			printError("Global functions may not be defined inside another function.");
 			return PARSE_ERROR;
@@ -702,14 +702,14 @@ char Parser::parse_function(Function& function)
 		printError("Expected '('.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ != Token::PARENTHESIS_OPEN) {
+	if (tokens[tokenIndex].tag != Token::PARENTHESIS_OPEN) {
 		printError("Expected '('.");
 		return PARSE_ERROR;
 	}
 	tokenIndex++;
 
 	while (tokenIndex < tokens.size()) {
-		if (tokens[tokenIndex].type_ != Token::IDENTIFIER) {
+		if (tokens[tokenIndex].tag != Token::IDENTIFIER) {
 			break;
 		}
 		function.argnames.push_back(tokens[tokenIndex].var);
@@ -718,7 +718,7 @@ char Parser::parse_function(Function& function)
 		if (tokenIndex >= tokens.size()) {
 			break;
 		}
-		if (tokens[tokenIndex].type_ != Token::COMMA) {
+		if (tokens[tokenIndex].tag != Token::COMMA) {
 			break;
 		}
 		tokenIndex++;
@@ -728,7 +728,7 @@ char Parser::parse_function(Function& function)
 		printError("Expected ')'.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ != Token::PARENTHESIS_CLOSE) {
+	if (tokens[tokenIndex].tag != Token::PARENTHESIS_CLOSE) {
 		printError("Expected ')'.");
 		return PARSE_ERROR;
 	}
@@ -738,7 +738,7 @@ char Parser::parse_function(Function& function)
 		printError("Expected '{'.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ != Token::BRACE_OPEN) {
+	if (tokens[tokenIndex].tag != Token::BRACE_OPEN) {
 		printError("Expected '{'.");
 		return PARSE_ERROR;
 	}
@@ -754,7 +754,7 @@ char Parser::parse_function(Function& function)
 		printError("Expected '}'.");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].type_ != Token::BRACE_CLOSE) {
+	if (tokens[tokenIndex].tag != Token::BRACE_CLOSE) {
 		printError("Expected '}'.");
 		return PARSE_ERROR;
 	}
@@ -775,7 +775,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 	{
 		const Token& token = tokens[tokenIndex];
 
-		switch (token.type_)
+		switch (token.tag)
 		{
 		case Token::NONE:
 		case Token::INT:
@@ -787,16 +787,16 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			if (parse_result != PARSE_ERROR) {
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
-						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 							tokenIndex++;
-							program.emplace_back(Token::JUMP_NEXT, (intt)1);
+							program.emplace_back(Token::JUMP_NEXT, 1);
 							break;
 						}
 					}
 					printError("Expected semicolon.");
 					return PARSE_ERROR;
 				}
-				program.emplace_back(Token::JUMP_NEXT, (intt)1);
+				program.emplace_back(Token::JUMP_NEXT, 1);
 			}
 			else {
 				return PARSE_ERROR;
@@ -806,7 +806,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 		case Token::COMMA:
 		case Token::COLON:
 		case Token::BRACE_OPEN:
-			printError("Unexpected symbol '%hhd'.", token.type_);
+			printError("Unexpected symbol '%hhd'.", token.tag);
 			return PARSE_ERROR;
 			break;
 		case Token::BRACE_CLOSE:
@@ -838,7 +838,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				return PARSE_ERROR;
 			}
 			interrupts[0].push_back(program.size());
-			program.emplace_back(Token::JUMP, (intt)-1);
+			program.emplace_back(Token::JUMP, -1);
 			tokenIndex++;
 			break;
 		case Token::CONTINUE:
@@ -847,14 +847,14 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				return PARSE_ERROR;
 			}
 			interrupts[1].push_back(program.size());
-			program.emplace_back(Token::JUMP, (intt)-1);
+			program.emplace_back(Token::JUMP, -1);
 			tokenIndex++;
 			break;
 		case Token::FUNCTION_DEF:
 		{
 			tokenIndex++;
 			if (tokenIndex < tokens.size()) {
-				if (tokens[tokenIndex].type_ == Token::IDENTIFIER) {
+				if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
 					tokenIndex--;
 					Function* fx = new Function{};
 					char parse_result = parse_function(*fx);
@@ -865,9 +865,9 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 						printError("Global functions must have a name.");
 						return PARSE_ERROR;
 					}
-					program.emplace_back(Token::FUNCTION, fx);
+					program.emplace_back(fx);
 					loaded->push_back(fx);
-					program.emplace_back(Token::JUMP_NEXT, (intt)1); // Probably unnecesary.
+					program.emplace_back(Token::JUMP_NEXT, 1); // Probably unnecesary.
 					break;
 				}
 			}
@@ -876,16 +876,16 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			if (parse_result != PARSE_ERROR) {
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
-						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 							tokenIndex++;
-							program.emplace_back(Token::JUMP_NEXT, (intt)1);
+							program.emplace_back(Token::JUMP_NEXT, 1);
 							break;
 						}
 					}
 					printError("Expected semicolon.");
 					return PARSE_ERROR;
 				}
-				program.emplace_back(Token::JUMP_NEXT, (intt)1);
+				program.emplace_back(Token::JUMP_NEXT, 1);
 			}
 			else {
 				return PARSE_ERROR;
@@ -897,10 +897,10 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.emplace_back(Token::RETURN, (intt)(parse_result != 0));
+				program.emplace_back(Token::RETURN, (int)(parse_result != 0));
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
-						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 							tokenIndex++;
 							break;
 						}
@@ -919,10 +919,10 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.emplace_back(Token::YIELD, (intt)1);
+				program.emplace_back(Token::YIELD, 1);
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
-						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 							tokenIndex++;
 							break;
 						}
@@ -937,12 +937,12 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 		}
 			break;
 		case Token::AWAIT:
-			program.emplace_back(Token::AWAIT, (intt)0);
+			program.emplace_back(Token::AWAIT, 0);
 			tokenIndex++;
 			if (tokenIndex < tokens.size()) {
-				if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+				if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 					tokenIndex++;
-					program.emplace_back(Token::JUMP_NEXT, (intt)1); // To properly end to clear the solution stack after yielding. TODO: Remove.
+					program.emplace_back(Token::JUMP_NEXT, 1); // To properly end to clear the solution stack after yielding. TODO: Remove.
 					break;
 				}
 			}
@@ -956,7 +956,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				printError("Expected label name.");
 				return PARSE_ERROR;
 			}
-			if (tokens[tokenIndex].type_ != Token::STRING) {
+			if (tokens[tokenIndex].tag != Token::STRING) {
 				printError("Expected a \"string\" for the label name.");
 				return PARSE_ERROR;
 			}
@@ -973,7 +973,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				printError("Expected ':'.");
 				return PARSE_ERROR;
 			}
-			if (tokens[tokenIndex].type_ != Token::COLON) {
+			if (tokens[tokenIndex].tag != Token::COLON) {
 				printError("Expected ':'.");
 				return PARSE_ERROR;
 			}
@@ -985,10 +985,10 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.emplace_back(Token::GOTO, (intt)1);
+				program.emplace_back(Token::GOTO, 1);
 				if (parse_result != Token::FUNCTION_DEF) { // Token::GOTO should never actually end in a function.
 					if (tokenIndex < tokens.size()) {
-						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 							tokenIndex++;
 							break;
 						}
@@ -1015,7 +1015,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 		case Token::JUMP_NEXT:
 
 		case Token::YIELDED:
-			printError("Token type '%hhd' may never come from the parsed stream.", token.type_);
+			printError("Token type '%hhd' may never come from the parsed stream.", token.tag);
 			return PARSE_ERROR;
 			break;
 
@@ -1025,16 +1025,16 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			if (parse_result != PARSE_ERROR) {
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
-						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
+						if (tokens[tokenIndex].tag == Token::SEMICOLON) {
 							tokenIndex++;
-							program.emplace_back(Token::JUMP_NEXT, (intt)1);
+							program.emplace_back(Token::JUMP_NEXT, 1);
 							break;
 						}
 					}
 					printError("Expected semicolon.");
 					return PARSE_ERROR;
 				}
-				program.emplace_back(Token::JUMP_NEXT, (intt)1);
+				program.emplace_back(Token::JUMP_NEXT, 1);
 			}
 			else {
 				return PARSE_ERROR;

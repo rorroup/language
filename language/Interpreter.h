@@ -152,20 +152,20 @@ public:
 		char(*func)(std::vector<Token>&, std::vector<Token>&);
 		Execution* exe; // Struct may be trimmed down since only the program counter and the local variables are necesary.
 	};
-	tok_tag type_;
+	tok_tag tag;
 
 	// Constructors.
-	Token(); // Default Constructor.
+	Token();
+	Token(intt i);
+	Token(floatt f);
+	Token(char* s);
+	Token(StringShared* s);
+	Token(SharedArray* v);
+	Token(Function* f);
+	Token(char(*f)(std::vector<Token>&, std::vector<Token>&));
+	Token(Execution* e);
 
 	Token(tok_tag t, int i);
-	Token(tok_tag t, intt i);
-	Token(tok_tag t, floatt f);
-	Token(tok_tag t, char* s);
-	Token(tok_tag t, StringShared* s);
-	Token(tok_tag t, SharedArray* v);
-	Token(tok_tag t, Function* f);
-	Token(tok_tag t, char(*f)(std::vector<Token>&, std::vector<Token>&));
-	Token(tok_tag t, Execution* e);
 
 	// https://en.cppreference.com/w/cpp/language/rule_of_three.html
 	Token(const Token& token); // Copy constructor.

@@ -9,7 +9,7 @@
 
 #define parserError(format, ...) printError("Parser: " format, __VA_ARGS__)
 
-typedef short int tok_size;
+typedef int tok_size;
 #define TOKEN_MAX 12000
 
 struct Parser

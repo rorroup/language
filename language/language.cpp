@@ -31,7 +31,7 @@ int main()
 
     printDebug("I found '%lld' tokens.", parser.tokens.size());
     for (const Token& token: parser.tokens) {
-        printDebug("%hhd -> %d", token.type_, token.intu);
+        printDebug("%hhd -> %lld", token.tag, token.intu);
     }
 
     parser.tokenIndex = 0;

@@ -5,7 +5,7 @@
 #include "Interpreter.h"
 
 #define BUILTIN_DEFINE(name) char name(std::vector<Token>& arguments, std::vector<Token>& solution)
-#define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ #name, Token{Token::BUILTIN, name } })
+#define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ #name, Token(name) })
 
 int register_function();
 

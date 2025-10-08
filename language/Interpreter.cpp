@@ -22,72 +22,20 @@ bool kpCHAR_EQUAL::operator()(const char* lhs, const char* rhs) const
 
 UMAP_kpCHAR(const char*, Token) VALUE_TABLE;
 
-
-Token::Token()
-{
-	type_ = Token::NONE;
-	intu = 0;
-}
-
-Token::Token(tok_tag t, int i)
-{
-	type_ = t;
-	intu = i;
-}
-
-Token::Token(tok_tag t, intt i)
-{
-	type_ = t;
-	intu = i;
-}
-
-Token::Token(tok_tag t, floatt f)
-{
-	type_ = t;
-	floatu = f;
-}
-
-Token::Token(tok_tag t, char* s)
-{
-	type_ = t;
-	var = s;
-}
-
-Token::Token(tok_tag t, StringShared* s)
-{
-	type_ = t;
-	str = s;
-	str->owners++;
-}
-
-Token::Token(tok_tag t, SharedArray* v)
-{
-	type_ = t;
-	vec = v;
-	vec->owners++;
-}
-
-Token::Token(tok_tag t, Function* f)
-{
-	type_ = t;
-	fx = f;
-}
-
-Token::Token(tok_tag t, char(*f)(std::vector<Token>&, std::vector<Token>&))
-{
-	type_ = t;
-	func = f;
-}
-
-Token::Token(tok_tag t, Execution* e)
-{
-	type_ = t;
-	exe = e;
-}
+Token::Token() { tag = Token::NONE; intu = 0; }
+Token::Token(intt i) { tag = Token::INT; intu = i; }
+Token::Token(floatt f) { tag = Token::FLOAT; floatu = f; }
+Token::Token(char* s) { tag = Token::IDENTIFIER; var = s; }
+Token::Token(StringShared* s) { tag = Token::STRING; str = s; str->owners++; }
+Token::Token(SharedArray* v) { tag = Token::ARRAY; vec = v; vec->owners++; }
+Token::Token(Function* f) { tag = Token::FUNCTION; fx = f; }
+Token::Token(char(*f)(std::vector<Token>&, std::vector<Token>&)) { tag = Token::BUILTIN; func = f; }
+Token::Token(Execution* e) { tag = Token::YIELDED; exe = e; }
+Token::Token(tok_tag t, int i) { tag = t; intu = i; }
 
 Token::Token(const Token& token)
 {
-	switch (token.type_)
+	switch (token.tag)
 	{
 	case Token::NONE:
 	case Token::INT:
@@ -132,13 +80,13 @@ Token::Token(const Token& token)
 		intu = token.intu;
 		break;
 	}
-	type_ = token.type_;
+	tag = token.tag;
 }
 
 Token::Token(Token&& token) noexcept
 {
-	type_ = token.type_;
-	switch (type_)
+	tag = token.tag;
+	switch (tag)
 	{
 	case Token::FLOAT:
 		floatu = token.floatu;
@@ -173,7 +121,7 @@ Token::Token(Token&& token) noexcept
 Token& Token::operator=(const Token& token)
 {
 	if (this != &token) {
-		switch (type_)
+		switch (tag)
 		{
 		case Token::STRING:
 			if (str != nullptr) {
@@ -199,8 +147,8 @@ Token& Token::operator=(const Token& token)
 			break;
 		}
 
-		type_ = token.type_;
-		switch (type_)
+		tag = token.tag;
+		switch (tag)
 		{
 		case Token::NONE:
 		case Token::INT:
@@ -249,7 +197,7 @@ Token& Token::operator=(const Token& token)
 
 Token& Token::operator=(Token&& token) noexcept
 {
-	switch (type_)
+	switch (tag)
 	{
 	case Token::STRING:
 		if (str != nullptr) {
@@ -275,9 +223,9 @@ Token& Token::operator=(Token&& token) noexcept
 		break;
 	}
 	
-	type_ = token.type_;
+	tag = token.tag;
 
-	switch (type_)
+	switch (tag)
 	{
 	case Token::FLOAT:
 		floatu = token.floatu;
@@ -313,7 +261,7 @@ Token& Token::operator=(Token&& token) noexcept
 
 Token::~Token()
 {
-	switch (type_) {
+	switch (tag) {
 	case Token::STRING:
 		if (str != nullptr) {
 			str->owners--;
@@ -349,11 +297,11 @@ if (local == state.LOCALS.end()) { \
 		printError("Variable '%s' not initialized.", variable.var); \
 		SOLVE_FAILED; \
 	} \
-	printDebug("Variable '%s' found of type '%hhd'", variable.var, iter->second.type_); \
+	printDebug("Variable '%s' found of type '%hhd'", variable.var, iter->second.tag); \
 	variable = iter->second; \
 } \
 else { \
-	printDebug("Variable '%s' found of type '%hhd'", variable.var, local->second.type_); \
+	printDebug("Variable '%s' found of type '%hhd'", variable.var, local->second.tag); \
 	variable = local->second; \
 } \
 
@@ -369,7 +317,7 @@ char run(Thread& thread)
 			const Token& token = tokens[state.CP];
 			state.CP++;
 
-			switch (token.type_)
+			switch (token.tag)
 			{
 				//case Token::NONE:
 			case Token::INT:
@@ -394,18 +342,18 @@ char run(Thread& thread)
 			case Token::UNARY_FLIP:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 1, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token& arg = state.solution.back();
-				if (arg.type_ == Token::IDENTIFIER) {
+				if (arg.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(arg);
 				}
-				if (arg.type_ == Token::INT) {
+				if (arg.tag == Token::INT) {
 					arg.intu = ~arg.intu;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -413,21 +361,21 @@ char run(Thread& thread)
 			case Token::UNARY_NEGATION:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 1, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token& arg = state.solution.back();
-				if (arg.type_ == Token::IDENTIFIER) {
+				if (arg.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(arg);
 				}
-				if (arg.type_ == Token::INT) {
+				if (arg.tag == Token::INT) {
 					arg.intu = !arg.intu;
 				}
-				else if (arg.type_ == Token::FLOAT) {
+				else if (arg.tag == Token::FLOAT) {
 					arg.floatu = !arg.floatu;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -435,12 +383,12 @@ char run(Thread& thread)
 			case Token::UNARY_POSITIVE:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 1, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
 					SOLVE_FAILED;
 				}
 				const Token& arg = state.solution.back();
-				if (arg.type_ != Token::INT && arg.type_ != Token::FLOAT) {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
+				if (arg.tag != Token::INT && arg.tag != Token::FLOAT) {
+					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -448,21 +396,21 @@ char run(Thread& thread)
 			case Token::UNARY_NEGATIVE:
 			{
 				if (state.solution.size() < 1) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 1, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 1, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token& arg = state.solution.back();
-				if (arg.type_ == Token::IDENTIFIER) {
+				if (arg.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(arg);
 				}
-				if (arg.type_ == Token::INT) {
+				if (arg.tag == Token::INT) {
 					arg.intu = -arg.intu;
 				}
-				else if (arg.type_ == Token::FLOAT) {
+				else if (arg.tag == Token::FLOAT) {
 					arg.floatu = -arg.floatu;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.tag, arg.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -471,25 +419,25 @@ char run(Thread& thread)
 			case Token::BINARY_ADD:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu += right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(Token::FLOAT, (floatt)left.intu + right.floatu); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
+					left = Token((floatt)left.intu + right.floatu); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
 					left.floatu += (floatt)right.intu;
@@ -501,39 +449,39 @@ char run(Thread& thread)
 				{
 					const size_t l0 = intlen(left.intu);
 					const size_t l1 = strlen(right.str->string);
-					left = Token(Token::STRING, StringShared_init(left.intu, l0, right.str->string, l1));
+					left = Token(StringShared_init(left.intu, l0, right.str->string, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::INT):
 				{
 					const size_t l0 = strlen(left.str->string);
 					const size_t l1 = intlen(right.intu);
-					left = Token(Token::STRING, StringShared_init(left.str->string, l0, right.intu, l1)); // This must trigger constructor on left so its str_tok gets decremented!
+					left = Token(StringShared_init(left.str->string, l0, right.intu, l1)); // This must trigger constructor on left so its str_tok gets decremented!
 				}
 				break;
 				case tagCOUPLE(Token::FLOAT, Token::STRING):
 				{
 					const size_t l0 = snprintf(NULL, 0, "%f", left.floatu);
 					const size_t l1 = strlen(right.str->string);
-					left = Token(Token::STRING, StringShared_init(left.floatu, l0, right.str->string, l1));
+					left = Token(StringShared_init(left.floatu, l0, right.str->string, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::FLOAT):
 				{
 					const size_t l0 = strlen(left.str->string);
 					const size_t l1 = snprintf(NULL, 0, "%f", right.floatu);
-					left = Token(Token::STRING, StringShared_init(left.str->string, l0, right.floatu, l1));
+					left = Token(StringShared_init(left.str->string, l0, right.floatu, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::STRING):
 				{
 					const size_t l0 = strlen(left.str->string);
 					const size_t l1 = strlen(right.str->string);
-					left = Token(Token::STRING, StringShared_init(left.str->string, l0, right.str->string, l1));
+					left = Token(StringShared_init(left.str->string, l0, right.str->string, l1));
 				}
 				break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -542,25 +490,25 @@ char run(Thread& thread)
 			case Token::BINARY_SUBSTRACT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu -= right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(Token::FLOAT, (floatt)left.intu - right.floatu);
+					left = Token((floatt)left.intu - right.floatu);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
 					left.floatu -= (floatt)right.intu;
@@ -569,7 +517,7 @@ char run(Thread& thread)
 					left.floatu -= right.floatu;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -578,25 +526,25 @@ char run(Thread& thread)
 			case Token::BINARY_MULTIPLY:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu *= right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(Token::FLOAT, (floatt)left.intu * right.floatu);
+					left = Token((floatt)left.intu * right.floatu);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
 					left.floatu *= (floatt)right.intu;
@@ -605,7 +553,7 @@ char run(Thread& thread)
 					left.floatu *= right.floatu;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -614,19 +562,19 @@ char run(Thread& thread)
 			case Token::BINARY_DIVIDE:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					if (right.intu == LANGUAGE_ZERO_INT) {
@@ -640,7 +588,7 @@ char run(Thread& thread)
 						printError("Zero division.");
 						SOLVE_FAILED;
 					}
-					left = Token(Token::FLOAT, (floatt)left.intu / right.floatu);
+					left = Token((floatt)left.intu / right.floatu);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
 					if (right.intu == LANGUAGE_ZERO_INT) {
@@ -657,7 +605,7 @@ char run(Thread& thread)
 					left.floatu /= right.floatu;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -666,19 +614,19 @@ char run(Thread& thread)
 			case Token::BINARY_MODULUS:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				if (left.type_ == Token::INT && right.type_ == Token::INT) {
+				if (left.tag == Token::INT && right.tag == Token::INT) {
 					if (right.intu == LANGUAGE_ZERO_INT) {
 						printError("Zero division.");
 						SOLVE_FAILED;
@@ -686,7 +634,7 @@ char run(Thread& thread)
 					left.intu %= right.intu;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -694,23 +642,23 @@ char run(Thread& thread)
 			case Token::BINARY_SHIFT_LEFT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				if (left.type_ == Token::INT && right.type_ == Token::INT) {
+				if (left.tag == Token::INT && right.tag == Token::INT) {
 					left.intu <<= right.intu;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -718,23 +666,23 @@ char run(Thread& thread)
 			case Token::BINARY_SHIFT_RIGHT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				if (left.type_ == Token::INT && right.type_ == Token::INT) {
+				if (left.tag == Token::INT && right.tag == Token::INT) {
 					left.intu >>= right.intu;
 				}
 				else {
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -742,19 +690,19 @@ char run(Thread& thread)
 			case Token::BINARY_LESSER:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu = (left.intu < right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
@@ -769,7 +717,7 @@ char run(Thread& thread)
 					left = (left.floatu < right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -778,19 +726,19 @@ char run(Thread& thread)
 			case Token::BINARY_GREATER:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu = (left.intu > right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
@@ -805,7 +753,7 @@ char run(Thread& thread)
 					left = (left.floatu > right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -814,19 +762,19 @@ char run(Thread& thread)
 			case Token::BINARY_LESSER_EQUAL:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu = (left.intu <= right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
@@ -841,7 +789,7 @@ char run(Thread& thread)
 					left = (left.floatu <= right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -850,19 +798,19 @@ char run(Thread& thread)
 			case Token::BINARY_GREATER_EQUAL:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu = (left.intu >= right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
@@ -877,7 +825,7 @@ char run(Thread& thread)
 					left = (left.floatu >= right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -886,19 +834,19 @@ char run(Thread& thread)
 			case Token::BINARY_EQUAL_DOUBLE:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhu' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhu' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu = (left.intu == right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
@@ -913,7 +861,7 @@ char run(Thread& thread)
 					left = (left.floatu == right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -922,19 +870,19 @@ char run(Thread& thread)
 			case Token::BINARY_EQUAL_NOT:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				switch (tagCOUPLE(left.type_, right.type_))
+				switch (tagCOUPLE(left.tag, right.tag))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
 					left.intu = (left.intu != right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
@@ -949,7 +897,7 @@ char run(Thread& thread)
 					left = (left.floatu != right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
-					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
+					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.tag, left.tag, right.tag);
 					SOLVE_FAILED;
 					break;
 				}
@@ -958,18 +906,18 @@ char run(Thread& thread)
 			case Token::BINARY_EQUAL:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhu' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhu' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					const UMAP_kpCHAR(const char*, Token)::iterator& val = state.LOCALS.find(left.var);
-					printInfo("Registered variable '%s' of type '%hhd'.", left.var, right.type_);
+					printInfo("Registered variable '%s' of type '%hhd'.", left.var, right.tag);
 					if (val == state.LOCALS.end()) {
 						state.LOCALS.insert({ left.var, right });
 						left.var = nullptr;
@@ -980,7 +928,7 @@ char run(Thread& thread)
 					left = std::move(right);
 				}
 				else {
-					printError("Can not assign a value to a type '%hhd'.", left.type_);
+					printError("Can not assign a value to a type '%hhd'.", left.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -988,20 +936,20 @@ char run(Thread& thread)
 			case Token::INDEX:
 			{
 				if (state.solution.size() < 2) {
-					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.type_, 2, state.solution.size());
+					printError("Operator '%hhd' takes '%d' arguments but only '%llu' are available.", token.tag, 2, state.solution.size());
 					SOLVE_FAILED;
 				}
 				Token right = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (right.type_ == Token::IDENTIFIER) {
+				if (right.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(right);
 				}
 				Token& left = state.solution.back();
-				if (left.type_ == Token::IDENTIFIER) {
+				if (left.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(left);
 				}
-				if (right.type_ != Token::INT) {
-					printError("Index must be an integer but found a '%hhd' instead.", right.type_);
+				if (right.tag != Token::INT) {
+					printError("Index must be an integer but found a '%hhd' instead.", right.tag);
 					SOLVE_FAILED;
 				}
 				if (right.intu < 0) {
@@ -1009,17 +957,17 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				// TODO: Check for assingment. array[index] = value;
-				if (left.type_ == Token::STRING) {
+				if (left.tag == Token::STRING) {
 					if (right.intu < strlen(left.str->string)) {
 						char cc[2]{ left.str->string[right.intu], '\0' };
-						state.solution.emplace_back(Token::STRING, StringShared::init(cc, 1));
+						state.solution.emplace_back(StringShared::init(cc, 1));
 					}
 					else {
 						printError("Index [%d] is out of bounds [%llu]'%s'.", right.intu, strlen(left.str->string), left.str->string);
 						SOLVE_FAILED;
 					}
 				}
-				else if (left.type_ == Token::ARRAY) {
+				else if (left.tag == Token::ARRAY) {
 					if (right.intu < left.vec->a.size()) {
 						state.solution.push_back(left.vec->a[right.intu]);
 					}
@@ -1029,7 +977,7 @@ char run(Thread& thread)
 					}
 				}
 				else {
-					printError("Unable to index a value of type '%hhd'.", left.type_);
+					printError("Unable to index a value of type '%hhd'.", left.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -1049,13 +997,13 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token calling = state.solution[state.solution.size() - 1 - nArgs];
-				if (calling.type_ == Token::IDENTIFIER) {
+				if (calling.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(calling);
 				}
-				if (calling.type_ == Token::BUILTIN) {
+				if (calling.tag == Token::BUILTIN) {
 					std::vector<Token> arguments{};
 					for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
-						if (state.solution[i].type_ == Token::IDENTIFIER) { // Dereference variables.
+						if (state.solution[i].tag == Token::IDENTIFIER) { // Dereference variables.
 							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
 							if (local == state.LOCALS.end()) {
 								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
@@ -1063,11 +1011,11 @@ char run(Thread& thread)
 									printError("Variable '%s' not initialized.", state.solution[i].var);
 									SOLVE_FAILED;
 								}
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.tag);
 								arguments.push_back(iter->second);
 							}
 							else {
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.tag);
 								arguments.push_back(local->second);
 							}
 						}
@@ -1081,7 +1029,7 @@ char run(Thread& thread)
 						return answer;
 					}
 				}
-				else if (calling.type_ == Token::FUNCTION) {
+				else if (calling.tag == Token::FUNCTION) {
 					sprintf_s(state.last_called, CHAR_YIELDED "%p", (void*)calling.intu); // Save function index as "*HEX_PTR".
 					const UMAP_kpCHAR(const char*, Token)::iterator& yielded = state.LOCALS.find(state.last_called);
 					if (yielded != state.LOCALS.end()) {
@@ -1100,7 +1048,7 @@ char run(Thread& thread)
 					}
 					Execution exe{ func, (int)thread.calling.size() };
 					for (int i = state.solution.size() - nArgs, j = 0; i < state.solution.size(); i++, j++) {
-						if (state.solution[i].type_ == Token::IDENTIFIER) { // Dereference variables.
+						if (state.solution[i].tag == Token::IDENTIFIER) { // Dereference variables.
 							const Token* val = nullptr;
 							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
 							if (local == state.LOCALS.end()) {
@@ -1109,11 +1057,11 @@ char run(Thread& thread)
 									printError("Variable '%s' not initialized.", state.solution[i].var);
 									SOLVE_FAILED;
 								}
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.tag);
 								val = &(iter->second);
 							}
 							else {
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.tag);
 								val = &(local->second);
 							}
 							const int len = func->argnames[j].size() + 1;
@@ -1135,7 +1083,7 @@ char run(Thread& thread)
 					goto execution_end;
 				}
 				else {
-					printError("Element of type '%hhd' is not callable.", calling.type_);
+					printError("Element of type '%hhd' is not callable.", calling.tag);
 					SOLVE_FAILED;
 				}
 			}
@@ -1151,7 +1099,7 @@ char run(Thread& thread)
 						SOLVE_FAILED;
 					}
 					Token& result = state.solution.back();
-					if (result.type_ == Token::IDENTIFIER) {
+					if (result.tag == Token::IDENTIFIER) {
 						GET_VARIABLE_VALUE(result);
 					}
 					thread.calling[state.index - 1].solution.push_back(std::move(result));
@@ -1166,7 +1114,7 @@ char run(Thread& thread)
 				}
 				if (state.solution.size() > 0) {
 					Token& result = state.solution.back();
-					if (result.type_ == Token::IDENTIFIER) {
+					if (result.tag == Token::IDENTIFIER) {
 						GET_VARIABLE_VALUE(result);
 					}
 					thread.calling[state.index - 1].solution.push_back(std::move(result));
@@ -1175,12 +1123,12 @@ char run(Thread& thread)
 				//const size_t len = strlen(thread.calling[state.index - 1].last_called) + 1;
 				char* yielded_key = new char[ADDR_FORMAT_LEN];
 				memcpy(yielded_key, thread.calling[state.index - 1].last_called, ADDR_FORMAT_LEN);
-				thread.calling[state.index - 1].LOCALS.insert({ yielded_key, Token{ Token::YIELDED, new Execution{std::move(state)} } }); // TODO: This never gets deallocated if this function is not called again.
+				thread.calling[state.index - 1].LOCALS.insert({ yielded_key, Token(new Execution{ std::move(state) }) }); // TODO: This never gets deallocated if this function is not called again.
 				goto execution_terminate;
 			}
 			break;
 			case Token::AWAIT:
-				state.solution.emplace_back(Token::INT, (intt)1); // To keep the pattern.
+				state.solution.emplace_back((intt)1); // To keep the pattern.
 				return SOLVE_AWAIT;
 				break;
 			case Token::ARRAY_INIT:
@@ -1196,7 +1144,7 @@ char run(Thread& thread)
 				}
 				SharedArray* v = new SharedArray{ 0 }; // Build Array.
 				for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
-					if (state.solution[i].type_ == Token::IDENTIFIER) { // Dereference variables.
+					if (state.solution[i].tag == Token::IDENTIFIER) { // Dereference variables.
 						const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
 						if (local == state.LOCALS.end()) {
 							const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
@@ -1204,11 +1152,11 @@ char run(Thread& thread)
 								printError("Variable '%s' not initialized.", state.solution[i].var);
 								SOLVE_FAILED;
 							}
-							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.type_);
+							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.tag);
 							v->a.push_back(iter->second);
 						}
 						else {
-							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.type_);
+							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.tag);
 							v->a.push_back(local->second);
 						}
 					}
@@ -1217,7 +1165,7 @@ char run(Thread& thread)
 					}
 				}
 				state.solution.erase(state.solution.end() - nArgs, state.solution.end());
-				state.solution.emplace_back(Token::ARRAY, v);
+				state.solution.emplace_back(v);
 			}
 			break;
 			case Token::GOTO:
@@ -1227,11 +1175,11 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& label_name = state.solution.back();
-				if (label_name.type_ == Token::IDENTIFIER) {
+				if (label_name.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(label_name);
 				}
-				if (label_name.type_ != Token::STRING) {
-					printError("Token::GOTO label must be identified by a string type but found '%hhd'.", label_name.type_);
+				if (label_name.tag != Token::STRING) {
+					printError("Token::GOTO label must be identified by a string type but found '%hhd'.", label_name.tag);
 					SOLVE_FAILED;
 				}
 				const UMAP_kpCHAR(const char*, const size_t)::iterator& label_num = state.pFunction->labels.find(label_name.str->string);
@@ -1244,18 +1192,18 @@ char run(Thread& thread)
 			}
 			break;
 			case Token::JUMP:
-				state.solution.emplace_back(Token::INT, token.intu); // TODO: Remove
+				state.solution.emplace_back(token.intu); // TODO: Remove
 				state.CP = token.intu;
 			case Token::JUMP_NEXT:
 				// TODO: Remove.
 				if (state.solution.size() == 1) {
-					if (state.solution[0].type_ == Token::INT) {
+					if (state.solution[0].tag == Token::INT) {
 						printInfo("Result is = '%d'.", state.solution[0].intu);
 					}
-					else if (state.solution[0].type_ == Token::FLOAT) {
+					else if (state.solution[0].tag == Token::FLOAT) {
 						printInfo("Result is = '%f'.", state.solution[0].floatu);
 					}
-					else if (state.solution[0].type_ == Token::STRING) {
+					else if (state.solution[0].tag == Token::STRING) {
 						printInfo("Result is = '%s'.", state.solution[0].str->string);
 					}
 					state.ES++;
@@ -1278,23 +1226,23 @@ char run(Thread& thread)
 					SOLVE_FAILED;
 				}
 				Token& condition = state.solution.back();
-				if (condition.type_ == Token::IDENTIFIER) {
+				if (condition.tag == Token::IDENTIFIER) {
 					GET_VARIABLE_VALUE(condition);
 				}
-				if (condition.type_ == Token::INT) {
-					if ((condition.intu == LANGUAGE_FALSE) == (token.type_ != Token::JUMP_ON_TRUE)) {
+				if (condition.tag == Token::INT) {
+					if ((condition.intu == LANGUAGE_FALSE) == (token.tag != Token::JUMP_ON_TRUE)) {
 						state.CP = token.intu;
 					}
 					state.solution.clear();
 				}
-				else if (condition.type_ == Token::FLOAT) {
-					if ((condition.floatu == LANGUAGE_ZERO_FLOAT) == (token.type_ != Token::JUMP_ON_TRUE)) {
+				else if (condition.tag == Token::FLOAT) {
+					if ((condition.floatu == LANGUAGE_ZERO_FLOAT) == (token.tag != Token::JUMP_ON_TRUE)) {
 						state.CP = token.intu;
 					}
 					state.solution.clear();
 				}
 				else {
-					printError("Can not resolve a '%hhd' type to a boolean.", condition.type_);
+					printError("Can not resolve a '%hhd' type to a boolean.", condition.tag);
 					SOLVE_FAILED;
 				}
 			}

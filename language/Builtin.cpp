@@ -8,12 +8,12 @@ BUILTIN_DEFINE(duplicate)
 		return false;
 	}
 	Token& ev = arguments[0];
-	if (ev.type_ != Token::INT)
+	if (ev.tag != Token::INT)
 	{
 		printError("duplicate: incorrect type of argument.");
 		return false;
 	}
-	solution.emplace_back(Token::INT, 2 * ev.intu);
+	solution.emplace_back(2 * ev.intu);
 	return true;
 }
 
@@ -25,7 +25,7 @@ BUILTIN_DEFINE(print)
 		return false;
 	}
 	Token& ev = arguments[0];
-	if (ev.type_ != Token::STRING)
+	if (ev.tag != Token::STRING)
 	{
 		printError("print: incorrect type of argument.");
 		return false;
@@ -43,18 +43,18 @@ BUILTIN_DEFINE(max)
 		return SOLVE_ERROR;
 	}
 	Token& arg0 = arguments[0];
-	if (arg0.type_ != Token::INT)
+	if (arg0.tag != Token::INT)
 	{
 		printError("max: incorrect type of argument 0.");
 		return SOLVE_ERROR;
 	}
 	Token& arg1 = arguments[1];
-	if (arg1.type_ != Token::INT)
+	if (arg1.tag != Token::INT)
 	{
 		printError("max: incorrect type of argument 1.");
 		return SOLVE_ERROR;
 	}
-	solution.emplace_back(Token::INT, arg0.intu > arg1.intu ? arg0.intu : arg1.intu);
+	solution.emplace_back(arg0.intu > arg1.intu ? arg0.intu : arg1.intu);
 	return SOLVE_AWAIT;
 }
 
