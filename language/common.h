@@ -1,6 +1,17 @@
 #ifndef H_COMMON
 #define H_COMMON
 
+#include <limits.h> // ULLONG_MAX
+#include <stdint.h> // intptr_t
+#include <inttypes.h> // PRI
+
+// https://stackoverflow.com/questions/51616057/how-to-determine-pointer-size-preprocessor-c
+#if UINTPTR_MAX >= ULLONG_MAX
+#define PTR64
+#else
+#define PTR32
+#endif // UINTPTR_MAX >= ULLONG_MAX
+
 // https://scaryreasoner.wordpress.com/2009/02/28/checking-sizeof-at-compile-time/
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
 

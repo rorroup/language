@@ -18,6 +18,6 @@ typedef short int buf_size; // TODO: Rename.
 #define tokenizerError(format, ...) printError("Tokenizer: " format, __VA_ARGS__)
 
 const char* readfile(const char* file_name);
-bool tokenize_source(const char* source, std::vector<Token>& tokens);
+bool tokenize_source(const char* source, std::deque<Token>& tokens);
 
 #endif // !H_TOKENIZER

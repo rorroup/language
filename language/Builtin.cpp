@@ -13,7 +13,7 @@ BUILTIN_DEFINE(duplicate)
 		printError("duplicate: incorrect type of argument.");
 		return false;
 	}
-	solution.push_back({ Token::INT, (long int)(2 * ev.num) });
+	solution.emplace_back(Token::INT, 2 * ev.intu);
 	return true;
 }
 
@@ -30,8 +30,8 @@ BUILTIN_DEFINE(print)
 		printError("print: incorrect type of argument.");
 		return false;
 	}
-	printf(ANSI_YELLOW "[BUILTIN::PRINT] %s\n", STR_OWN_STR(ev.str));
-	solution.push_back({ Token::INT, (long int)1 }); // To keep the pattern.
+	printf(ANSI_YELLOW "[BUILTIN::PRINT] %s\n", ev.str->string);
+	solution.push_back(TOKEN_TRUE); // To keep the pattern.
 	return true;
 }
 
@@ -54,7 +54,7 @@ BUILTIN_DEFINE(max)
 		printError("max: incorrect type of argument 1.");
 		return SOLVE_ERROR;
 	}
-	solution.push_back({ Token::INT, (long int)(arg0.num > arg1.num ? arg0.num : arg1.num) });
+	solution.emplace_back(Token::INT, arg0.intu > arg1.intu ? arg0.intu : arg1.intu);
 	return SOLVE_AWAIT;
 }
 

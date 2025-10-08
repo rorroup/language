@@ -26,70 +26,38 @@ UMAP_kpCHAR(const char*, Token) VALUE_TABLE;
 Token::Token()
 {
 	type_ = Token::NONE;
-	num = 0;
+	intu = 0;
 }
 
-Token::Token(const Token& token)
-{
-	switch (token.type_)
-	{
-	case Token::NONE:
-	case Token::INT:
-	case Token::CALL:
-	case Token::RETURN:
-	case Token::ARRAY_INIT:
-	case Token::YIELD:
-	case Token::AWAIT:
-	case Token::GOTO:
-	case Token::JUMP:
-	case Token::JUMP_ON_FALSE:
-	case Token::JUMP_ON_TRUE:
-	case Token::JUMP_NEXT:
-		num = token.num;
-		break;
-	case Token::FLOAT:
-		frac = token.frac;
-		break;
-	case Token::STRING:
-		STR_OWNERS(token.str)++;
-	case Token::IDENTIFIER:
-		str = token.str;
-		break;
-	case Token::ARRAY:
-		vec = token.vec;
-		vec->owners++;
-		break;
-	case Token::FUNCTION:
-		fx = token.fx;
-		break;
-	case Token::BUILTIN:
-		func = token.func;
-		break;
-	case Token::YIELDED:
-		exe = token.exe;
-		break;
-	default:
-		num = token.num;
-	}
-	type_ = token.type_;
-}
-
-Token::Token(tok_tag t, long int i)
+Token::Token(tok_tag t, int i)
 {
 	type_ = t;
-	num = i;
+	intu = i;
 }
 
-Token::Token(tok_tag t, float f)
+Token::Token(tok_tag t, intt i)
 {
 	type_ = t;
-	frac = f;
+	intu = i;
+}
+
+Token::Token(tok_tag t, floatt f)
+{
+	type_ = t;
+	floatu = f;
 }
 
 Token::Token(tok_tag t, char* s)
 {
 	type_ = t;
+	var = s;
+}
+
+Token::Token(tok_tag t, StringShared* s)
+{
+	type_ = t;
 	str = s;
+	str->owners++;
 }
 
 Token::Token(tok_tag t, SharedArray* v)
@@ -117,25 +85,87 @@ Token::Token(tok_tag t, Execution* e)
 	exe = e;
 }
 
-Token::~Token()
+Token::Token(const Token& token)
 {
-	switch (type_) {
-	case Token::STRING:
+	switch (token.type_)
 	{
-		str_own& owners = STR_OWNERS(str);
-		owners--;
-		if (owners <= 0) {
-			delete[] str;
-		}
-	}
+	case Token::NONE:
+	case Token::INT:
+	case Token::CALL:
+	case Token::RETURN:
+	case Token::ARRAY_INIT:
+	case Token::YIELD:
+	case Token::AWAIT:
+	case Token::GOTO:
+	case Token::JUMP:
+	case Token::JUMP_ON_FALSE:
+	case Token::JUMP_ON_TRUE:
+	case Token::JUMP_NEXT:
+		intu = token.intu;
+		break;
+	case Token::FLOAT:
+		floatu = token.floatu;
+		break;
+	case Token::STRING:
+		str = token.str;
+		str->owners++;
+		break;
+	case Token::IDENTIFIER:
+		//printError("TOKEN COPY CONSTRUCTOR FOR VARIABLE SHOULD NEVER BE CALLED!!! '%s'.", token.var);
+		var = new char[strlen(token.var) + 1];
+		std::memcpy(var, token.var, strlen(token.var) + 1);
 		break;
 	case Token::ARRAY:
-		vec->owners--;
-		if (vec->owners == 0) {
-			delete vec;
-		}
+		vec = token.vec;
+		vec->owners++;
+		break;
+	case Token::FUNCTION:
+		fx = token.fx;
+		break;
+	case Token::BUILTIN:
+		func = token.func;
+		break;
+	case Token::YIELDED:
+		exe = token.exe;
 		break;
 	default:
+		intu = token.intu;
+		break;
+	}
+	type_ = token.type_;
+}
+
+Token::Token(Token&& token) noexcept
+{
+	type_ = token.type_;
+	switch (type_)
+	{
+	case Token::FLOAT:
+		floatu = token.floatu;
+		break;
+	case Token::IDENTIFIER:
+		var = token.var;
+		token.var = nullptr;
+		break;
+	case Token::STRING:
+		str = token.str;
+		token.str = nullptr;
+		break;
+	case Token::ARRAY:
+		vec = token.vec;
+		token.vec = nullptr;
+		break;
+	case Token::FUNCTION:
+		fx = token.fx;
+		break;
+	case Token::BUILTIN:
+		func = token.func;
+		break;
+	case Token::YIELDED:
+		exe = token.exe;
+		break;
+	default:
+		intu = token.intu;
 		break;
 	}
 }
@@ -146,19 +176,24 @@ Token& Token::operator=(const Token& token)
 		switch (type_)
 		{
 		case Token::STRING:
-		{
-			str_own& owners = STR_OWNERS(str);
-			owners--;
-			if (owners <= 0) {
-				delete[] str;
+			if (str != nullptr) {
+				str->owners--;
+				if (str->owners <= 0) {
+					delete str;
+				}
 			}
-		}
 			break;
 		case Token::ARRAY:
-			vec->owners--;
-			if (vec->owners == 0) {
-				delete vec;
+			if (vec != nullptr) {
+				vec->owners--;
+				if (vec->owners == 0) {
+					delete vec;
+				}
 			}
+			break;
+		case Token::IDENTIFIER:
+			if (var != nullptr)
+				delete[] var;
 			break;
 		default:
 			break;
@@ -179,15 +214,17 @@ Token& Token::operator=(const Token& token)
 		case Token::JUMP_ON_FALSE:
 		case Token::JUMP_ON_TRUE:
 		case Token::JUMP_NEXT:
-			num = token.num;
+			intu = token.intu;
 			break;
 		case Token::FLOAT:
-			frac = token.frac;
+			floatu = token.floatu;
 			break;
 		case Token::STRING:
-			STR_OWNERS(token.str)++;
-		case Token::IDENTIFIER:
 			str = token.str;
+			str->owners++;
+			break;
+		case Token::IDENTIFIER:
+			var = token.var;
 			break;
 		case Token::ARRAY:
 			vec = token.vec;
@@ -203,30 +240,121 @@ Token& Token::operator=(const Token& token)
 			exe = token.exe;
 			break;
 		default:
-			num = token.num;
+			intu = token.intu;
 			break;
 		}
 	}
 	return *this;
 }
 
+Token& Token::operator=(Token&& token) noexcept
+{
+	switch (type_)
+	{
+	case Token::STRING:
+		if (str != nullptr) {
+			str->owners--;
+			if (str->owners <= 0) {
+				delete str;
+			}
+		}
+		break;
+	case Token::IDENTIFIER:
+		if (var != nullptr)
+			delete[] var;
+		break;
+	case Token::ARRAY:
+		if (vec != nullptr) {
+			vec->owners--;
+			if (vec->owners == 0) {
+				delete vec;
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	
+	type_ = token.type_;
+
+	switch (type_)
+	{
+	case Token::FLOAT:
+		floatu = token.floatu;
+		break;
+	case Token::STRING:
+		str = token.str;
+		token.str = nullptr;
+		break;
+	case Token::IDENTIFIER:
+		var = token.var;
+		token.var = nullptr;
+		break;
+	case Token::ARRAY:
+		vec = token.vec;
+		token.vec = nullptr;
+		break;
+	case Token::FUNCTION:
+		fx = token.fx;
+		break;
+	case Token::BUILTIN:
+		func = token.func;
+		break;
+	case Token::YIELDED:
+		exe = token.exe;
+		break;
+	default:
+		intu = token.intu;
+		break;
+	}
+
+	return *this;
+}
+
+Token::~Token()
+{
+	switch (type_) {
+	case Token::STRING:
+		if (str != nullptr) {
+			str->owners--;
+			if (str->owners <= 0) {
+				delete str;
+			}
+		}
+		break;
+	case Token::IDENTIFIER:
+		if (var != nullptr)
+			delete[] var;
+		break;
+	case Token::ARRAY:
+		if (vec != nullptr) {
+			vec->owners--;
+			if (vec->owners == 0) {
+				delete vec;
+			}
+		}
+		break;
+	default:
+		break;
+	}
+}
 
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
-#define GET_VARIABLE_VALUE(var) \
-const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(var.str); \
+#define GET_VARIABLE_VALUE(variable) \
+const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(variable.var); \
 if (local == state.LOCALS.end()) { \
-	const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(var.str); \
+	const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(variable.var); \
 	if (iter == VALUE_TABLE.end()) { \
-		printError("Variable '%s' not initialized.", var.str); \
+		printError("Variable '%s' not initialized.", variable.var); \
 		SOLVE_FAILED; \
 	} \
-	printDebug("Variable '%s' found of type '%hhd'", var.str, iter->second.type_); \
-	var = iter->second; \
+	printDebug("Variable '%s' found of type '%hhd'", variable.var, iter->second.type_); \
+	variable = iter->second; \
 } \
 else { \
-	printDebug("Variable '%s' found of type '%hhd'", var.str, local->second.type_); \
-	var = local->second; \
+	printDebug("Variable '%s' found of type '%hhd'", variable.var, local->second.type_); \
+	variable = local->second; \
 } \
 
 
@@ -274,7 +402,7 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(arg);
 				}
 				if (arg.type_ == Token::INT) {
-					arg.num = ~arg.num;
+					arg.intu = ~arg.intu;
 				}
 				else {
 					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
@@ -293,10 +421,10 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(arg);
 				}
 				if (arg.type_ == Token::INT) {
-					arg.num = !arg.num;
+					arg.intu = !arg.intu;
 				}
 				else if (arg.type_ == Token::FLOAT) {
-					arg.frac = !arg.frac;
+					arg.floatu = !arg.floatu;
 				}
 				else {
 					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
@@ -328,10 +456,10 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(arg);
 				}
 				if (arg.type_ == Token::INT) {
-					arg.num = -arg.num;
+					arg.intu = -arg.intu;
 				}
 				else if (arg.type_ == Token::FLOAT) {
-					arg.frac = -arg.frac;
+					arg.floatu = -arg.floatu;
 				}
 				else {
 					printError("Operator '%hhd' may not operate on values of type '%hhd'.", token.type_, arg.type_);
@@ -358,75 +486,50 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num += right.num;
+					left.intu += right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(Token::FLOAT, (float)left.num + right.frac);
+					left = Token(Token::FLOAT, (floatt)left.intu + right.floatu); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.frac += (float)right.num;
+					left.floatu += (floatt)right.intu;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.frac += right.frac;
+					left.floatu += right.floatu;
 					break;
 				case tagCOUPLE(Token::INT, Token::STRING):
 				{
-					const size_t l0 = 1 + (left.num == 0 ? 1 : (left.num > 0 ? log10(left.num) : 1 + log10(-left.num)));
-					const size_t l1 = strlen(STR_OWN_STR(right.str));
-					const size_t l = STR_OWN_STR(l0 + l1 + 1);
-					str_tok s = new char[l];
-					STR_OWNERS(s) = 1;
-					_itoa_s(left.num, STR_OWN_STR(s), l0 + 1, 10);
-					memcpy(STR_OWN_STR(s) + l0, STR_OWN_STR(right.str), l1 + 1);
-					left = Token(Token::STRING, s);
+					const size_t l0 = intlen(left.intu);
+					const size_t l1 = strlen(right.str->string);
+					left = Token(Token::STRING, StringShared_init(left.intu, l0, right.str->string, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::INT):
 				{
-					const size_t l0 = strlen(STR_OWN_STR(left.str));
-					const size_t l1 = 1 + (right.num == 0 ? 1 : (right.num > 0 ? log10(right.num) : 1 + log10(-right.num)));
-					const size_t l = STR_OWN_STR(l0 + l1 + 1);
-					str_tok s = new char[l];
-					STR_OWNERS(s) = 1;
-					memcpy(STR_OWN_STR(s), STR_OWN_STR(left.str), l0);
-					_itoa_s(right.num, STR_OWN_STR(s) + l0, l1 + 1, 10);
-					left = Token(Token::STRING, s); // This must trigger constructor on left so its str_tok gets decremented!
-					break;
+					const size_t l0 = strlen(left.str->string);
+					const size_t l1 = intlen(right.intu);
+					left = Token(Token::STRING, StringShared_init(left.str->string, l0, right.intu, l1)); // This must trigger constructor on left so its str_tok gets decremented!
 				}
+				break;
 				case tagCOUPLE(Token::FLOAT, Token::STRING):
 				{
-					const size_t l0 = snprintf(NULL, 0, "%f", left.frac);
-					const size_t l1 = strlen(STR_OWN_STR(right.str));
-					const size_t l = STR_OWN_STR(l0 + l1 + 1);
-					str_tok s = new char[l];
-					STR_OWNERS(s) = 1;
-					snprintf(STR_OWN_STR(s), l0 + 1, "%f", left.frac);
-					memcpy(STR_OWN_STR(s) + l0, STR_OWN_STR(right.str), l1 + 1);
-					left = Token(Token::STRING, s);
+					const size_t l0 = snprintf(NULL, 0, "%f", left.floatu);
+					const size_t l1 = strlen(right.str->string);
+					left = Token(Token::STRING, StringShared_init(left.floatu, l0, right.str->string, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::FLOAT):
 				{
-					const size_t l0 = strlen(STR_OWN_STR(left.str));
-					const size_t l1 = snprintf(NULL, 0, "%f", right.frac);
-					const size_t l = STR_OWN_STR(l0 + l1 + 1);
-					str_tok s = new char[l];
-					STR_OWNERS(s) = 1;
-					memcpy(STR_OWN_STR(s), STR_OWN_STR(left.str), l0);
-					snprintf(STR_OWN_STR(s) + l0, l1 + 1, "%f", right.frac);
-					left = Token(Token::STRING, s);
+					const size_t l0 = strlen(left.str->string);
+					const size_t l1 = snprintf(NULL, 0, "%f", right.floatu);
+					left = Token(Token::STRING, StringShared_init(left.str->string, l0, right.floatu, l1));
 				}
 				break;
 				case tagCOUPLE(Token::STRING, Token::STRING):
 				{
-					const size_t l0 = strlen(STR_OWN_STR(left.str));
-					const size_t l1 = strlen(STR_OWN_STR(right.str));
-					const size_t l = STR_OWN_STR(l0 + l1 + 1);
-					str_tok s = new char[l];
-					STR_OWNERS(s) = 1;
-					memcpy(STR_OWN_STR(s), STR_OWN_STR(left.str), l0);
-					memcpy(STR_OWN_STR(s) + l0, STR_OWN_STR(right.str), l1 + 1);
-					left = Token(Token::STRING, s);
+					const size_t l0 = strlen(left.str->string);
+					const size_t l1 = strlen(right.str->string);
+					left = Token(Token::STRING, StringShared_init(left.str->string, l0, right.str->string, l1));
 				}
 				break;
 				default:
@@ -454,16 +557,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num -= right.num;
+					left.intu -= right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(Token::FLOAT, (float)left.num - right.frac);
+					left = Token(Token::FLOAT, (floatt)left.intu - right.floatu);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.frac -= (float)right.num;
+					left.floatu -= (floatt)right.intu;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.frac -= right.frac;
+					left.floatu -= right.floatu;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -490,16 +593,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num *= right.num;
+					left.intu *= right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(Token::FLOAT, (float)left.num * right.frac);
+					left = Token(Token::FLOAT, (floatt)left.intu * right.floatu);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.frac *= (float)right.num;
+					left.floatu *= (floatt)right.intu;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.frac *= right.frac;
+					left.floatu *= right.floatu;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -526,32 +629,32 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					if (right.num == 0) {
+					if (right.intu == LANGUAGE_ZERO_INT) {
 						printError("Zero division.");
 						SOLVE_FAILED;
 					}
-					left.num /= right.num;
+					left.intu /= right.intu;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					if (right.frac == 0.0f) {
+					if (right.floatu == LANGUAGE_ZERO_FLOAT) {
 						printError("Zero division.");
 						SOLVE_FAILED;
 					}
-					left = Token(Token::FLOAT, (float)left.num / right.frac);
+					left = Token(Token::FLOAT, (floatt)left.intu / right.floatu);
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					if (right.num == 0) {
+					if (right.intu == LANGUAGE_ZERO_INT) {
 						printError("Zero division.");
 						SOLVE_FAILED;
 					}
-					left.frac /= (float)right.num;
+					left.floatu /= (floatt)right.intu;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					if (right.frac == 0.0f) {
+					if (right.floatu == LANGUAGE_ZERO_FLOAT) {
 						printError("Zero division.");
 						SOLVE_FAILED;
 					}
-					left.frac /= right.frac;
+					left.floatu /= right.floatu;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -576,11 +679,11 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(left);
 				}
 				if (left.type_ == Token::INT && right.type_ == Token::INT) {
-					if (right.num == 0) {
+					if (right.intu == LANGUAGE_ZERO_INT) {
 						printError("Zero division.");
 						SOLVE_FAILED;
 					}
-					left.num %= right.num;
+					left.intu %= right.intu;
 				}
 				else {
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -604,7 +707,7 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(left);
 				}
 				if (left.type_ == Token::INT && right.type_ == Token::INT) {
-					left.num <<= right.num;
+					left.intu <<= right.intu;
 				}
 				else {
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -628,7 +731,7 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(left);
 				}
 				if (left.type_ == Token::INT && right.type_ == Token::INT) {
-					left.num >>= right.num;
+					left.intu >>= right.intu;
 				}
 				else {
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -654,16 +757,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num = (left.num < right.num) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = (left.intu < right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.num = ((float)left.num < right.frac) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = ((floatt)left.intu < right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.frac < (float)right.num) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu < (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.frac < right.frac) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu < right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -690,16 +793,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num = (left.num > right.num) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = (left.intu > right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.num = ((float)left.num > right.frac) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = ((floatt)left.intu > right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.frac > (float)right.num) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu > (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.frac > right.frac) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu > right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -726,16 +829,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num = (left.num <= right.num) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = (left.intu <= right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.num = ((float)left.num <= right.frac) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = ((floatt)left.intu <= right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.frac <= (float)right.num) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu <= (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.frac <= right.frac) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu <= right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -762,16 +865,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num = (left.num >= right.num) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = (left.intu >= right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.num = ((float)left.num >= right.frac) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = ((floatt)left.intu >= right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.frac >= (float)right.num) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu >= (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.frac >= right.frac) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu >= right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -798,16 +901,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num = (left.num == right.num) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = (left.intu == right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.num = ((float)left.num == right.frac) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = ((floatt)left.intu == right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.frac == (float)right.num) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu == (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.frac == right.frac) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu == right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -834,16 +937,16 @@ char run(Thread& thread)
 				switch (tagCOUPLE(left.type_, right.type_))
 				{
 				case tagCOUPLE(Token::INT, Token::INT):
-					left.num = (left.num != right.num) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = (left.intu != right.intu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.num = ((float)left.num != right.frac) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
+					left.intu = ((floatt)left.intu != right.floatu) ? LANGUAGE_TRUE : LANGUAGE_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = (left.frac != (float)right.num) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu != (floatt)right.intu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = (left.frac != right.frac) ? TOKEN_TRUE : TOKEN_FALSE;
+					left = (left.floatu != right.floatu) ? TOKEN_TRUE : TOKEN_FALSE;
 					break;
 				default:
 					printError("Operator '%hhd' may not operate on values of type '%hhd' and '%hhd'.", token.type_, left.type_, right.type_);
@@ -865,9 +968,16 @@ char run(Thread& thread)
 				}
 				Token& left = state.solution.back();
 				if (left.type_ == Token::IDENTIFIER) {
-					state.LOCALS.insert_or_assign(left.str, right);
-					printInfo("Registered variable '%s' of type '%hhd'.", left.str, right.type_);
-					left = right;
+					const UMAP_kpCHAR(const char*, Token)::iterator& val = state.LOCALS.find(left.var);
+					printInfo("Registered variable '%s' of type '%hhd'.", left.var, right.type_);
+					if (val == state.LOCALS.end()) {
+						state.LOCALS.insert({ left.var, right });
+						left.var = nullptr;
+					}
+					else {
+						val->second = right;
+					}
+					left = std::move(right);
 				}
 				else {
 					printError("Can not assign a value to a type '%hhd'.", left.type_);
@@ -894,30 +1004,27 @@ char run(Thread& thread)
 					printError("Index must be an integer but found a '%hhd' instead.", right.type_);
 					SOLVE_FAILED;
 				}
-				if (right.num < 0) {
-					printError("%d is not a valid index.", right.num);
+				if (right.intu < 0) {
+					printError("%d is not a valid index.", right.intu);
 					SOLVE_FAILED;
 				}
 				// TODO: Check for assingment. array[index] = value;
 				if (left.type_ == Token::STRING) {
-					if (right.num < strlen(STR_OWN_STR(left.str))) {
-						str_tok cc = new char[STR_OWN_STR(2)];
-						STR_OWNERS(cc) = 1;
-						cc[STR_OWN_BYTES] = left.str[STR_OWN_STR(right.num)];
-						cc[STR_OWN_STR(2) - 1] = '\0';
-						state.solution.push_back(Token(Token::STRING, cc));
+					if (right.intu < strlen(left.str->string)) {
+						char cc[2]{ left.str->string[right.intu], '\0' };
+						state.solution.emplace_back(Token::STRING, StringShared::init(cc, 1));
 					}
 					else {
-						printError("Index [%d] is out of bounds [%llu]'%s'.", right.num, strlen(STR_OWN_STR(left.str)), STR_OWN_STR(left.str));
+						printError("Index [%d] is out of bounds [%llu]'%s'.", right.intu, strlen(left.str->string), left.str->string);
 						SOLVE_FAILED;
 					}
 				}
 				else if (left.type_ == Token::ARRAY) {
-					if (right.num < left.vec->a.size()) {
-						state.solution.push_back(left.vec->a[right.num]);
+					if (right.intu < left.vec->a.size()) {
+						state.solution.push_back(left.vec->a[right.intu]);
 					}
 					else {
-						printError("Index '%d' is out of bounds '%llu'.", right.num, left.vec->a.size());
+						printError("Index '%d' is out of bounds '%llu'.", right.intu, left.vec->a.size());
 						SOLVE_FAILED;
 					}
 				}
@@ -932,7 +1039,7 @@ char run(Thread& thread)
 
 			case Token::CALL:
 			{
-				const int nArgs = token.num;
+				const int nArgs = token.intu;
 				if (nArgs < 0) {
 					printError("Number of arguments must be at least 0 but it was '%d'.", nArgs);
 					SOLVE_FAILED;
@@ -949,18 +1056,18 @@ char run(Thread& thread)
 					std::vector<Token> arguments{};
 					for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
 						if (state.solution[i].type_ == Token::IDENTIFIER) { // Dereference variables.
-							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].str);
+							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
 							if (local == state.LOCALS.end()) {
-								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].str);
+								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
 								if (iter == VALUE_TABLE.end()) {
-									printError("Variable '%s' not initialized.", state.solution[i].str);
+									printError("Variable '%s' not initialized.", state.solution[i].var);
 									SOLVE_FAILED;
 								}
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].str, iter->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.type_);
 								arguments.push_back(iter->second);
 							}
 							else {
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].str, local->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.type_);
 								arguments.push_back(local->second);
 							}
 						}
@@ -975,7 +1082,7 @@ char run(Thread& thread)
 					}
 				}
 				else if (calling.type_ == Token::FUNCTION) {
-					sprintf_s(state.last_called, CHAR_YIELDED "%p", (void*)calling.num); // Save function index as "*HEX_PTR".
+					sprintf_s(state.last_called, CHAR_YIELDED "%p", (void*)calling.intu); // Save function index as "*HEX_PTR".
 					const UMAP_kpCHAR(const char*, Token)::iterator& yielded = state.LOCALS.find(state.last_called);
 					if (yielded != state.LOCALS.end()) {
 						state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Not pass in the arguments again.
@@ -995,18 +1102,18 @@ char run(Thread& thread)
 					for (int i = state.solution.size() - nArgs, j = 0; i < state.solution.size(); i++, j++) {
 						if (state.solution[i].type_ == Token::IDENTIFIER) { // Dereference variables.
 							const Token* val = nullptr;
-							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].str);
+							const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
 							if (local == state.LOCALS.end()) {
-								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].str);
+								const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
 								if (iter == VALUE_TABLE.end()) {
-									printError("Variable '%s' not initialized.", state.solution[i].str);
+									printError("Variable '%s' not initialized.", state.solution[i].var);
 									SOLVE_FAILED;
 								}
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].str, iter->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.type_);
 								val = &(iter->second);
 							}
 							else {
-								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].str, local->second.type_);
+								printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.type_);
 								val = &(local->second);
 							}
 							const int len = func->argnames[j].size() + 1;
@@ -1020,7 +1127,7 @@ char run(Thread& thread)
 							char* key = new char[len];
 							memset(key, '\0', len);
 							memcpy(key, func->argnames[j].c_str(), len - 1);
-							exe.LOCALS.insert_or_assign(key, state.solution[i]);
+							exe.LOCALS.insert_or_assign(key, std::move(state.solution[i]));
 						}
 					}
 					state.solution.erase(state.solution.end() - 1 - nArgs, state.solution.end()); // Take the function and its arguments out of the solution stack.
@@ -1034,7 +1141,7 @@ char run(Thread& thread)
 			}
 			break;
 			case Token::RETURN:
-				if (token.num > 0) {
+				if (token.intu > 0) {
 					if (state.index <= 0) {
 						printError("Outermost function has nowhere to return to.");
 						SOLVE_FAILED;
@@ -1073,12 +1180,12 @@ char run(Thread& thread)
 			}
 			break;
 			case Token::AWAIT:
-				state.solution.push_back(Token(Token::INT, (long int)1)); // To keep the pattern.
+				state.solution.emplace_back(Token::INT, (intt)1); // To keep the pattern.
 				return SOLVE_AWAIT;
 				break;
 			case Token::ARRAY_INIT:
 			{
-				const int nArgs = token.num;
+				const int nArgs = token.intu;
 				if (nArgs < 0) {
 					printError("Number of array elements must be at least 0 but it was '%d'.", nArgs);
 					SOLVE_FAILED;
@@ -1090,18 +1197,18 @@ char run(Thread& thread)
 				SharedArray* v = new SharedArray{ 0 }; // Build Array.
 				for (int i = state.solution.size() - nArgs; i < state.solution.size(); i++) {
 					if (state.solution[i].type_ == Token::IDENTIFIER) { // Dereference variables.
-						const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].str);
+						const UMAP_kpCHAR(const char*, Token)::iterator& local = state.LOCALS.find(state.solution[i].var);
 						if (local == state.LOCALS.end()) {
-							const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].str);
+							const UMAP_kpCHAR(const char*, Token)::iterator& iter = VALUE_TABLE.find(state.solution[i].var);
 							if (iter == VALUE_TABLE.end()) {
-								printError("Variable '%s' not initialized.", state.solution[i].str);
+								printError("Variable '%s' not initialized.", state.solution[i].var);
 								SOLVE_FAILED;
 							}
-							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].str, iter->second.type_);
+							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, iter->second.type_);
 							v->a.push_back(iter->second);
 						}
 						else {
-							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].str, local->second.type_);
+							printDebug("Variable '%s' found of type '%hhd'", state.solution[i].var, local->second.type_);
 							v->a.push_back(local->second);
 						}
 					}
@@ -1110,7 +1217,7 @@ char run(Thread& thread)
 					}
 				}
 				state.solution.erase(state.solution.end() - nArgs, state.solution.end());
-				state.solution.push_back(Token(Token::ARRAY, v));
+				state.solution.emplace_back(Token::ARRAY, v);
 			}
 			break;
 			case Token::GOTO:
@@ -1127,9 +1234,9 @@ char run(Thread& thread)
 					printError("Token::GOTO label must be identified by a string type but found '%hhd'.", label_name.type_);
 					SOLVE_FAILED;
 				}
-				const UMAP_kpCHAR(const char*, const size_t)::iterator& label_num = state.pFunction->labels.find(STR_OWN_STR(label_name.str));
+				const UMAP_kpCHAR(const char*, const size_t)::iterator& label_num = state.pFunction->labels.find(label_name.str->string);
 				if (label_num == state.pFunction->labels.end()) {
-					printError("No label named '%s'.", STR_OWN_STR(label_name.str));
+					printError("No label named '%s'.", label_name.str->string);
 					SOLVE_FAILED;
 				}
 				state.CP = label_num->second;
@@ -1137,19 +1244,19 @@ char run(Thread& thread)
 			}
 			break;
 			case Token::JUMP:
-				state.solution.push_back(Token{ Token::INT, (long int)token.num }); // TODO: Remove
-				state.CP = token.num;
+				state.solution.emplace_back(Token::INT, token.intu); // TODO: Remove
+				state.CP = token.intu;
 			case Token::JUMP_NEXT:
 				// TODO: Remove.
 				if (state.solution.size() == 1) {
 					if (state.solution[0].type_ == Token::INT) {
-						printInfo("Result is = '%d'.", state.solution[0].num);
+						printInfo("Result is = '%d'.", state.solution[0].intu);
 					}
 					else if (state.solution[0].type_ == Token::FLOAT) {
-						printInfo("Result is = '%f'.", state.solution[0].frac);
+						printInfo("Result is = '%f'.", state.solution[0].floatu);
 					}
 					else if (state.solution[0].type_ == Token::STRING) {
-						printInfo("Result is = '%s'.", STR_OWN_STR(state.solution[0].str));
+						printInfo("Result is = '%s'.", state.solution[0].str->string);
 					}
 					state.ES++;
 					if (state.ES >= 60) {
@@ -1175,14 +1282,14 @@ char run(Thread& thread)
 					GET_VARIABLE_VALUE(condition);
 				}
 				if (condition.type_ == Token::INT) {
-					if ((condition.num == LANGUAGE_FALSE) == (token.type_ != Token::JUMP_ON_TRUE)) {
-						state.CP = token.num;
+					if ((condition.intu == LANGUAGE_FALSE) == (token.type_ != Token::JUMP_ON_TRUE)) {
+						state.CP = token.intu;
 					}
 					state.solution.clear();
 				}
 				else if (condition.type_ == Token::FLOAT) {
-					if ((condition.frac == LANGUAGE_FALSE) == (token.type_ != Token::JUMP_ON_TRUE)) {
-						state.CP = token.num;
+					if ((condition.floatu == LANGUAGE_ZERO_FLOAT) == (token.type_ != Token::JUMP_ON_TRUE)) {
+						state.CP = token.intu;
 					}
 					state.solution.clear();
 				}

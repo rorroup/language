@@ -7,17 +7,44 @@
 #include <string>
 #include "common.h"
 
+typedef intptr_t intt;
+#ifdef PTR64
+typedef double floatt;
+#else
+typedef float floatt;
+#endif // PTR64
+
+/*
+* Variable size struct to store a determined size char array.
+* https://www.geeksforgeeks.org/cpp/overloading-new-delete-operator-c/
+* WARNING: ALWAYS INITIALIZE OBJECTS INDIVIDUALLY.
+*/
+struct StringShared
+{
+public:
+	unsigned short owners{ 0 };
+	char string[1];
+
+	StringShared(const char* source, size_t length) { std::memcpy(string, source, length + 1); }
+	StringShared(const char* left, size_t lengthL, const char* right, size_t lengthR) { snprintf(string, lengthL + lengthR + 1, "%s%s", left, right); }
+	StringShared(const char* left, size_t lengthL, intt right, size_t lengthR) { snprintf(string, lengthL + lengthR + 1, "%s%lld", left, right); }
+	StringShared(intt left, size_t lengthL, const char* right, size_t lengthR) { snprintf(string, lengthL + lengthR + 1, "%lld%s", left, right); }
+	StringShared(const char* left, size_t lengthL, floatt right, size_t lengthR) { snprintf(string, lengthL + lengthR + 1, "%s%f", left, right); }
+	StringShared(floatt left, size_t lengthL, const char* right, size_t lengthR) { snprintf(string, lengthL + lengthR + 1, "%f%s", left, right); }
+
+	void* operator new(size_t size, size_t length) { return ::operator new(align + length + (length % align)); }
+	void operator delete(void* p) { ::operator delete(p); }
+
+	static StringShared* init(const char* source, size_t length) { return new(length + 1) StringShared(source, length); }
+#define StringShared_init(argL, lenL, argR, lenR) (new((lenL) + (lenR) + 1) StringShared((argL), (lenL), (argR), (lenR)))
+
+private:
+	static const size_t align = sizeof(owners);
+};
 
 struct SharedArray;
 struct Function;
 struct Execution;
-
-typedef char* str_tok;
-typedef int str_own;
-constexpr unsigned char STR_OWN_BYTES = sizeof(str_own);
-#define strlen_own(s) (STR_OWN_BYTES + strlen((s) + STR_OWN_BYTES))
-#define STR_OWNERS(s) (*((str_own*)(s)))
-#define STR_OWN_STR(s) ((s) + STR_OWN_BYTES)
 
 typedef char tok_tag;
 
@@ -116,9 +143,10 @@ public:
 public:
 	union // https://en.cppreference.com/w/cpp/language/union
 	{
-		long int num;
-		float frac;
-		char* str;
+		intt intu;
+		floatt floatu;
+		char* var;
+		StringShared* str;
 		SharedArray* vec;
 		Function* fx;
 		char(*func)(std::vector<Token>&, std::vector<Token>&);
@@ -126,23 +154,27 @@ public:
 	};
 	tok_tag type_;
 
-	Token();
-	Token(const Token& token);
-	Token(tok_tag t, long int i);
-	Token(tok_tag t, float f);
+	// Constructors.
+	Token(); // Default Constructor.
+
+	Token(tok_tag t, int i);
+	Token(tok_tag t, intt i);
+	Token(tok_tag t, floatt f);
 	Token(tok_tag t, char* s);
-
+	Token(tok_tag t, StringShared* s);
 	Token(tok_tag t, SharedArray* v);
-
 	Token(tok_tag t, Function* f);
-
 	Token(tok_tag t, char(*f)(std::vector<Token>&, std::vector<Token>&));
-
 	Token(tok_tag t, Execution* e);
 
-	~Token();
+	// https://en.cppreference.com/w/cpp/language/rule_of_three.html
+	Token(const Token& token); // Copy constructor.
+	Token& operator=(const Token& token); // Copy Assignment.
+	Token(Token&& token) noexcept; // Move constructor.
+	Token& operator=(Token&& token) noexcept; // Move Assignment.
 
-	Token& operator=(const Token& token);
+	// Destructor.
+	~Token();
 };
 
 struct SharedArray
@@ -154,7 +186,8 @@ public:
 	~SharedArray() { a.~vector(); }
 };
 
-enum SOLVE_RESULT : char {
+enum SOLVE_RESULT : char
+{
 	SOLVE_AWAIT = -1,
 	SOLVE_ERROR = 0,
 	SOLVE_OK = 1,
@@ -210,10 +243,15 @@ struct Thread
 
 char run(Thread& thread);
 
-#define LANGUAGE_FALSE 0
-#define LANGUAGE_TRUE 1
+#define LANGUAGE_FALSE ((intt)0)
+constexpr intt LANGUAGE_TRUE = !LANGUAGE_FALSE;
+
+#define LANGUAGE_ZERO_INT LANGUAGE_FALSE
+constexpr floatt LANGUAGE_ZERO_FLOAT = (floatt)(LANGUAGE_ZERO_INT);
 
 extern const Token TOKEN_FALSE;
 extern const Token TOKEN_TRUE;
+
+#define intlen(n) ((n) == 0 ? 1 : ((n) > 0 ? log10(n) + 1 : log10(-(n)) + 2))
 
 #endif // !H_INTERPRETER

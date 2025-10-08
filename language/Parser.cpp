@@ -39,8 +39,8 @@ Returns the id of the last parsed structure.
 */
 tok_tag Parser::parse_operation(Function& function)
 {
-	static const Token TOKEN_POSITIVE{ Token::UNARY_POSITIVE, (long int)100 };
-	static const Token TOKEN_NEGATIVE{ Token::UNARY_NEGATIVE, (long int)100 };
+	static const Token TOKEN_POSITIVE{ Token::UNARY_POSITIVE, 100 };
+	static const Token TOKEN_NEGATIVE{ Token::UNARY_NEGATIVE, 100 };
 
 	std::vector<Token>& program = function.program;
 	std::vector<Token> hold;
@@ -68,11 +68,11 @@ tok_tag Parser::parse_operation(Function& function)
 				printError("Operands may not be immediately followed by another one.");
 				return PARSE_ERROR;
 			}
-			program.push_back(tokens[tokenIndex]);
+			program.push_back(std::move(tokens[tokenIndex]));
 			tokenIndex++;
 			operandLast = true;
 			functionLast = false;
-			typeLast = token.type_;
+			typeLast = token.type_; // type_ is being interrogated after Token was moved. TODO: Move this code up.
 			break;
 
 		case Token::SEMICOLON:
@@ -84,7 +84,7 @@ tok_tag Parser::parse_operation(Function& function)
 			goto flush_hold; //https://en.cppreference.com/w/cpp/language/goto
 			break;
 		case Token::BINARY_EQUAL:
-			hold.push_back(tokens[tokenIndex]);
+			hold.push_back(std::move(tokens[tokenIndex]));
 			tokenIndex++;
 			operandLast = false;
 			functionLast = false;
@@ -105,7 +105,7 @@ tok_tag Parser::parse_operation(Function& function)
 					return PARSE_ERROR;
 				}
 				tokenIndex++;
-				program.push_back(Token(Token::INDEX, (long int)0));
+				program.emplace_back(Token::INDEX, (intt)0);
 				operandLast = true;
 				functionLast = false;
 				typeLast = tokens[tokenIndex].type_;
@@ -125,7 +125,7 @@ tok_tag Parser::parse_operation(Function& function)
 					return PARSE_ERROR;
 				}
 				tokenIndex++;
-				program.push_back(Token(Token::ARRAY_INIT, (long int)numer_of_elements));
+				program.emplace_back(Token::ARRAY_INIT, (intt)numer_of_elements);
 				operandLast = true;
 				functionLast = false;
 				typeLast = tokens[tokenIndex].type_;
@@ -147,13 +147,13 @@ tok_tag Parser::parse_operation(Function& function)
 					return PARSE_ERROR;
 				}
 				tokenIndex++;
-				program.push_back(Token(Token::CALL, (long int)numer_of_arguments));
+				program.emplace_back(Token::CALL, (intt)numer_of_arguments);
 				operandLast = true;
 				functionLast = false;
-				typeLast = tokens[tokenIndex].type_;
+				typeLast = tokens[tokenIndex].type_; // TODO: Check. type is being assigned after the index has been increased.
 			}
 			else { // Parenthesised expression.
-				hold.push_back(tokens[tokenIndex]);
+				hold.push_back(std::move(tokens[tokenIndex]));
 				tokenIndex++;
 				parenthesis++;
 				operandLast = false;
@@ -177,7 +177,7 @@ tok_tag Parser::parse_operation(Function& function)
 				if (hold.back().type_ == Token::PARENTHESIS_OPEN) {
 					break;
 				}
-				program.push_back(hold.back());
+				program.push_back(std::move(hold.back()));
 				hold.pop_back();
 			}
 			if (hold.empty()) {
@@ -215,7 +215,7 @@ tok_tag Parser::parse_operation(Function& function)
 				printError("Global functions can not form part of an operation.");
 				return PARSE_ERROR;
 			}
-			program.push_back(Token(Token::FUNCTION, func));
+			program.emplace_back(Token::FUNCTION, func);
 			loaded->push_back(func); // Register function.
 			operandLast = true;
 			functionLast = true;
@@ -261,7 +261,7 @@ tok_tag Parser::parse_operation(Function& function)
 			}
 			while (!hold.empty())
 			{
-				if (token.num <= hold.back().num) { // Left Parenthesis and Equal have the lowest precedence.
+				if (token.intu <= hold.back().intu) { // Left Parenthesis and Equal have the lowest precedence.
 					program.push_back(hold.back());
 					hold.pop_back();
 				}
@@ -269,7 +269,7 @@ tok_tag Parser::parse_operation(Function& function)
 					break;
 				}
 			}
-			hold.push_back(tokens[tokenIndex]);
+			hold.push_back(std::move(tokens[tokenIndex]));
 			tokenIndex++;
 			operandLast = false;
 			functionLast = false;
@@ -343,9 +343,9 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 
 		if (branches) {
 			block_end_index.push_back(program.size());
-			program.push_back(Token(Token::JUMP, (long int)-1));
+			program.emplace_back(Token::JUMP, (intt)-1);
 
-			program[condition_index].num = program.size();
+			program[condition_index].intu = program.size();
 		}
 
 		condition_index = -1;
@@ -369,7 +369,7 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 				return PARSE_ERROR;
 			}
 			condition_index = program.size();
-			program.push_back(Token(Token::JUMP_ON_FALSE, (long int)-1));
+			program.emplace_back(Token::JUMP_ON_FALSE, (intt)-1);
 
 			if (tokenIndex >= tokens.size()) {
 				printError("Expected ')'.");
@@ -412,11 +412,11 @@ char Parser::parse_if(Function& function, std::vector<int> interrupts[2])
 	}
 
 	if (condition_index >= 0) {
-		program[condition_index].num = program.size();
+		program[condition_index].intu = program.size();
 	}
 
 	for (const size_t& index : block_end_index) {
-		program[index].num = program.size();
+		program[index].intu = program.size();
 	}
 
 	return true;
@@ -454,7 +454,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 			return PARSE_ERROR;
 		}
 		if (loop_init != 0) {
-			program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+			program.emplace_back(Token::JUMP_NEXT, (intt)1);
 		}
 
 		if (tokenIndex >= tokens.size()) {
@@ -504,22 +504,22 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 
 	if (keyword.type_ == Token::FOR && loop_increment != 0) {
 		const tok_size init_jump = program.size();
-		program.push_back(Token(Token::JUMP, (long int)-1));
+		program.emplace_back(Token::JUMP, (intt)-1);
 		loop_start = program.size();
 		for (Token& token : increment_content.program) {
-			program.push_back(std::move(token));
+			program.push_back(std::move(token)); // TODO: Concatenate. Iterator or something probably.
 		}
-		program.push_back(Token(Token::JUMP_NEXT, (long int)1));
-		program[init_jump].num = program.size();
+		program.emplace_back(Token::JUMP_NEXT, (intt)1);
+		program[init_jump].intu = program.size();
 	}
 
 	tok_size condition_jump = -1;
 	if (keyword.type_ != Token::DO && loop_condition != 0) {
 		for (Token& token : condition_content.program) {
-			program.push_back(std::move(token));
+			program.push_back(std::move(token)); // TODO: Concatenate.
 		}
 		condition_jump = program.size();
-		program.push_back(Token(Token::JUMP_ON_FALSE, (long int)-1));
+		program.emplace_back(Token::JUMP_ON_FALSE, (intt)-1);
 	}
 
 	if (keyword.type_ != Token::DO) {
@@ -582,7 +582,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 
 		for (const auto& index : interruptions[1]) // continue;
 		{
-			program[index].num = program.size();
+			program[index].intu = program.size();
 		}
 
 		loop_condition = parse_operation(function);
@@ -593,7 +593,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 			printError("Do While loop condition can not be missing.");
 			return PARSE_ERROR;
 		}
-		program.push_back(Token(Token::JUMP_ON_TRUE, (long int)loop_start));
+		program.emplace_back(Token::JUMP_ON_TRUE, (intt)loop_start);
 
 		if (tokenIndex >= tokens.size()) {
 			printError("Expected ')'.");
@@ -616,15 +616,15 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 		tokenIndex++;
 	}
 	else {
-		program.push_back(Token(Token::JUMP, (long int)loop_start));
+		program.emplace_back(Token::JUMP, (intt)loop_start);
 
 		if (loop_condition != 0) {
-			program[condition_jump].num = program.size();
+			program[condition_jump].intu = program.size();
 		}
 
 		for (const auto& index : interruptions[1]) // continue;
 		{
-			program[index].num = loop_start;
+			program[index].intu = loop_start;
 		}
 	}
 
@@ -660,7 +660,7 @@ char Parser::parse_loop(Function& function, std::vector<int> interrupts[2])
 
 	for (const auto& index : interruptions[0]) // break;
 	{
-		program[index].num = program.size();
+		program[index].intu = program.size();
 	}
 
 	return true;
@@ -692,9 +692,9 @@ char Parser::parse_function(Function& function)
 			printError("Global functions may not be defined inside another function.");
 			return PARSE_ERROR;
 		}
-		size_t len = strlen(tokens[tokenIndex].str) + 1;
+		size_t len = strlen(tokens[tokenIndex].var) + 1;
 		function.name = new char[len];
-		memcpy(function.name, tokens[tokenIndex].str, len);
+		memcpy(function.name, tokens[tokenIndex].var, len);
 		tokenIndex++;
 	}
 
@@ -712,7 +712,7 @@ char Parser::parse_function(Function& function)
 		if (tokens[tokenIndex].type_ != Token::IDENTIFIER) {
 			break;
 		}
-		function.argnames.push_back(tokens[tokenIndex].str);
+		function.argnames.push_back(tokens[tokenIndex].var);
 		tokenIndex++;
 
 		if (tokenIndex >= tokens.size()) {
@@ -789,14 +789,14 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
 							tokenIndex++;
-							program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+							program.emplace_back(Token::JUMP_NEXT, (intt)1);
 							break;
 						}
 					}
 					printError("Expected semicolon.");
 					return PARSE_ERROR;
 				}
-				program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+				program.emplace_back(Token::JUMP_NEXT, (intt)1);
 			}
 			else {
 				return PARSE_ERROR;
@@ -838,7 +838,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				return PARSE_ERROR;
 			}
 			interrupts[0].push_back(program.size());
-			program.push_back(Token(Token::JUMP, (long int)-1));
+			program.emplace_back(Token::JUMP, (intt)-1);
 			tokenIndex++;
 			break;
 		case Token::CONTINUE:
@@ -847,7 +847,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				return PARSE_ERROR;
 			}
 			interrupts[1].push_back(program.size());
-			program.push_back(Token(Token::JUMP, (long int)-1));
+			program.emplace_back(Token::JUMP, (intt)-1);
 			tokenIndex++;
 			break;
 		case Token::FUNCTION_DEF:
@@ -865,9 +865,9 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 						printError("Global functions must have a name.");
 						return PARSE_ERROR;
 					}
-					program.push_back(Token{ Token::FUNCTION, fx });
+					program.emplace_back(Token::FUNCTION, fx);
 					loaded->push_back(fx);
-					program.push_back(Token{ Token::JUMP_NEXT, (long int)1 }); // Probably unnecesary.
+					program.emplace_back(Token::JUMP_NEXT, (intt)1); // Probably unnecesary.
 					break;
 				}
 			}
@@ -878,14 +878,14 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
 							tokenIndex++;
-							program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+							program.emplace_back(Token::JUMP_NEXT, (intt)1);
 							break;
 						}
 					}
 					printError("Expected semicolon.");
 					return PARSE_ERROR;
 				}
-				program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+				program.emplace_back(Token::JUMP_NEXT, (intt)1);
 			}
 			else {
 				return PARSE_ERROR;
@@ -897,7 +897,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.push_back(Token(Token::RETURN, (long int)(parse_result != 0)));
+				program.emplace_back(Token::RETURN, (intt)(parse_result != 0));
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
@@ -919,7 +919,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.push_back(Token(Token::YIELD, (long int)1));
+				program.emplace_back(Token::YIELD, (intt)1);
 				if (parse_result != Token::FUNCTION_DEF) {
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
@@ -937,12 +937,12 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 		}
 			break;
 		case Token::AWAIT:
-			program.push_back(Token(Token::AWAIT, (long int)0));
+			program.emplace_back(Token::AWAIT, (intt)0);
 			tokenIndex++;
 			if (tokenIndex < tokens.size()) {
 				if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
 					tokenIndex++;
-					program.push_back(Token{ Token::JUMP_NEXT, (long int)1 }); // To properly end to clear the solution stack after yielding. TODO: Remove.
+					program.emplace_back(Token::JUMP_NEXT, (intt)1); // To properly end to clear the solution stack after yielding. TODO: Remove.
 					break;
 				}
 			}
@@ -960,13 +960,13 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 				printError("Expected a \"string\" for the label name.");
 				return PARSE_ERROR;
 			}
-			if (function.labels.find(STR_OWN_STR(tokens[tokenIndex].str)) != function.labels.end()) {
+			if (function.labels.find(tokens[tokenIndex].str->string) != function.labels.end()) {
 				printError("Can not have more than 1 label with the same name.");
 				return PARSE_ERROR;
 			}
-			const size_t len = strlen(STR_OWN_STR(tokens[tokenIndex].str)) + 1;
+			const size_t len = strlen(tokens[tokenIndex].str->string) + 1;
 			char* label_name = new char[len];
-			memcpy(label_name, STR_OWN_STR(tokens[tokenIndex].str), len);
+			memcpy(label_name, tokens[tokenIndex].str->string, len);
 			function.labels.insert({ label_name, function.program.size() }); // Labels are not OWNED. // TODO: Deallocate label names on erase.
 			tokenIndex++;
 			if (tokenIndex >= tokens.size()) {
@@ -985,7 +985,7 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 			tokenIndex++;
 			tok_tag parse_result = parse_operation(function);
 			if (parse_result != PARSE_ERROR) {
-				program.push_back(Token(Token::GOTO, (long int)1));
+				program.emplace_back(Token::GOTO, (intt)1);
 				if (parse_result != Token::FUNCTION_DEF) { // Token::GOTO should never actually end in a function.
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
@@ -1027,14 +1027,14 @@ char Parser::parse_instructions(Function& function, std::vector<int> interrupts[
 					if (tokenIndex < tokens.size()) {
 						if (tokens[tokenIndex].type_ == Token::SEMICOLON) {
 							tokenIndex++;
-							program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+							program.emplace_back(Token::JUMP_NEXT, (intt)1);
 							break;
 						}
 					}
 					printError("Expected semicolon.");
 					return PARSE_ERROR;
 				}
-				program.push_back(Token{ Token::JUMP_NEXT, (long int)1 });
+				program.emplace_back(Token::JUMP_NEXT, (intt)1);
 			}
 			else {
 				return PARSE_ERROR;

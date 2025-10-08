@@ -1,7 +1,7 @@
 #include "Lexer.h"
 
-static const Token TOKEN_FALSE{ Token::INT, (long int)LANGUAGE_FALSE };
-static const Token TOKEN_TRUE{ Token::INT, (long int)LANGUAGE_TRUE };
+static const Token TOKEN_FALSE{ Token::INT, LANGUAGE_FALSE };
+static const Token TOKEN_TRUE{ Token::INT, LANGUAGE_TRUE };
 
 // https://stackoverflow.com/a/22676401
 // https://cplusplus.com/reference/algorithm/find_if/
@@ -9,50 +9,50 @@ static const Token TOKEN_TRUE{ Token::INT, (long int)LANGUAGE_TRUE };
 static const std::pair<const char*, const Token> LanguageKeywords[] = {
 	{"true", TOKEN_TRUE},
 	{"false", TOKEN_FALSE},
-	{"if", Token{Token::IF, (long int)0}},
-	{"else", Token{Token::ELSE, (long int)0}},
-	{"for", Token{Token::FOR, (long int)0}},
-	{"while", Token{Token::WHILE, (long int)0}},
-	{"do", Token{Token::DO, (long int)0}},
-	{"break", Token{Token::BREAK, (long int)0}},
-	{"continue", Token{Token::CONTINUE, (long int)0}},
+	{"if", Token{Token::IF, 0}},
+	{"else", Token{Token::ELSE, 0}},
+	{"for", Token{Token::FOR, 0}},
+	{"while", Token{Token::WHILE, 0}},
+	{"do", Token{Token::DO, 0}},
+	{"break", Token{Token::BREAK, 0}},
+	{"continue", Token{Token::CONTINUE, 0}},
 	//{"switch", Token{TOKEN_KEYWORD, Token::SWITCH}},
 	//{"case", Token{TOKEN_KEYWORD, Token::CASE}},
 	//{"default", Token{TOKEN_KEYWORD, Token::DEFAULT}},
-	{"function", Token{Token::FUNCTION_DEF, (long int)0}},
-	{"return", Token{Token::RETURN, (long int)0}},
-	{"yield", Token{Token::YIELD, (long int)0}},
-	{"await", Token{Token::AWAIT, (long int)0}},
-	{"label", Token{Token::LABEL, (long int)0}},
-	{"goto", Token{Token::GOTO, (long int)0}},
+	{"function", Token{Token::FUNCTION_DEF, 0}},
+	{"return", Token{Token::RETURN, 0}},
+	{"yield", Token{Token::YIELD, 0}},
+	{"await", Token{Token::AWAIT, 0}},
+	{"label", Token{Token::LABEL, 0}},
+	{"goto", Token{Token::GOTO, 0}},
 };
 
 static const std::pair<const char*, const Token> LanguageSymbols[] = {
-	{"==", Token{Token::BINARY_EQUAL_DOUBLE, (long int)1}},
-	{"!=", Token{Token::BINARY_EQUAL_NOT, (long int)1}},
-	{"<=", Token{Token::BINARY_LESSER_EQUAL, (long int)1}},
-	{">=", Token{Token::BINARY_GREATER_EQUAL, (long int)1}},
-	{"<<", Token{Token::BINARY_SHIFT_LEFT, (long int)20}},
-	{">>", Token{Token::BINARY_SHIFT_RIGHT, (long int)20}},
-	{"~", Token{Token::UNARY_FLIP, (long int)100}},
-	{"!", Token{Token::UNARY_NEGATION, (long int)100}},
-	{"+", Token{Token::BINARY_ADD, (long int)10}},
-	{"-", Token{Token::BINARY_SUBSTRACT, (long int)10}},
-	{"*", Token{Token::BINARY_MULTIPLY, (long int)20}},
-	{"/", Token{Token::BINARY_DIVIDE, (long int)20}},
-	{"%", Token{Token::BINARY_MODULUS, (long int)20}},
-	{"<", Token{Token::BINARY_LESSER, (long int)1}},
-	{">", Token{Token::BINARY_GREATER, (long int)1}},
-	{"=", Token{Token::BINARY_EQUAL, (long int)0}},
-	{";", Token{Token::SEMICOLON, (long int)-1}},
-	{",", Token{Token::COMMA, (long int)-1}},
-	{":", Token{Token::COLON, (long int)-20}},
-	{"(", Token{Token::PARENTHESIS_OPEN, (long int)-10}},
-	{")", Token{Token::PARENTHESIS_CLOSE, (long int)-10}},
-	{"[", Token{Token::BRACKET_OPEN, (long int)-10}},
-	{"]", Token{Token::BRACKET_CLOSE, (long int)-10}},
-	{"{", Token{Token::BRACE_OPEN, (long int)-100}},
-	{"}", Token{Token::BRACE_CLOSE, (long int)-100}},
+	{"==", Token{Token::BINARY_EQUAL_DOUBLE, 1}},
+	{"!=", Token{Token::BINARY_EQUAL_NOT, 1}},
+	{"<=", Token{Token::BINARY_LESSER_EQUAL, 1}},
+	{">=", Token{Token::BINARY_GREATER_EQUAL, 1}},
+	{"<<", Token{Token::BINARY_SHIFT_LEFT, 20}},
+	{">>", Token{Token::BINARY_SHIFT_RIGHT, 20}},
+	{"~", Token{Token::UNARY_FLIP, 100}},
+	{"!", Token{Token::UNARY_NEGATION, 100}},
+	{"+", Token{Token::BINARY_ADD, 10}},
+	{"-", Token{Token::BINARY_SUBSTRACT, 10}},
+	{"*", Token{Token::BINARY_MULTIPLY, 20}},
+	{"/", Token{Token::BINARY_DIVIDE, 20}},
+	{"%", Token{Token::BINARY_MODULUS, 20}},
+	{"<", Token{Token::BINARY_LESSER, 1}},
+	{">", Token{Token::BINARY_GREATER, 1}},
+	{"=", Token{Token::BINARY_EQUAL, 0}},
+	{";", Token{Token::SEMICOLON, -1}},
+	{",", Token{Token::COMMA, -1}},
+	{":", Token{Token::COLON, -20}},
+	{"(", Token{Token::PARENTHESIS_OPEN, -10}},
+	{")", Token{Token::PARENTHESIS_CLOSE, -10}},
+	{"[", Token{Token::BRACKET_OPEN, -10}},
+	{"]", Token{Token::BRACKET_CLOSE, -10}},
+	{"{", Token{Token::BRACE_OPEN, -100}},
+	{"}", Token{Token::BRACE_CLOSE, -100}},
 };
 
 // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
@@ -75,7 +75,7 @@ const char* readfile(const char* file_name)
 	return nullptr;
 }
 
-bool tokenize_source(const char* source, std::vector<Token>& tokens)
+bool tokenize_source(const char* source, std::deque<Token>& tokens)
 {
 	while (*source != '\0') {
 		if (isspace(*source))
@@ -137,27 +137,34 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 				}
 				else /*TODO: Support comments.*/
 				{
+#ifdef PTR64
+#define str2intt strtoll
+#define str2floatt strtod
+#else
+#define str2intt strtol
+#define str2floatt strtof
+#endif // PTR64
 					switch (modifier)
 					{
 					case NUMBER_DECIMAL:
-						tokens.push_back(Token(Token::INT, strtol(buffer, NULL, 10)));
+						tokens.emplace_back(Token::INT, str2intt(buffer, NULL, 10));
 						break;
 					case NUMBER_FLOAT:
-						tokens.push_back((Token{ Token::FLOAT, (float)atof(buffer) }));
+						tokens.emplace_back(Token::FLOAT, str2floatt(buffer, nullptr));
 						break;
 					case NUMBER_BINARY:
 						if (i <= 2) {
 							tokenizerError("Binary number '%s' is empty.", buffer);
 							return false;
 						}
-						tokens.push_back((Token(Token::INT, strtol(&buffer[2], NULL, 2))));
+						tokens.emplace_back(Token::INT, str2intt(&buffer[2], NULL, 2));
 						break;
 					case NUMBER_HEXADECIMAL:
 						if (i <= 2) {
 							tokenizerError("Hexadecimal number '%s' is empty.", buffer);
 							return false;
 						}
-						tokens.push_back((Token(Token::INT, strtol(&buffer[2], NULL, 16))));
+						tokens.emplace_back(Token::INT, str2intt(&buffer[2], NULL, 16));
 						break;
 					default:
 						tokenizerError("Unknown number type '%d'.", modifier);
@@ -191,7 +198,7 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 						char* s = new char[i + 1];
 						memcpy(s, buffer, i + 1);
 						printDebug("'%s' is not a reserved word. Treating as identifier.", s); // TODO: Remove.
-						tokens.push_back((Token{ Token::IDENTIFIER, s }));
+						tokens.emplace_back(Token::IDENTIFIER, s);
 					}
 					else
 					{
@@ -223,10 +230,7 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 				}
 				else if (*source == '"' && escaped == 0)
 				{
-					str_tok s = new char[STR_OWN_STR(i + 1)];
-					STR_OWNERS(s) = 1;
-					memcpy(STR_OWN_STR(s), buffer, i + 1);
-					tokens.push_back((Token{ Token::STRING, s }));
+					tokens.emplace_back(Token::STRING, StringShared::init(buffer, i));
 					source++;
 					break;
 				}
@@ -279,6 +283,5 @@ bool tokenize_source(const char* source, std::vector<Token>& tokens)
 		}
 	}
 
-	// TODO: Resize to its size?
 	return true;
 }

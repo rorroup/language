@@ -15,7 +15,7 @@ typedef short int tok_size;
 struct Parser
 {
 public:
-	std::vector<Token> tokens{};
+	std::deque<Token> tokens{};
 	int tokenIndex{ 0 };
 	int scopeLevel{ 0 };
 	std::vector<Function*>* loaded{ nullptr };
