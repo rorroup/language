@@ -295,6 +295,9 @@ const char* variable_name(int_tL id)
 	return std::find_if(NAME_TABLE.begin(), NAME_TABLE.end(), [id](const std::pair<const char*, const int_tL>& element) { return element.second == id; })->first; // TODO: Probably have an adjacent std::vector<const char*> to reversely index the name from its index.
 }
 
+#ifdef file_name
+#undef file_name
+#endif // file_name
 #define file_name() state.pFunction->source->name.c_str()
 
 Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)

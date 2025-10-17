@@ -18,6 +18,9 @@ void builtinError_(const char* filename, const char* builtin_name, const char* f
 	printf("\n");
 }
 
+#ifdef file_name
+#undef file_name
+#endif // file_name
 #define file_name() thread->executing.back().pFunction->source->name.c_str()
 
 // https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
