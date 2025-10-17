@@ -131,7 +131,6 @@
     <ClCompile Include="Parser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Builtin.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="Interpreter.h" />
     <ClInclude Include="Lexer.h" />
