@@ -1,4 +1,6 @@
-#include "Builtin.h"
+#include <algorithm>
+#include "common.h"
+#include "Interpreter.h"
 
 void builtinErrorVA(const char* format, va_list argp)
 {
@@ -20,6 +22,9 @@ void builtinError_(const char* filename, const char* builtin_name, const char* f
 
 // https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
 #define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
+
+#define BUILTIN_DEFINE(name) SOLVE_RESULT name(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread)
+#define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ NAME_TABLE_id(#name), Token(name) })
 
 BUILTIN_DEFINE(import)
 {
