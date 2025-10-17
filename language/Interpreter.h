@@ -466,8 +466,9 @@ SOLVE_RESULT run(Thread_tL& thread);
 Function_tL* file_load(const char* filename);
 SOLVE_RESULT file_import(const char* filename);
 void file_unload(const char* filename);
-void LANGUAGE_initialize();
-void LANGUAGE_terminate();
-void LANGUAGE_reload();
+
+int_tL LANGUAGE_initialize();
+int_tL LANGUAGE_terminate();
+int_tL LANGUAGE_reload();
 
 #endif // !H_INTERPRETER

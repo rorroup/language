@@ -1345,12 +1345,14 @@ void file_unload(const char* filename)
 		loaded->second.unload();
 }
 
-void LANGUAGE_initialize()
+int_tL LANGUAGE_initialize()
 {
 	register_function();
+
+	return 1;
 }
 
-void LANGUAGE_terminate()
+int_tL LANGUAGE_terminate()
 {
 	// Terminate all Thread_tL.
 
@@ -1358,10 +1360,14 @@ void LANGUAGE_terminate()
 	for (auto& variable : NAME_TABLE) delete[] variable.first;
 	NAME_TABLE.clear();
 	VALUE_TABLE.clear();
+
+	return 1;
 }
 
-void LANGUAGE_reload()
+int_tL LANGUAGE_reload()
 {
 	LANGUAGE_terminate();
 	LANGUAGE_initialize();
+
+	return 1;
 }
