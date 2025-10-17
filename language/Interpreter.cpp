@@ -1,7 +1,6 @@
 #include "Interpreter.h"
 #include "Parser.h"
 #include "Lexer.h"
-#include "Builtin.h"
 
 // https://stackoverflow.com/a/22676401
 // https://cplusplus.com/reference/algorithm/find_if/
@@ -1344,6 +1343,8 @@ void file_unload(const char* filename)
 	if (loaded != LOADED_SOURCEFILE.end())
 		loaded->second.unload();
 }
+
+int register_function();
 
 int_tL LANGUAGE_initialize()
 {
