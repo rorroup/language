@@ -123,7 +123,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Builtin.cpp" />
     <ClCompile Include="common.cpp" />
     <ClCompile Include="Interpreter.cpp" />
     <ClCompile Include="language.cpp" />
