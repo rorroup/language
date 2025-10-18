@@ -461,11 +461,10 @@ extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TAG_END];
 const RegisteredSequence* tag_id(const tok_tag tag);
 const char* tag_name(tok_tag tag);
 const char* variable_name(int_tL id);
-SOLVE_RESULT run(Thread_tL& thread);
-
-Function_tL* file_load(const char* filename);
-SOLVE_RESULT file_import(const char* filename);
-void file_unload(const char* filename);
+SOLVE_RESULT script_run(Thread_tL& thread);
+Function_tL* script_load(const char* filename);
+SOLVE_RESULT script_import(const char* filename);
+void script_unload(const char* filename);
 
 int_tL LANGUAGE_initialize();
 int_tL LANGUAGE_terminate();
@@ -819,7 +818,7 @@ VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state)
 
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
-SOLVE_RESULT run(Thread_tL& thread)
+SOLVE_RESULT script_run(Thread_tL& thread)
 {
 	while (!thread.executing.empty()) {
 		Execution_tL& state = thread.executing.back();
@@ -1779,7 +1778,7 @@ SOLVE_RESULT run(Thread_tL& thread)
 	return SOLVE_OK;
 }
 
-Function_tL* file_load(const char* filename)
+Function_tL* script_load(const char* filename)
 {
 	Function_tL* function = nullptr;
 
@@ -1802,21 +1801,21 @@ Function_tL* file_load(const char* filename)
 	return function;
 }
 
-SOLVE_RESULT file_import(const char* filename)
+SOLVE_RESULT script_import(const char* filename)
 {
-	Function_tL* loaded_file = file_load(filename);
+	Function_tL* loaded_file = script_load(filename);
 
 	if (loaded_file)
 	{
 		Thread_tL thread{ { Execution_tL(loaded_file) } };
 
-		return run(thread);
+		return script_run(thread);
 	}
 
 	return SOLVE_ERROR;
 }
 
-void file_unload(const char* filename)
+void script_unload(const char* filename)
 {
 	const auto& loaded = LOADED_SOURCEFILE.find(filename);
 	if (loaded != LOADED_SOURCEFILE.end())
@@ -1869,7 +1868,7 @@ BUILTIN_DEFINE(import)
 			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.
 
-	SOLVE_RESULT solve = file_import(file_path.string().c_str());
+	SOLVE_RESULT solve = script_import(file_path.string().c_str());
 
 	if (solve == SOLVE_ERROR)
 		builtinError("import", "Failed to import file '%s'.", file_path.string().c_str());
@@ -1893,7 +1892,7 @@ BUILTIN_DEFINE(load)
 			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.
 
-	Function_tL* func = file_load(file_path.string().c_str());
+	Function_tL* func = script_load(file_path.string().c_str());
 
 	if (!func)
 	{
@@ -2020,7 +2019,7 @@ int main()
 {
 	LANGUAGE_initialize();
 
-	SOLVE_RESULT result = file_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
+	SOLVE_RESULT result = script_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
 
 	if (result == SOLVE_OK)
 	{
