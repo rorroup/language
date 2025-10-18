@@ -1825,6 +1825,7 @@ void file_unload(const char* filename)
 
 // BUILTIN START
 
+#include <filesystem>
 #include <algorithm>
 
 void builtinErrorVA(const char* format, va_list argp)
@@ -1862,10 +1863,16 @@ BUILTIN_DEFINE(import)
 		return SOLVE_ERROR;
 	}
 
-	SOLVE_RESULT solve = file_import(arguments[0].u_string->string_get());
+	std::filesystem::path file_path															// Resulting path.
+		= (std::filesystem::path(thread->executing.back().pFunction->source->name)			// Caller file relative path.
+			.remove_filename()																// Remove file to get containing folder.
+			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
+		.lexically_normal();																// Resolve directory parenting.
+
+	SOLVE_RESULT solve = file_import(file_path.string().c_str());
 
 	if (solve == SOLVE_ERROR)
-		builtinError("import", "Failed to import file '%s'.", arguments[0].u_string->string_get());
+		builtinError("import", "Failed to import file '%s'.", file_path.string().c_str());
 
 	solution.emplace_back(0, 0, (int_tL)solve);
 
@@ -1880,11 +1887,17 @@ BUILTIN_DEFINE(load)
 		return SOLVE_ERROR;
 	}
 
-	Function_tL* func = file_load(arguments[0].u_string->string_get());
+	std::filesystem::path file_path															// Resulting path.
+		= (std::filesystem::path(thread->executing.back().pFunction->source->name)			// Caller file relative path.
+			.remove_filename()																// Remove file to get containing folder.
+			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
+		.lexically_normal();																// Resolve directory parenting.
+
+	Function_tL* func = file_load(file_path.string().c_str());
 
 	if (!func)
 	{
-		builtinError("load", "Failed to load file '%s'.", arguments[0].u_string->string_get());
+		builtinError("load", "Failed to load file '%s'.", file_path.string().c_str());
 		return SOLVE_ERROR;
 	}
 
@@ -2007,7 +2020,7 @@ int main()
 {
 	LANGUAGE_initialize();
 
-	SOLVE_RESULT result = file_import("example/import.txt");
+	SOLVE_RESULT result = file_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
 
 	if (result == SOLVE_OK)
 	{
