@@ -125,7 +125,6 @@
   <ItemGroup>
     <ClCompile Include="common.cpp" />
     <ClCompile Include="Interpreter.cpp" />
-    <ClCompile Include="language.cpp" />
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="Parser.cpp" />
   </ItemGroup>
