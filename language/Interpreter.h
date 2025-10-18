@@ -1825,6 +1825,7 @@ void script_unload(const char* filename)
 		loaded->second.unload();
 }
 
+#ifdef LANGUAGE_EXAMPLE_LOADING
 // BUILTIN START
 
 #include <filesystem>
@@ -2033,6 +2034,7 @@ int main()
 	return 0;
 }
 
+#endif // LANGUAGE_EXAMPLE_LOADING
 // =================== INTERPRETER.CPP END ===================
 #endif // LANGUAGE_IMPLEMENTATION
 
