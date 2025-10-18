@@ -390,6 +390,9 @@ public:
 struct Thread_tL
 {
 	std::vector<Execution_tL> executing;
+#ifdef LANGUAGE_THREAD_PARAMETERS
+	LANGUAGE_THREAD_PARAMETERS
+#endif // LANGUAGE_THREAD_PARAMETERS
 };
 
 struct SourceFile
