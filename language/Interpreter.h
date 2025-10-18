@@ -2019,6 +2019,8 @@ int_tL LANGUAGE_reload()
 	return 1;
 }
 
+#ifdef LANGUAGE_TEST_PROGRAM
+
 int main()
 {
 	LANGUAGE_initialize();
@@ -2034,6 +2036,7 @@ int main()
 	return 0;
 }
 
+#endif // LANGUAGE_TEST_PROGRAM
 #endif // LANGUAGE_EXAMPLE_LOADING
 // =================== INTERPRETER.CPP END ===================
 #endif // LANGUAGE_IMPLEMENTATION
