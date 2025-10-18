@@ -7,7 +7,7 @@
 #include <stdint.h> // intptr_t
 #include <inttypes.h> // PRI
 
-#define VERSION "b.1.0.0"
+#define LANGUAGE_VERSION "b.1.1.0"
 
 // https://stackoverflow.com/questions/51616057/how-to-determine-pointer-size-preprocessor-c
 #if UINTPTR_MAX >= ULLONG_MAX

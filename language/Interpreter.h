@@ -1917,7 +1917,7 @@ BUILTIN_DEFINE(version)
 		return SOLVE_ERROR;
 	}
 
-	solution.emplace_back(0, 0, String_tL_external(VERSION));
+	solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
 	return SOLVE_OK;
 }
 
