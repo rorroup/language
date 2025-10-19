@@ -2,7 +2,7 @@
 
 I wrote this language for mainly 2 reasons: as a learning experience to practice coding, and as a mean to implement a certain level of scripting and parallelism into my own C++ programs.
 I tried embedding other scripting languages before, but everytime I ended up using only a tiny portion of them yet lacking crucial features.
-Therefore my goal was to make this language as simple as possible thus light and easy to customize.
+Therefore my goal was to make this language as simple as possible thus light and easy to edit.
 
 The result is an interpreted language to allow hot realoading and faking asynchronism.
 Its fundamental unit is the **Token** consisting of a tagged union.
@@ -17,7 +17,7 @@ Finally the **Interpreter** can execute it in order using a stack.
 2. Scripts are any ASCII text file.
 3. C like syntax.
 4. Global scope and function local variables scopes.
-5. Easy to use and modify.
+5. Easy to use and customize.
 6. Code execution can be interrupted arbitrarily invoking the AWAIT Token, then be resumed later from the same point.
 
 <details>
@@ -64,16 +64,46 @@ Finally the **Interpreter** can execute it in order using a stack.
 
 ## Usage
 
-`#include "Interpreter.h"`, then `LANGUAGE_initialize();` so the language becomes available and `LANGUAGE_terminate();` to clean up after it is no longer used.
+Include all the files into your C++ project either by directly pasting them or as a git submodule.
+The Language API has been encapsulated into the `Interpreter.h` header which contains the declarations, as well as the definitions subject to conditional compilation.
+In order for it to work you must provide the implementation by defining the `LANGUAGE_IMPLEMENTATION` macro in a SINGLE cpp file.
+The special subset of functions
+```
+int_tL LANGUAGE_initialize();
+int_tL LANGUAGE_terminate();
+int_tL LANGUAGE_reload();
+```
+is meant to guarantee the Language be left in a particular state.
+`LANGUAGE_initialize` should make the symbols necesary to use the Language available thus be called before using it.
+`LANGUAGE_terminate` on the other hand should unload all symbols to free the memory and so be called after the Language in not used anymore.
+Their implementations can be skipped by not defining the `LANGUAGE_EXAMPLE_LOADING` macro in case the user prefers to write them themselves.
 
-It is designed to be embedded into C++ and used in conjunction with it so you probably want to `file_import("your_script_name")` to load some global values and functions, or `file_load("your_script_name")` to grab a function to call whenever needed.
-Check the [example program](language/language.cpp) and [example srcipts](language/example).
+The Language is designed to be embedded into C++ and used in conjunction with it by merely including the library so that you encounter no need to edit its source code.
+Instead I strongly suggest you split its implementation like any other. Create a `Language.h` file to include the Language library header
+```
+#define LANGUAGE_THREAD_PARAMETERS				// Additional Thread_tL members.
+#include "pathToThe/Interpreter.h"
+```
+and add members to the `struct Thread_tL` definition as needed by listing them in the `LANGUAGE_THREAD_PARAMETERS` macro.
+Then create a `Language.cpp` file to provide the necessary implementations
+```
+#define LANGUAGE_IMPLEMENTATION				    // Enable Language Library Implementation.
+#define LANGUAGE_EXAMPLE_LOADING			    // Comment to provide 'LANGUAGE_<loading>' functions custom implementation.
+//#define LANGUAGE_TEST_PROGRAM					// Uncomment to call library's 'int main()' function and run the example scripts.
+#include "Language.h"
+```
+to complete the embedding.
+This way you can include this header into your project with your own additional definitions so that everything remains consistent.
+My advice is to disable `LANGUAGE_EXAMPLE_LOADING` and manually paste its contents to use as the starting point for development.
+To test everything works you can uncomment the `LANGUAGE_TEST_PROGRAM` macro to run the [example program](language/Interpreter.h#L2024) with the [example srcipts](language/example), beware it will enable the library's internal `int main()` function though.
 
-All supported types and operations are listed in [Interpreter.h](language/Interpreter.h#L116) while pre-defined functions can be found and modified in [Builtin.cpp](language/Builtin.cpp#L133).
+To utilize the language in your program call `LANGUAGE_initialize();` and `LANGUAGE_terminate();` before and after respectively to perform the necesary configurations.
+
+Scripts may use all currently supported [types and operations](language/Interpreter.h#L116). Pre-defined functions must comply with their [signature](language/Interpreter.h#L1858).
 
 ## Development plan
 
-Current Version: beta 1.0.0
+Current Version: beta 1.1.0
 
 > [!CAUTION]
 > Backwards compatibility is not guaranteed yet.
