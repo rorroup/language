@@ -75,13 +75,13 @@ if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != required_tag) { \
 /*
 Returns the id of the last structure in the sequence.
 */
-tok_tag Parser::parse_sequence(Function_tL& function, std::vector<Token>& program, const tok_tag separator_symbol = Token::COMMA)
+tok_tag Parser::parse_sequence(std::vector<Token>& program, const tok_tag separator_symbol = Token::COMMA)
 {
 	tok_tag parsed = OPERATION_EMPTY;
 	while (tokenIndex < tokens.size())
 	{
 		std::vector<Token> element;
-		parsed = parse_operation(function, element, PRECEDENCE_MIN);
+		parsed = parse_operation(element, PRECEDENCE_MIN);
 		if (parsed == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (parsed == OPERATION_EMPTY)
@@ -101,7 +101,7 @@ tok_tag Parser::parse_sequence(Function_tL& function, std::vector<Token>& progra
 /*
 Returns the id of the last parsed structure.
 */
-tok_tag Parser::parse_operand(Function_tL& function, std::vector<Token>& program)
+tok_tag Parser::parse_operand(std::vector<Token>& program)
 {
 	static const RegisteredSequence* TOKEN_POSITIVE = tag_id(Token::UNARY_POSITIVE);
 	static const RegisteredSequence* TOKEN_NEGATIVE = tag_id(Token::UNARY_NEGATIVE);
@@ -162,7 +162,7 @@ tok_tag Parser::parse_operand(Function_tL& function, std::vector<Token>& program
 	{
 		tokenIndex++;
 		std::vector<Token> inner;
-		typeLast = parse_operation(function, inner, PRECEDENCE_MIN);
+		typeLast = parse_operation(inner, PRECEDENCE_MIN);
 		if (typeLast == PARSE_ERROR)
 			return typeLast;
 		if (typeLast == OPERATION_EMPTY) {
@@ -181,7 +181,7 @@ tok_tag Parser::parse_operand(Function_tL& function, std::vector<Token>& program
 		program.emplace_back(token.line, token.column, Token::SEQUENCE, -1);
 		tokenIndex++;
 		std::vector<Token> sequence;
-		if (parse_sequence(function, sequence, Token::COMMA) == PARSE_ERROR)
+		if (parse_sequence(sequence, Token::COMMA) == PARSE_ERROR)
 			return PARSE_ERROR;
 		program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
 		REQUIRE_CURRENT_TAG(Token::BRACKET_CLOSE);
@@ -262,7 +262,7 @@ tok_tag Parser::parse_operand(Function_tL& function, std::vector<Token>& program
 			program.emplace_back(token.line, token.column, Token::SEQUENCE, -1);
 			tokenIndex++;
 			std::vector<Token> sequence;
-			if (parse_sequence(function, sequence, Token::COMMA) == PARSE_ERROR)
+			if (parse_sequence(sequence, Token::COMMA) == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
 			REQUIRE_CURRENT_TAG(Token::PARENTHESIS_CLOSE);
@@ -273,7 +273,7 @@ tok_tag Parser::parse_operand(Function_tL& function, std::vector<Token>& program
 		else if (tokens[tokenIndex].tag == Token::BRACKET_OPEN) { // Index.
 			tokenIndex++;
 			std::vector<Token> index;
-			if (parse_operation(function, index, PRECEDENCE_MIN) == PARSE_ERROR)
+			if (parse_operation(index, PRECEDENCE_MIN) == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(index.begin()), std::make_move_iterator(index.end()));
 			REQUIRE_CURRENT_TAG(Token::BRACKET_CLOSE);
@@ -293,10 +293,10 @@ tok_tag Parser::parse_operand(Function_tL& function, std::vector<Token>& program
 /*
 Returns the id of the last parsed structure.
 */
-tok_tag Parser::parse_operation(Function_tL& function, std::vector<Token>& program, int_tL precedence_min = PRECEDENCE_MIN)
+tok_tag Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min = PRECEDENCE_MIN)
 {
 	std::vector<Token>& left = program;
-	tok_tag typeLast = parse_operand(function, left);
+	tok_tag typeLast = parse_operand(left);
 	if (typeLast == PARSE_ERROR || typeLast == OPERATION_EMPTY)
 		return typeLast;
 
@@ -311,7 +311,7 @@ tok_tag Parser::parse_operation(Function_tL& function, std::vector<Token>& progr
 
 #define PRECEDENCE_MIN_NEXT(val) (OP_PRECEDENCE(val) + OP_ASSOCIATIVITY(val))
 		std::vector<Token> right;
-		typeLast = parse_operation(function, right, PRECEDENCE_MIN_NEXT(token.u_int));
+		typeLast = parse_operation(right, PRECEDENCE_MIN_NEXT(token.u_int));
 		if (typeLast == PARSE_ERROR)
 			return typeLast;
 		if (typeLast == OPERATION_EMPTY) {
@@ -388,7 +388,7 @@ short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 			tokenIndex++;
 
 			std::vector<Token> condition;
-			tok_tag parsed = parse_operation(function, condition, PRECEDENCE_MIN);
+			tok_tag parsed = parse_operation(condition, PRECEDENCE_MIN);
 			if (parsed == PARSE_ERROR)
 				return PARSE_ERROR;
 			if (parsed == OPERATION_EMPTY) {
@@ -447,7 +447,7 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 
 	if (keyword.tag == Token::FOR) {
 		std::vector<Token> init;
-		tok_tag loop_init = parse_operation(function, init, PRECEDENCE_MIN);
+		tok_tag loop_init = parse_operation(init, PRECEDENCE_MIN);
 		if (loop_init == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_init != OPERATION_EMPTY) {
@@ -459,10 +459,10 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 		tokenIndex++;
 	}
 
-	Function_tL condition_content{};
+	std::vector<Token> condition_content{};
 	tok_tag loop_condition = OPERATION_EMPTY;
 	if (keyword.tag != Token::DO) {
-		loop_condition = parse_operation(condition_content, condition_content.program, PRECEDENCE_MIN);
+		loop_condition = parse_operation(condition_content, PRECEDENCE_MIN);
 		if (loop_condition == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_condition == OPERATION_EMPTY && keyword.tag == Token::WHILE) {
@@ -473,13 +473,13 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 
 	tok_tag loop_increment = OPERATION_EMPTY;
 	std::pair<lin_num, col_num> increment_position;
-	Function_tL increment_content{};
+	std::vector<Token> increment_content{};
 	if (keyword.tag == Token::FOR) {
 		REQUIRE_CURRENT_TAG(Token::SEMICOLON);
 		tokenIndex++;
 		increment_position = { tokens[tokenIndex].line, tokens[tokenIndex].column };
 
-		loop_increment = parse_operation(increment_content, increment_content.program, PRECEDENCE_MIN);
+		loop_increment = parse_operation(increment_content, PRECEDENCE_MIN);
 		if (loop_increment == PARSE_ERROR)
 			return PARSE_ERROR;
 	}
@@ -490,14 +490,14 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 		const int init_jump = program.size();
 		program.emplace_back(increment_position.first, increment_position.second, Token::JUMP, -1);
 		loop_start = program.size();
-		program.insert(program.end(), std::make_move_iterator(increment_content.program.begin()), std::make_move_iterator(increment_content.program.end())); // https://stackoverflow.com/questions/15004517/moving-elements-from-stdvector-to-another-one?rq=3
+		program.insert(program.end(), std::make_move_iterator(increment_content.begin()), std::make_move_iterator(increment_content.end())); // https://stackoverflow.com/questions/15004517/moving-elements-from-stdvector-to-another-one?rq=3
 		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
 		program[init_jump].u_int = program.size();
 	}
 
 	int condition_jump = -1;
 	if (keyword.tag != Token::DO && loop_condition != OPERATION_EMPTY) {
-		program.insert(program.end(), std::make_move_iterator(condition_content.program.begin()), std::make_move_iterator(condition_content.program.end()));
+		program.insert(program.end(), std::make_move_iterator(condition_content.begin()), std::make_move_iterator(condition_content.end()));
 		condition_jump = program.size();
 		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP_ON_FALSE, -1);
 	}
@@ -528,7 +528,7 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 			program[index].u_int = program.size();
 
 		std::vector<Token> condition;
-		loop_condition = parse_operation(function, condition, PRECEDENCE_MIN);
+		loop_condition = parse_operation(condition, PRECEDENCE_MIN);
 		if (loop_condition == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_condition == OPERATION_EMPTY) {
@@ -652,7 +652,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 		case Token::IDENTIFIER:
 		{
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(function, operation, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
@@ -733,7 +733,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 			}
 			tokenIndex--;
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(function, operation, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
@@ -751,7 +751,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 		{
 			tokenIndex++;
 			std::vector<Token> sequence;
-			tok_tag parse_result = parse_sequence(function, sequence, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_sequence(sequence, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
@@ -792,7 +792,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 		{
 			tokenIndex++;
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(function, operation, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
@@ -829,7 +829,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 		default: // All Operators and Operation Delimiters.
 		{
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(function, operation, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));

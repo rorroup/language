@@ -17,10 +17,10 @@ public:
 	int scopeLevel{ 0 };
 	SourceFile* loaded{ nullptr };
 
-	// TODO: Deprecate function argument. Keep its labels though.
-	tok_tag parse_sequence(Function_tL& function, std::vector<Token>& program, const tok_tag separator_symbol);
-	tok_tag parse_operand(Function_tL& function, std::vector<Token>& program);
-	tok_tag parse_operation(Function_tL& function, std::vector<Token>& program, int_tL precedence_min);
+	tok_tag parse_sequence(std::vector<Token>& program, const tok_tag separator_symbol);
+	tok_tag parse_operand(std::vector<Token>& program);
+	tok_tag parse_operation(std::vector<Token>& program, int_tL precedence_min);
+
 	short parse_if(Function_tL& function, std::vector<int> interrupts[2]);
 	char parse_loop(Function_tL& function, std::vector<int> interrupts[2]);
 	char parse_function(Function_tL& function);
