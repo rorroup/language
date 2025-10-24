@@ -868,6 +868,10 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				break;
 
 			case Token::FUNCTION:
+				if (!token.u_function->loaded) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[11]);
+					return SOLVE_ERROR;
+				}
 				//if (token.u_function->name != nullptr) { // Global function.
 					VALUE_TABLE.insert_or_assign(token.u_function->variable_id, token);
 					break;
