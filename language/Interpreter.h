@@ -851,10 +851,6 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 		while (true)
 		{
-			if (!state.program) {
-				interpreterError(file_name(), 0, 0, ERROR_MESSAGES[11]);
-				return SOLVE_ERROR;
-			}
 			if (state.program->instructions.size() <= state.program_counter)
 				break;
 			Token token = state.program->instructions[state.program_counter];
