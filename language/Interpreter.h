@@ -6,6 +6,7 @@
 #include <deque>
 #include <algorithm>
 #include <string>
+#include <memory>
 #include "common.h"
 
 #define FUNCTION_RETURN_SINGLE
@@ -290,13 +291,26 @@ extern VALUE_TABLE_TYPE VALUE_TABLE;
 typedef umap_cstring_key(const size_t) LABEL_TABLE_TYPE;
 struct SourceFile;
 
+struct Program_tL
+{
+public:
+	std::vector<Token> instructions;
+	LABEL_TABLE_TYPE labels;
+
+	Program_tL() {}
+	~Program_tL() {
+		instructions.~vector();
+		for (auto& label : labels) delete[] label.first;
+		labels.clear();
+	}
+};
+
 struct Function_tL
 {
 	SourceFile* source{ nullptr };
 	char* name{ nullptr };
 	std::vector<int_tL> arg_id;
-	std::vector<Token> program;
-	LABEL_TABLE_TYPE labels;
+	std::shared_ptr<Program_tL> program{ nullptr };
 	int_tL variable_id{ 0 };
 	bool loaded{ true };
 	bool global{ false };
@@ -308,16 +322,26 @@ struct Function_tL
 		loaded = false;
 		if (name) delete[] name;
 		arg_id.clear();
-		program.clear();
-		for (auto& label : labels) delete[] label.first;
-		labels.clear();
+		program = nullptr;
 	}
 
 	~Function_tL()
 	{
 		unload();
 		arg_id.~vector();
-		program.~vector();
+	}
+};
+
+struct SourceFile
+{
+public:
+	std::string name;
+	std::deque<Function_tL> functions;
+
+	void unload()
+	{
+		for (auto& function : functions)
+			function.unload();
 	}
 };
 
@@ -333,7 +357,10 @@ struct Execution_tL
 public:
 	VALUE_TABLE_TYPE LOCALS;
 	std::vector<Token> solution;
-	Function_tL* pFunction;
+	std::shared_ptr<Program_tL> program{ nullptr };
+	std::string name_file;
+	std::string name_function;
+	bool global{ false };
 	Token* (*GET_VARIABLE_VALUE_)(Token& variable, Execution_tL& state);
 	VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution_tL& state);
 	size_t program_counter;
@@ -341,8 +368,11 @@ public:
 
 	Execution_tL(Function_tL* _function)
 	{
-		pFunction = _function;
-		if (pFunction->global) {
+		program = _function->program;
+		name_file = _function->source->name;
+		name_function = _function->name ? _function->name : "<anonymous>";
+		global = _function->global;
+		if (global) {
 			GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE_GLOBAL;
 			GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE_GLOBAL;
 		}
@@ -364,8 +394,11 @@ public:
 	Execution_tL& operator=(const Execution_tL& other)
 	{
 		if (this != &other) {
-			pFunction = other.pFunction;
-			if (!pFunction->global) LOCALS = other.LOCALS;
+			program = other.program;
+			name_file = other.name_file;
+			name_function = other.name_function;
+			global = other.global;
+			if (!global) LOCALS = other.LOCALS;
 			solution = other.solution;
 			GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
 			GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
@@ -376,8 +409,11 @@ public:
 	}
 	Execution_tL& operator=(Execution_tL&& other) noexcept
 	{
-		pFunction = other.pFunction;
-		if (!pFunction->global) LOCALS = std::move(other.LOCALS);
+		program.swap(other.program);
+		name_file.swap(other.name_file);
+		name_function.swap(other.name_function);
+		global = other.global;
+		if (!global) LOCALS = std::move(other.LOCALS);
 		solution = std::move(other.solution);
 		GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
 		GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
@@ -393,19 +429,6 @@ struct Thread_tL
 #ifdef LANGUAGE_THREAD_PARAMETERS
 	LANGUAGE_THREAD_PARAMETERS
 #endif // LANGUAGE_THREAD_PARAMETERS
-};
-
-struct SourceFile
-{
-public:
-	std::string name;
-	std::deque<Function_tL> functions;
-
-	void unload()
-	{
-		for (auto& function : functions)
-			function.unload();
-	}
 };
 
 typedef std::unordered_map<std::string, SourceFile> LOADED_SOURCEFILE_TYPE;
@@ -776,7 +799,7 @@ const char* variable_name(int_tL id)
 #ifdef file_name
 #undef file_name
 #endif // file_name
-#define file_name() state.pFunction->source->name.c_str()
+#define file_name() state.name_file.c_str()
 
 Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
 {
@@ -828,13 +851,13 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 		while (true)
 		{
-			if (!state.pFunction->loaded) {
+			if (!state.program) {
 				interpreterError(file_name(), 0, 0, ERROR_MESSAGES[11]);
 				return SOLVE_ERROR;
 			}
-			if (state.pFunction->program.size() <= state.program_counter)
+			if (state.program->instructions.size() <= state.program_counter)
 				break;
-			Token token = state.pFunction->program[state.program_counter];
+			Token token = state.program->instructions[state.program_counter];
 			state.program_counter++;
 
 			switch (token.tag)
@@ -1717,8 +1740,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::STRING), tag_name(label_name.tag));
 					return SOLVE_ERROR;
 				}
-				const LABEL_TABLE_TYPE::iterator& label_num = state.pFunction->labels.find(label_name.u_string->string_get());
-				if (label_num == state.pFunction->labels.end()) {
+				const LABEL_TABLE_TYPE::iterator& label_num = state.program->labels.find(label_name.u_string->string_get());
+				if (label_num == state.program->labels.end()) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[12], tag_name(Token::LABEL), label_name.u_string->string_get());
 					return SOLVE_ERROR;
 				}
@@ -1850,7 +1873,7 @@ void builtinError_(const char* filename, const char* builtin_name, const char* f
 #ifdef file_name
 #undef file_name
 #endif // file_name
-#define file_name() thread->executing.back().pFunction->source->name.c_str()
+#define file_name() thread->executing.back().name_file.c_str()
 
 // https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
 #define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
@@ -1867,7 +1890,7 @@ BUILTIN_DEFINE(import)
 	}
 
 	std::filesystem::path file_path															// Resulting path.
-		= (std::filesystem::path(thread->executing.back().pFunction->source->name)			// Caller file relative path.
+		= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
 			.remove_filename()																// Remove file to get containing folder.
 			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.
@@ -1891,7 +1914,7 @@ BUILTIN_DEFINE(load)
 	}
 
 	std::filesystem::path file_path															// Resulting path.
-		= (std::filesystem::path(thread->executing.back().pFunction->source->name)			// Caller file relative path.
+		= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
 			.remove_filename()																// Remove file to get containing folder.
 			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.

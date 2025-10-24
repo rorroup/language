@@ -195,6 +195,7 @@ tok_tag Parser::parse_operand(std::vector<Token>& program)
 	{
 		loaded->functions.emplace_back(Function_tL{ loaded }); // Register function.
 		Function_tL& func = loaded->functions.back();
+		func.program = std::make_shared<Program_tL>();
 		if (parse_function(func) == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (func.name != nullptr) {
@@ -335,7 +336,7 @@ tok_tag Parser::parse_operation(std::vector<Token>& program, int_tL precedence_m
 
 short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 {
-	std::vector<Token>& program = function.program;
+	std::vector<Token>& program = function.program->instructions;
 	short branches = 0;
 	int condition_index = -1;
 	std::vector<size_t> block_end_index{};
@@ -395,7 +396,7 @@ short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'if' condition");
 				return PARSE_ERROR;
 			}
-			function.program.insert(function.program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
+			program.insert(program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
 			condition_index = program.size();
 			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP_ON_FALSE, -1);
 
@@ -428,7 +429,7 @@ short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 
 char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 {
-	std::vector<Token>& program = function.program;
+	std::vector<Token>& program = function.program->instructions;
 	if (tokenIndex >= tokens.size()) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration");
 		return PARSE_ERROR;
@@ -451,7 +452,7 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 		if (loop_init == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_init != OPERATION_EMPTY) {
-			function.program.insert(function.program.end(), std::make_move_iterator(init.begin()), std::make_move_iterator(init.end()));
+			program.insert(program.end(), std::make_move_iterator(init.begin()), std::make_move_iterator(init.end()));
 			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
 		}
 
@@ -535,7 +536,7 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'do while' condition");
 			return PARSE_ERROR;
 		}
-		function.program.insert(function.program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
+		program.insert(program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
 		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP_ON_NOT_FALSE, loop_start);
 
 		REQUIRE_CURRENT_TAG(Token::PARENTHESIS_CLOSE);
@@ -577,8 +578,8 @@ char Parser::parse_function(Function_tL& function)
 {
 	function.name = nullptr;
 	function.arg_id.clear();
-	function.program.clear();
-	function.program.reserve(tokens.size() - tokenIndex);
+	function.program->instructions.clear();
+	function.program->instructions.reserve(tokens.size() - tokenIndex);
 
 	REQUIRE_CURRENT_TAG(Token::FUNCTION_DEF);
 	tokenIndex++;
@@ -632,13 +633,13 @@ char Parser::parse_function(Function_tL& function)
 	REQUIRE_CURRENT_TAG(Token::BRACE_CLOSE);
 	tokenIndex++;
 
-	function.program.shrink_to_fit();
+	function.program->instructions.shrink_to_fit();
 	return true;
 }
 
 char Parser::parse_instructions(Function_tL& function, std::vector<int> interrupts[2] = nullptr)
 {
-	std::vector<Token>& program = function.program;
+	std::vector<Token>& program = function.program->instructions;
 	while (tokenIndex < tokens.size())
 	{
 		const Token& token = tokens[tokenIndex];
@@ -655,7 +656,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
-			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
+			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
 			if (parse_result == Token::FUNCTION) {
 				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
 				break;
@@ -720,6 +721,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 					std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
 					loaded->functions.emplace_back(Function_tL{ loaded });
 					Function_tL& u_function = loaded->functions.back();
+					u_function.program = std::make_shared<Program_tL>();
 					char parse_result = parse_function(u_function);
 					if (parse_result == PARSE_ERROR)
 						return PARSE_ERROR;
@@ -736,7 +738,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
-			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
+			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
 			if (parse_result == Token::FUNCTION) {
 				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
 				break;
@@ -774,14 +776,14 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 		{
 			tokenIndex++;
 			REQUIRE_CURRENT_TAG(Token::STRING); // Expected a "string" for the label name.
-			if (function.labels.find(tokens[tokenIndex].u_string->string_get()) != function.labels.end()) {
+			if (function.program->labels.find(tokens[tokenIndex].u_string->string_get()) != function.program->labels.end()) {
 				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[9], tokens[tokenIndex].u_string->string_get());
 				return PARSE_ERROR;
 			}
 			const size_t len = strlen(tokens[tokenIndex].u_string->string_get()) + 1;
 			char* label_name = new char[len];
 			memcpy(label_name, tokens[tokenIndex].u_string->string_get(), len);
-			function.labels.insert({ label_name, function.program.size() }); // Labels are not OWNED.
+			function.program->labels.insert({ label_name, program.size() }); // Labels are not OWNED.
 			tokenIndex++;
 			REQUIRE_CURRENT_TAG(Token::COLON);
 			tokenIndex++;
@@ -795,7 +797,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
-			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
+			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
 			program.push_back(std::move(token));
 			if (parse_result == Token::FUNCTION) {
 				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Evaluing operand");
@@ -832,7 +834,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
-			function.program.insert(function.program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
+			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
 			if (parse_result == Token::FUNCTION) {
 				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
 				break;
@@ -856,7 +858,8 @@ Function_tL* Parser::parse(SourceFile* file_, bool global_first)
 	loaded->functions.emplace_back(Function_tL{ loaded });
 	Function_tL* file_function = &loaded->functions.back();
 	file_function->global = global_first;
-	file_function->program.reserve(tokens.size() - tokenIndex);
+	file_function->program = std::make_shared<Program_tL>();
+	file_function->program->instructions.reserve(tokens.size() - tokenIndex);
 
 	if (parse_instructions(*file_function, nullptr) == PARSE_ERROR)
 		return nullptr;
@@ -866,6 +869,6 @@ Function_tL* Parser::parse(SourceFile* file_, bool global_first)
 		return nullptr;
 	}
 
-	file_function->program.shrink_to_fit();
+	file_function->program->instructions.shrink_to_fit();
 	return file_function;
 }
