@@ -19,18 +19,18 @@ function set_variables(w){
 	print("y = " + y);
 	print("z = " + z);
 	
-	f = function(y, z){
-		// x;
-		// y = y;
-		z = "anonymous z";
-		
-		print("Anonymous context:");
-		print("x = " + x);
-		print("y = " + y);
-		print("z = " + z);
-	}
-	
 	f(y, z);
+}
+
+function f(y, z){
+	// x;
+	// y = y;
+	z = "anonymous z";
+		
+	print("Anonymous context:");
+	print("x = " + x);
+	print("y = " + y);
+	print("z = " + z);
 }
 
 set_variables(z);

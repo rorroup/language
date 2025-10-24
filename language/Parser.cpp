@@ -192,20 +192,21 @@ tok_tag Parser::parse_operand(std::vector<Token>& program)
 	break;
 
 	case Token::FUNCTION_DEF:
-	{
-		loaded->functions.emplace_back(Function_tL{ loaded }); // Register function.
-		Function_tL& func = loaded->functions.back();
-		func.program = std::make_shared<Program_tL>();
-		if (parse_function(func) == PARSE_ERROR)
-			return PARSE_ERROR;
-		if (func.name != nullptr) {
-			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[5], "can not form part of an operation");
-			return PARSE_ERROR;
-		}
-		program.emplace_back(token.line, token.column, &func);
-		typeLast = Token::FUNCTION;
-	}
-	break;
+	//	// Anonymous function.
+	//{
+	//	loaded->functions.emplace_back(Function_tL{ loaded }); // Register function.
+	//	Function_tL& func = loaded->functions.back();
+	//	func.program = std::make_shared<Program_tL>();
+	//	if (parse_function(func) == PARSE_ERROR)
+	//		return PARSE_ERROR;
+	//	if (func.name != nullptr) {
+	//		parserError(file_name(), token.line, token.column, ERROR_MESSAGES[5], "can not form part of an operation");
+	//		return PARSE_ERROR;
+	//	}
+	//	program.emplace_back(token.line, token.column, &func);
+	//	typeLast = Token::FUNCTION;
+	//}
+	//break;
 
 	/* Impossible to come from the tokenized stream.
 	case Token::ARRAY:
@@ -588,19 +589,23 @@ char Parser::parse_function(Function_tL& function)
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Function definition");
 		return PARSE_ERROR;
 	}
-	if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
-		if (scopeLevel != 0) {
-			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "can not occur inside another function");
-			return PARSE_ERROR;
-		}
-		size_t len = strlen(tokens[tokenIndex].u_identifier) + 1;
-		function.name = new char[len];
-		memcpy(function.name, tokens[tokenIndex].u_identifier, len);
-		const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].u_identifier, NAME_TABLE.size() + 1 });
-		function.variable_id = insertion.first->second;
-		if (insertion.second) tokens[tokenIndex].u_identifier = nullptr; // Steal.
-		tokenIndex++;
+
+	if (tokens[tokenIndex].tag != Token::IDENTIFIER) { // Anonymous function.
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'Global function' name");
+		return PARSE_ERROR;
 	}
+
+	if (scopeLevel != 0) {
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "can not occur inside another function");
+		return nullptr;
+	}
+	size_t len = strlen(tokens[tokenIndex].u_identifier) + 1;
+	function.name = new char[len];
+	memcpy(function.name, tokens[tokenIndex].u_identifier, len);
+	const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].u_identifier, NAME_TABLE.size() + 1 });
+	function.variable_id = insertion.first->second;
+	if (insertion.second) tokens[tokenIndex].u_identifier = nullptr; // Steal.
+	tokenIndex++;
 
 	REQUIRE_CURRENT_TAG(Token::PARENTHESIS_OPEN);
 	tokenIndex++;
@@ -714,10 +719,10 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 
 		case Token::FUNCTION_DEF:
 		{
-			tokenIndex++;
-			if (tokenIndex < tokens.size()) {
-				if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
-					tokenIndex--;
+			//tokenIndex++;
+			//if (tokenIndex < tokens.size()) {
+			//	if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
+			//		tokenIndex--;
 					std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
 					loaded->functions.emplace_back(Function_tL{ loaded });
 					Function_tL& u_function = loaded->functions.back();
@@ -730,22 +735,23 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 						return PARSE_ERROR;
 					}
 					program.emplace_back(function_position.first, function_position.second, &u_function);
-					break;
-				}
-			}
-			tokenIndex--;
-			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
-			if (parse_result == PARSE_ERROR)
-				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
-			if (parse_result == Token::FUNCTION) {
-				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
-				break;
-			}
-			REQUIRE_CURRENT_TAG(Token::SEMICOLON);
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
-			tokenIndex++;
+					//break;
+			//	}
+			//}
+			// // Anonymous function.
+			//tokenIndex--;
+			//std::vector<Token> operation;
+			//tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
+			//if (parse_result == PARSE_ERROR)
+			//	return PARSE_ERROR;
+			//program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
+			//if (parse_result == Token::FUNCTION) {
+			//	program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
+			//	break;
+			//}
+			//REQUIRE_CURRENT_TAG(Token::SEMICOLON);
+			//program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::JUMP, program.size() + 1);
+			//tokenIndex++;
 		}
 		break;
 
