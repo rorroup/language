@@ -28,7 +28,7 @@ enum : ErrMesType
 	EXPRESSION_MISSING,
 	DELIMITER_MISMATCH,
 	WRONG_CONTEXT,
-	LABEL_DUPLICATE,
+	NAME_DUPLICATE,
 };
 
 static const char* ERROR_MESSAGE_TYPES[]
@@ -40,7 +40,7 @@ static const char* ERROR_MESSAGE_TYPES[]
 	STRINGIZING(EXPRESSION_MISSING),
 	STRINGIZING(DELIMITER_MISMATCH),
 	STRINGIZING(WRONG_CONTEXT),
-	STRINGIZING(LABEL_DUPLICATE),
+	STRINGIZING(NAME_DUPLICATE),
 };
 
 static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
@@ -54,7 +54,7 @@ static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
 	{ OPERAND_MISSING, "'%s' operator must be followed by an operand." },
 	{ EXPRESSION_MISSING, "%s missing" },
 	{ WRONG_CONTEXT, "'%s' token may not be used in this context." },
-	{ LABEL_DUPLICATE, "Label name '%s' can not be repeated." },
+	{ NAME_DUPLICATE, "Label name '%s' can not be repeated." },
 	{ WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
 };
 
