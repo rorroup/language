@@ -66,11 +66,13 @@ void parserError(const char* filename, lin_num line, col_num column, std::pair<c
 	va_end(argp);
 }
 
-#define REQUIRE_CURRENT_TAG(required_tag) \
+#define REQUIRE_CURRENT_TAG_RETURN(required_tag, returned) \
 if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != required_tag) { \
 	parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(required_tag)); \
-	return PARSE_ERROR; \
+	return returned; \
 }
+
+#define REQUIRE_CURRENT_TAG(required_tag) REQUIRE_CURRENT_TAG_RETURN(required_tag, PARSE_ERROR)
 
 /*
 Returns the id of the last structure in the sequence.
