@@ -56,6 +56,7 @@ static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
 	{ WRONG_CONTEXT, "'%s' token may not be used in this context." },
 	{ NAME_DUPLICATE, "Label name '%s' can not be repeated." },
 	{ WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
+	{ NAME_DUPLICATE, "Function name '%s' already exists inside this file." },
 };
 
 void parserError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
@@ -579,14 +580,6 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 
 Function_tL* Parser::parse_function()
 {
-	loaded->functions.emplace_back(Function_tL{ loaded });
-	Function_tL& function = loaded->functions.back();
-
-	function.name = nullptr;
-	function.arg_id.clear();
-	function.program = std::make_shared<Program_tL>();
-	function.program->instructions.reserve(tokens.size() - tokenIndex);
-
 	REQUIRE_CURRENT_TAG_RETURN(Token::FUNCTION_DEF, nullptr);
 	tokenIndex++;
 
@@ -604,12 +597,30 @@ Function_tL* Parser::parse_function()
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "can not occur inside another function");
 		return nullptr;
 	}
-	size_t len = strlen(tokens[tokenIndex].u_identifier) + 1;
-	function.name = new char[len];
-	memcpy(function.name, tokens[tokenIndex].u_identifier, len);
+
+	const auto& function_insert = loaded->functions.insert({ tokens[tokenIndex].u_identifier, Function_tL{ loaded } });
+	if (!function_insert.second) {
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], tokens[tokenIndex].u_identifier);
+		return nullptr;
+	}
+	Function_tL& function = function_insert.first->second;
+
 	const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].u_identifier, NAME_TABLE.size() + 1 });
+
+	if (insertion.second) {
+		size_t len = strlen(tokens[tokenIndex].u_identifier) + 1;
+		function.name = new char[len];
+		memcpy(function.name, tokens[tokenIndex].u_identifier, len);
+	}
+	else {
+		function.name = tokens[tokenIndex].u_identifier;
+	}
+	tokens[tokenIndex].u_identifier = nullptr; // Steal.
+
 	function.variable_id = insertion.first->second;
-	if (insertion.second) tokens[tokenIndex].u_identifier = nullptr; // Steal.
+	function.program = std::make_shared<Program_tL>();
+	function.program->instructions.reserve(tokens.size() - tokenIndex);
+
 	tokenIndex++;
 
 	REQUIRE_CURRENT_TAG_RETURN(Token::PARENTHESIS_OPEN, nullptr);
@@ -859,8 +870,12 @@ Function_tL* Parser::parse(SourceFile* file_, bool global_first)
 {
 	loaded = file_;
 
-	loaded->functions.emplace_back(Function_tL{ loaded });
-	Function_tL* file_function = &loaded->functions.back();
+	const auto& file_function_insert = loaded->functions.insert({ file_->name, Function_tL{ loaded } });
+	if (!file_function_insert.second) {
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], loaded->name.c_str());
+		return nullptr;
+	}
+	Function_tL* file_function = &file_function_insert.first->second;
 	file_function->global = global_first;
 	file_function->program = std::make_shared<Program_tL>();
 	file_function->program->instructions.reserve(tokens.size() - tokenIndex);

@@ -336,12 +336,12 @@ struct SourceFile
 {
 public:
 	std::string name;
-	std::deque<Function_tL> functions;
+	std::unordered_map<std::string, Function_tL> functions;
 
 	void unload()
 	{
 		for (auto& function : functions)
-			function.unload();
+			function.second.unload();
 	}
 };
 
