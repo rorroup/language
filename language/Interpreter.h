@@ -849,10 +849,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 	while (!thread.executing.empty()) {
 		Execution_tL& state = thread.executing.back();
 
-		while (true)
+		while (state.program_counter < state.program->instructions.size())
 		{
-			if (state.program->instructions.size() <= state.program_counter)
-				break;
 			Token token = state.program->instructions[state.program_counter];
 			state.program_counter++;
 
