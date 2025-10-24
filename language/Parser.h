@@ -23,8 +23,9 @@ public:
 
 	short parse_if(Function_tL& function, std::vector<int> interrupts[2]);
 	char parse_loop(Function_tL& function, std::vector<int> interrupts[2]);
-	char parse_function(Function_tL& function);
 	char parse_instructions(Function_tL& function, std::vector<int> interrupts[2]);
+
+	Function_tL* parse_function();
 
 	Function_tL* parse(SourceFile* file_, bool global_first);
 

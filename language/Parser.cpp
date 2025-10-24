@@ -577,24 +577,27 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 	return true;
 }
 
-char Parser::parse_function(Function_tL& function)
+Function_tL* Parser::parse_function()
 {
+	loaded->functions.emplace_back(Function_tL{ loaded });
+	Function_tL& function = loaded->functions.back();
+
 	function.name = nullptr;
 	function.arg_id.clear();
-	function.program->instructions.clear();
+	function.program = std::make_shared<Program_tL>();
 	function.program->instructions.reserve(tokens.size() - tokenIndex);
 
-	REQUIRE_CURRENT_TAG(Token::FUNCTION_DEF);
+	REQUIRE_CURRENT_TAG_RETURN(Token::FUNCTION_DEF, nullptr);
 	tokenIndex++;
 
 	if (tokenIndex >= tokens.size()) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Function definition");
-		return PARSE_ERROR;
+		return nullptr;
 	}
 
 	if (tokens[tokenIndex].tag != Token::IDENTIFIER) { // Anonymous function.
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'Global function' name");
-		return PARSE_ERROR;
+		return nullptr;
 	}
 
 	if (scopeLevel != 0) {
@@ -609,7 +612,7 @@ char Parser::parse_function(Function_tL& function)
 	if (insertion.second) tokens[tokenIndex].u_identifier = nullptr; // Steal.
 	tokenIndex++;
 
-	REQUIRE_CURRENT_TAG(Token::PARENTHESIS_OPEN);
+	REQUIRE_CURRENT_TAG_RETURN(Token::PARENTHESIS_OPEN, nullptr);
 	tokenIndex++;
 
 	while (tokenIndex < tokens.size()) {
@@ -626,22 +629,22 @@ char Parser::parse_function(Function_tL& function)
 	}
 	function.arg_id.shrink_to_fit();
 
-	REQUIRE_CURRENT_TAG(Token::PARENTHESIS_CLOSE);
+	REQUIRE_CURRENT_TAG_RETURN(Token::PARENTHESIS_CLOSE, nullptr);
 	tokenIndex++;
 
-	REQUIRE_CURRENT_TAG(Token::BRACE_OPEN);
+	REQUIRE_CURRENT_TAG_RETURN(Token::BRACE_OPEN, nullptr);
 	tokenIndex++;
 
 	scopeLevel++;
 	if (parse_instructions(function, nullptr) == PARSE_ERROR)
-		return PARSE_ERROR;
+		return nullptr;
 	scopeLevel--;
 
-	REQUIRE_CURRENT_TAG(Token::BRACE_CLOSE);
+	REQUIRE_CURRENT_TAG_RETURN(Token::BRACE_CLOSE, nullptr);
 	tokenIndex++;
 
 	function.program->instructions.shrink_to_fit();
-	return true;
+	return &function;
 }
 
 char Parser::parse_instructions(Function_tL& function, std::vector<int> interrupts[2] = nullptr)
@@ -726,17 +729,10 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 			//	if (tokens[tokenIndex].tag == Token::IDENTIFIER) {
 			//		tokenIndex--;
 					std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
-					loaded->functions.emplace_back(Function_tL{ loaded });
-					Function_tL& u_function = loaded->functions.back();
-					u_function.program = std::make_shared<Program_tL>();
-					char parse_result = parse_function(u_function);
-					if (parse_result == PARSE_ERROR)
+					Function_tL* parse_result = parse_function();
+					if (parse_result == nullptr)
 						return PARSE_ERROR;
-					if (u_function.name == nullptr) {
-						parserError(file_name(), token.line, token.column, ERROR_MESSAGES[7], "'Global function' name");
-						return PARSE_ERROR;
-					}
-					program.emplace_back(function_position.first, function_position.second, &u_function);
+					program.emplace_back(function_position.first, function_position.second, parse_result);
 					//break;
 			//	}
 			//}
