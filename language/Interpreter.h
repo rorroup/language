@@ -488,6 +488,7 @@ const RegisteredSequence* tag_id(const tok_tag tag);
 const char* tag_name(tok_tag tag);
 const char* variable_name(int_tL id);
 SOLVE_RESULT script_run(Thread_tL& thread);
+Function_tL* script_load(const char* filename, const char* funcname, const char* source);
 Function_tL* script_load(const char* filename);
 SOLVE_RESULT script_import(const char* filename);
 void script_unload(const char* filename);
@@ -1802,13 +1803,10 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 	return SOLVE_OK;
 }
 
-Function_tL* script_load(const char* filename)
+Function_tL* script_load(const char* filename, const char* funcname, const char* source)
 {
 	Function_tL* function = nullptr;
 
-	const char* source = readfile(filename);
-	if (source)
-	{
 		const auto& loaded = LOADED_SOURCEFILE.insert({ filename, { filename } });
 
 		std::unordered_map<std::string, Function_tL> file_new_;
@@ -1816,11 +1814,13 @@ Function_tL* script_load(const char* filename)
 		Parser parser;
 		if (tokenize_source(filename, source, parser.tokens))
 			function = parser.parse(&loaded.first->second, &file_new_, true);
-
-		delete[] source;
 		
 		if (function)
 		{
+			const size_t len = strlen(funcname) + 1;
+			function->name = new char[len];
+			std::memcpy(function->name, funcname, len);
+
 			std::unordered_map<std::string, Function_tL>& file_old = loaded.first->second.functions;
 
 			for (auto& old : file_old)
@@ -1850,9 +1850,24 @@ Function_tL* script_load(const char* filename)
 			if (loaded.second)
 				LOADED_SOURCEFILE.erase(loaded.first);
 		}
-	}
 	
 	return function;
+}
+
+Function_tL* script_load(const char* filename)
+{
+	const char* source = readfile(filename);
+
+	if (source)
+	{
+		Function_tL* result = script_load(filename, filename, source);
+
+		delete[] source;
+
+		return result;
+	}
+
+	return nullptr;
 }
 
 SOLVE_RESULT script_import(const char* filename)
