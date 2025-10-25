@@ -320,7 +320,6 @@ struct Function_tL
 		if (!loaded) return;
 		
 		loaded = false;
-		if (name) delete[] name;
 		arg_id.clear();
 		program = nullptr;
 	}
@@ -328,6 +327,7 @@ struct Function_tL
 	~Function_tL()
 	{
 		unload();
+		if (name) delete[] name;
 		arg_id.~vector();
 	}
 };
