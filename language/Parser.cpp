@@ -598,7 +598,7 @@ Function_tL* Parser::parse_function()
 		return nullptr;
 	}
 
-	const auto& function_insert = loaded->functions.insert({ tokens[tokenIndex].u_identifier, Function_tL{ loaded } });
+	const auto& function_insert = functions->insert({ tokens[tokenIndex].u_identifier, Function_tL{ loaded } });
 	if (!function_insert.second) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], tokens[tokenIndex].u_identifier);
 		return nullptr;
@@ -743,7 +743,8 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 					Function_tL* parse_result = parse_function();
 					if (parse_result == nullptr)
 						return PARSE_ERROR;
-					program.emplace_back(function_position.first, function_position.second, parse_result);
+					const auto& original = loaded->functions.find(parse_result->name);
+					program.emplace_back(function_position.first, function_position.second, (original == loaded->functions.end()) ? parse_result : &original->second);
 					//break;
 			//	}
 			//}
@@ -866,11 +867,12 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 	return true;
 }
 
-Function_tL* Parser::parse(SourceFile* file_, bool global_first)
+Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, bool global_first)
 {
 	loaded = file_;
+	functions = _functions;
 
-	const auto& file_function_insert = loaded->functions.insert({ file_->name, Function_tL{ loaded } });
+	const auto& file_function_insert = functions->insert({ file_->name, Function_tL{ loaded } });
 	if (!file_function_insert.second) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], loaded->name.c_str());
 		return nullptr;

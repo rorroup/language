@@ -16,6 +16,7 @@ public:
 	int tokenIndex{ 0 };
 	int scopeLevel{ 0 };
 	SourceFile* loaded{ nullptr };
+	std::unordered_map<std::string, Function_tL>* functions{ nullptr };
 
 	tok_tag parse_sequence(std::vector<Token>& program, const tok_tag separator_symbol);
 	tok_tag parse_operand(std::vector<Token>& program);
@@ -27,7 +28,7 @@ public:
 
 	Function_tL* parse_function();
 
-	Function_tL* parse(SourceFile* file_, bool global_first);
+	Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, bool global_first);
 
 private:
 	const char* file_name();

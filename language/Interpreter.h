@@ -1810,18 +1810,48 @@ Function_tL* script_load(const char* filename)
 	if (source)
 	{
 		const auto& loaded = LOADED_SOURCEFILE.insert({ filename, { filename } });
-		loaded.first->second.unload();
+
+		std::unordered_map<std::string, Function_tL> file_new_;
 
 		Parser parser;
 		if (tokenize_source(filename, source, parser.tokens))
-			function = parser.parse(&loaded.first->second, true);
+			function = parser.parse(&loaded.first->second, &file_new_, true);
 
 		delete[] source;
+		
+		if (function)
+		{
+			std::unordered_map<std::string, Function_tL>& file_old = loaded.first->second.functions;
 
-		if (!function)
-			loaded.first->second.unload();
+			for (auto& old : file_old)
+			{
+				const std::unordered_map<std::string, Function_tL>::iterator& new_ = file_new_.find(old.first);
+				if (new_ == file_new_.end())
+				{
+					old.second.unload();
+				}
+				else
+				{
+					old.second.arg_id = std::move(new_->second.arg_id);
+					old.second.program = new_->second.program;
+					old.second.global = new_->second.global;
+					old.second.loaded = true;
+
+					file_new_.erase(new_);
+				}
+			}
+
+			file_old.merge(file_new_);
+
+			function = &file_old.find(filename)->second;
+		}
+		else
+		{
+			if (loaded.second)
+				LOADED_SOURCEFILE.erase(loaded.first);
+		}
 	}
-
+	
 	return function;
 }
 
