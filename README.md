@@ -27,12 +27,11 @@ Finally the **Interpreter** can execute it in order using a stack.
 // Language Grammar.
 
 <array>                 ::= [<<operation>, >*]                                  // Note 1.
-<function_definition>   ::= function <name>? (<<name>, >*) { <expression>* }    // Note 1.
+<function_definition>   ::= function <name> (<<name>, >*) { <expression>* }     // Note 1.
 <atom>                  ::= <decimal_int> | 0x<hexadecimal_int> | 0b<binary_int> |
                             <floating_point.number> |
                             "<string>" |
                             <array> |
-                            <anonymous_function> |
                             <name> |
                             (<operation>)
 <index>                 ::= [<operation>]
@@ -46,18 +45,17 @@ Finally the **Interpreter** can execute it in order using a stack.
                               <while (<operation>) { <expression>* }> |
                               <do { <expression>* } while (<operation>) ;>
                             > <else { <expression>* }>?
-<expression>            ::= <<operation> ;> |                               // Note 2.
+<expression>            ::= <<operation> ;> |
                             <conditional> |
                             <loop> |
-                            <return <<operation>, >* ;> |                   // Note 1 and 2.
+                            <return <<operation>, >* ;> |                       // Note 1.
                             <await ;> |
                             <break ;> |
                             <continue ;> |
                             <label "<string>" ;> |
-                            <goto <operation> ;>                            // Note 2.
+                            <goto <operation> ;>
 
 // Note 1: The comma after the last element should be omitted. If there are no elements then there must not be any comma.
-// Note 2: If the operation ends in a function_definition then the terminating semicolon may be omitted.
 ```
 
 </details>
@@ -103,7 +101,7 @@ Scripts may use all currently supported [types and operations](language/Interpre
 
 ## Development plan
 
-Current Version: beta 1.1.0
+Current Version: beta 1.1.2
 
 > [!CAUTION]
 > Backwards compatibility is not guaranteed yet.
