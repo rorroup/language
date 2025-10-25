@@ -15,6 +15,7 @@ public:
 	std::deque<Token> tokens{};
 	int tokenIndex{ 0 };
 	int scopeLevel{ 0 };
+	unsigned short flags{ 0 };
 	SourceFile* loaded{ nullptr };
 	std::unordered_map<std::string, Function_tL>* functions{ nullptr };
 
@@ -28,7 +29,15 @@ public:
 
 	Function_tL* parse_function();
 
-	Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, bool global_first);
+	Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, unsigned short _flags);
+
+public:
+	enum : unsigned short
+	{
+		GLOBAL_FIRST			= 0x0001,
+		GLOBAL_ALL				= 0x0002,
+		ALLOW_FUNCTION_DEF		= 0x0004,
+	};
 
 private:
 	const char* file_name();
