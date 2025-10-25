@@ -593,7 +593,7 @@ Function_tL* Parser::parse_function()
 		return nullptr;
 	}
 
-	if (~flags & ALLOW_FUNCTION_DEF) {
+	if (~flags & PARSE_FLAG::ALLOW_FUNCTION_DEF) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "are not authorized within this file");
 		return nullptr;
 	}
@@ -625,7 +625,7 @@ Function_tL* Parser::parse_function()
 	function.variable_id = insertion.first->second;
 	function.program = std::make_shared<Program_tL>();
 	function.program->instructions.reserve(tokens.size() - tokenIndex);
-	function.global = flags & GLOBAL_ALL;
+	function.global = flags & PARSE_FLAG::GLOBAL_ALL;
 
 	tokenIndex++;
 
@@ -885,7 +885,7 @@ Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Fu
 		return nullptr;
 	}
 	Function_tL* file_function = &file_function_insert.first->second;
-	file_function->global = flags & (GLOBAL_FIRST | GLOBAL_ALL);
+	file_function->global = flags & (PARSE_FLAG::GLOBAL_FIRST | PARSE_FLAG::GLOBAL_ALL);
 	file_function->program = std::make_shared<Program_tL>();
 	file_function->program->instructions.reserve(tokens.size() - tokenIndex);
 

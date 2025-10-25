@@ -31,14 +31,6 @@ public:
 
 	Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, unsigned short _flags);
 
-public:
-	enum : unsigned short
-	{
-		GLOBAL_FIRST			= 0x0001,
-		GLOBAL_ALL				= 0x0002,
-		ALLOW_FUNCTION_DEF		= 0x0004,
-	};
-
 private:
 	const char* file_name();
 	static bool tag_unary(tok_tag tag);

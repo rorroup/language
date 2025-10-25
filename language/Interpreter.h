@@ -483,14 +483,21 @@ enum OPERATOR_ASSOCIATIVITY : int_tL
 
 extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TAG_END];
 
+enum PARSE_FLAG : unsigned short
+{
+	GLOBAL_FIRST			= 0x0001,
+	GLOBAL_ALL				= 0x0002,
+	ALLOW_FUNCTION_DEF		= 0x0004,
+};
+
 #define intlen(n) ((n) == 0 ? 1 : ((n) > 0 ? log10(n) + 1 : log10(-(n)) + 2))
 const RegisteredSequence* tag_id(const tok_tag tag);
 const char* tag_name(tok_tag tag);
 const char* variable_name(int_tL id);
 SOLVE_RESULT script_run(Thread_tL& thread);
-Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags);
-Function_tL* script_load(const char* filename, unsigned short flags);
-SOLVE_RESULT script_import(const char* filename, unsigned short flags);
+Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+Function_tL* script_load(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+SOLVE_RESULT script_import(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
 void script_unload(const char* filename);
 
 int_tL LANGUAGE_initialize();
@@ -1803,7 +1810,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 	return SOLVE_OK;
 }
 
-Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = Parser::ALLOW_FUNCTION_DEF | Parser::GLOBAL_FIRST)
+Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags)
 {
 	Function_tL* function = nullptr;
 
@@ -1854,7 +1861,7 @@ Function_tL* script_load(const char* filename, const char* funcname, const char*
 	return function;
 }
 
-Function_tL* script_load(const char* filename, unsigned short flags = Parser::ALLOW_FUNCTION_DEF | Parser::GLOBAL_FIRST)
+Function_tL* script_load(const char* filename, unsigned short flags)
 {
 	const char* source = readfile(filename);
 
@@ -1870,7 +1877,7 @@ Function_tL* script_load(const char* filename, unsigned short flags = Parser::AL
 	return nullptr;
 }
 
-SOLVE_RESULT script_import(const char* filename, unsigned short flags = Parser::ALLOW_FUNCTION_DEF | Parser::GLOBAL_FIRST)
+SOLVE_RESULT script_import(const char* filename, unsigned short flags)
 {
 	Function_tL* loaded_file = script_load(filename, flags);
 
