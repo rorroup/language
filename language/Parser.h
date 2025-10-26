@@ -29,7 +29,7 @@ public:
 
 	Function_tL* parse_function();
 
-	Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, unsigned short _flags);
+	Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags);
 
 private:
 	const char* file_name();

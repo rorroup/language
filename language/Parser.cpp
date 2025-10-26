@@ -873,13 +873,13 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 	return true;
 }
 
-Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, unsigned short _flags)
+Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags)
 {
 	loaded = file_;
 	functions = _functions;
 	flags = _flags;
 
-	const auto& file_function_insert = functions->insert({ file_->name, Function_tL{ loaded } });
+	const auto& file_function_insert = functions->insert({ funcname, Function_tL{ loaded } });
 	if (!file_function_insert.second) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], loaded->name.c_str());
 		return nullptr;
@@ -888,6 +888,10 @@ Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Fu
 	file_function->global = flags & (PARSE_FLAG::GLOBAL_FIRST | PARSE_FLAG::GLOBAL_ALL);
 	file_function->program = std::make_shared<Program_tL>();
 	file_function->program->instructions.reserve(tokens.size() - tokenIndex);
+
+	const size_t len = strlen(funcname) + 1;
+	file_function->name = new char[len];
+	std::memcpy(file_function->name, funcname, len);
 
 	if (parse_instructions(*file_function, nullptr) == PARSE_ERROR)
 		return nullptr;

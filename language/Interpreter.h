@@ -1820,14 +1820,10 @@ Function_tL* script_load(const char* filename, const char* funcname, const char*
 
 		Parser parser;
 		if (tokenize_source(filename, source, parser.tokens))
-			function = parser.parse(&loaded.first->second, &file_new_, flags);
+			function = parser.parse(&loaded.first->second, &file_new_, funcname, flags);
 		
 		if (function)
 		{
-			const size_t len = strlen(funcname) + 1;
-			function->name = new char[len];
-			std::memcpy(function->name, funcname, len);
-
 			std::unordered_map<std::string, Function_tL>& file_old = loaded.first->second.functions;
 
 			for (auto& old : file_old)
@@ -1850,7 +1846,7 @@ Function_tL* script_load(const char* filename, const char* funcname, const char*
 
 			file_old.merge(file_new_);
 
-			function = &file_old.find(filename)->second;
+			function = &file_old.find(funcname)->second;
 		}
 		else
 		{
