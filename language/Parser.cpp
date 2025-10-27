@@ -46,7 +46,7 @@ static const char* ERROR_MESSAGE_TYPES[]
 static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
 {
 	{ Parser, nullptr },
-	{ SYNTAX_ERROR, "Expected '%s' token." },
+	{ SYNTAX_ERROR, "Expected '%s' token%s." },
 	{ OPERAND_MISSING, "'%s' operator requires an argument." },
 	{ EXPRESSION_MISSING, "%s must contain an operation." },
 	{ DELIMITER_MISMATCH, "A corresponding '%s' is missing." },
@@ -68,8 +68,12 @@ void parserError(const char* filename, lin_num line, col_num column, std::pair<c
 }
 
 #define REQUIRE_CURRENT_TAG_RETURN(required_tag, returned) \
-if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != required_tag) { \
-	parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(required_tag)); \
+if (tokenIndex >= tokens.size()) { \
+	parserError(file_name(), tokens.back().line, tokens.back().column, ERROR_MESSAGES[1], tag_name(required_tag), " but none are left"); \
+	return returned; \
+} \
+if (tokens[tokenIndex].tag != required_tag) { \
+	parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(required_tag), ""); \
 	return returned; \
 }
 
@@ -355,7 +359,7 @@ short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 		}
 		else if (keyword_tag == Token::ELSE) {
 			if (!branches) { // IF
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::IF));
+				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::IF), "");
 				return PARSE_ERROR;
 			}
 
@@ -374,7 +378,7 @@ short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 		}
 		else {
 			if (!branches) { // IF
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::IF));
+				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::IF), "");
 				return PARSE_ERROR;
 			}
 			break;
@@ -435,12 +439,12 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = function.program->instructions;
 	if (tokenIndex >= tokens.size()) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration");
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
 		return PARSE_ERROR;
 	}
 	const Token& keyword = tokens[tokenIndex];
 	if (keyword.tag != Token::FOR && keyword.tag != Token::WHILE && keyword.tag != Token::DO) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration");
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
 		return PARSE_ERROR;
 	}
 	tokenIndex++;
@@ -881,7 +885,7 @@ Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Fu
 
 	const auto& file_function_insert = functions->insert({ funcname, Function_tL{ loaded } });
 	if (!file_function_insert.second) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], loaded->name.c_str());
+		parserError(file_name(), 0, 0, ERROR_MESSAGES[11], funcname);
 		return nullptr;
 	}
 	Function_tL* file_function = &file_function_insert.first->second;
@@ -900,6 +904,13 @@ Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Fu
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[10]);
 		return nullptr;
 	}
+
+	/*
+	* TODO: At some point check
+	* !tokens.empty();
+	* !file_function->program->instructions.empty();
+	* The source code may be all blankspaces and semicolons.
+	*/
 
 	file_function->program->instructions.shrink_to_fit();
 	return file_function;
