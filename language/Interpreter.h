@@ -1831,7 +1831,9 @@ Function_tL* script_load(const char* filename, const char* funcname, const char*
 				const std::unordered_map<std::string, Function_tL>::iterator& new_ = file_new_.find(old.first);
 				if (new_ == file_new_.end())
 				{
-					old.second.unload();
+					if (flags & PARSE_FLAG::ALLOW_FUNCTION_DEF) {
+						old.second.unload();
+					}
 				}
 				else
 				{
