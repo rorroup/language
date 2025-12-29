@@ -116,133 +116,133 @@ struct Token
 public:
 	enum : tok_tag
 	{
-		TAG_BEGIN = 0,
-		INNER_BEGIN = TAG_BEGIN,
-		VALUE_BEGIN = INNER_BEGIN,
+		TTAG_BEGIN = 0,
+		TTAG_INNER_BEGIN = TTAG_BEGIN,
+		TTAG_VALUE_BEGIN = TTAG_INNER_BEGIN,
 
 			// VALUES.
-			NONE = VALUE_BEGIN,			// 
-			INT,						// 
-			FLOAT,						// 
-			STRING,						// 
-			ARRAY,						// 
-			FUNCTION,					// User-defined function.
-			BUILTIN,					// C++ function.
+			TTAG_NONE = TTAG_VALUE_BEGIN,			// 
+			TTAG_INT,						// 
+			TTAG_FLOAT,						// 
+			TTAG_STRING,						// 
+			TTAG_ARRAY,						// 
+			TTAG_FUNCTION,					// User-defined function.
+			TTAG_BUILTIN,					// C++ function.
 
-		VALUE_END,
+		TTAG_VALUE_END,
 
 			// VARIABLES.
-			VARIABLE = VALUE_END,		// 
-			IDENTIFIER,					// 
-			REFERENCE,					// 
+			TTAG_VARIABLE = TTAG_VALUE_END,		// 
+			TTAG_IDENTIFIER,					// 
+			TTAG_REFERENCE,					// 
 
 			// SPECIAL OPERATIONS.
-			SEQUENCE,					// 
-			INDEX,						// 
-			ARRAY_INIT,					// 
-			CALL,						// 
+			TTAG_SEQUENCE,					// 
+			TTAG_INDEX,						// 
+			TTAG_ARRAY_INIT,					// 
+			TTAG_CALL,						// 
 
 			// PROGRAM COUNTER CONTROLLERS.
-			JUMP,						// 
-			JUMP_ON_FALSE,				// 
-			JUMP_ON_NOT_FALSE,			// 
+			TTAG_JUMP,						// 
+			TTAG_JUMP_ON_FALSE,				// 
+			TTAG_JUMP_ON_NOT_FALSE,			// 
 
-		INNER_END,
-		KEYWORD_BEGIN = INNER_END,
+		TTAG_INNER_END,
+		TTAG_KEYWORD_BEGIN = TTAG_INNER_END,
 
 			// KEYWORDS.
-			IF = KEYWORD_BEGIN,			// if
-			ELSE,						// else
-			FOR,						// for
-			WHILE,						// while
-			DO,							// do
-			BREAK,						// break
-			CONTINUE,					// continue
+			TTAG_IF = TTAG_KEYWORD_BEGIN,			// if
+			TTAG_ELSE,						// else
+			TTAG_FOR,						// for
+			TTAG_WHILE,						// while
+			TTAG_DO,							// do
+			TTAG_BREAK,						// break
+			TTAG_CONTINUE,					// continue
 			//SWITCH,
 			//CASE,
 			//DEFAULT,
-			FUNCTION_DEF,				// function
-			RETURN,						// return
-			AWAIT,						// await
-			LABEL,						// label
-			GOTO,						// goto
+			TTAG_FUNCTION_DEF,				// function
+			TTAG_RETURN,						// return
+			TTAG_AWAIT,						// await
+			TTAG_LABEL,						// label
+			TTAG_GOTO,						// goto
 
-			FALSE,						// false
-			TRUE,						// true
+			TTAG_FALSE,						// false
+			TTAG_TRUE,						// true
 
-		KEYWORD_END,
-		SYMBOL_BEGIN = KEYWORD_END,
-		DELIMITER_BEGIN = SYMBOL_BEGIN,
+		TTAG_KEYWORD_END,
+		TTAG_SYMBOL_BEGIN = TTAG_KEYWORD_END,
+		TTAG_DELIMITER_BEGIN = TTAG_SYMBOL_BEGIN,
 
 			// DELIMITERS.
-			SEMICOLON = DELIMITER_BEGIN,// ;
-			COMMA,						// ,
-			COLON,						// :
-			PARENTHESIS_OPEN,			// (
-			PARENTHESIS_CLOSE,			// )
-			BRACKET_OPEN,				// [
-			BRACKET_CLOSE,				// ]
-			BRACE_OPEN,					// {
-			BRACE_CLOSE,				// }
+			TTAG_SEMICOLON = TTAG_DELIMITER_BEGIN,// ;
+			TTAG_COMMA,						// ,
+			TTAG_COLON,						// :
+			TTAG_PARENTHESIS_OPEN,			// (
+			TTAG_PARENTHESIS_CLOSE,			// )
+			TTAG_BRACKET_OPEN,				// [
+			TTAG_BRACKET_CLOSE,				// ]
+			TTAG_BRACE_OPEN,					// {
+			TTAG_BRACE_CLOSE,				// }
 
-		DELIMITER_END,
-		OPERATOR_BEGIN = DELIMITER_END,
-		UNARY_BEGIN = OPERATOR_BEGIN,
+		TTAG_DELIMITER_END,
+		TTAG_OPERATOR_BEGIN = TTAG_DELIMITER_END,
+		TTAG_UNARY_BEGIN = TTAG_OPERATOR_BEGIN,
 
 			// OPERATORS.
-			UNARY_FLIP = UNARY_BEGIN,	// ~
-			UNARY_NEGATION,				// !
-			UNARY_POSITIVE,				// +
-			UNARY_NEGATIVE,				// -
+			TTAG_UNARY_FLIP = TTAG_UNARY_BEGIN,	// ~
+			TTAG_UNARY_NEGATION,				// !
+			TTAG_UNARY_POSITIVE,				// +
+			TTAG_UNARY_NEGATIVE,				// -
 
-		UNARY_END,
-		BINARY_BEGIN = UNARY_END,
+		TTAG_UNARY_END,
+		TTAG_BINARY_BEGIN = TTAG_UNARY_END,
 
-			BINARY_ADD = BINARY_BEGIN,	// +
-			BINARY_SUBSTRACT,			// -
-			BINARY_MULTIPLY,			// *
-			BINARY_DIVIDE,				// /
-			BINARY_MODULUS,				// %
+			TTAG_BINARY_ADD = TTAG_BINARY_BEGIN,	// +
+			TTAG_BINARY_SUBSTRACT,			// -
+			TTAG_BINARY_MULTIPLY,			// *
+			TTAG_BINARY_DIVIDE,				// /
+			TTAG_BINARY_MODULUS,				// %
 
-			BINARY_SHIFT_LEFT,			// <<
-			BINARY_SHIFT_RIGHT,			// >>
+			TTAG_BINARY_SHIFT_LEFT,			// <<
+			TTAG_BINARY_SHIFT_RIGHT,			// >>
 
-			BINARY_AND_BITWISE,			// &
-			BINARY_OR_BITWISE,			// |
-			BINARY_OR_EXCLUSIVE,		// ^
+			TTAG_BINARY_AND_BITWISE,			// &
+			TTAG_BINARY_OR_BITWISE,			// |
+			TTAG_BINARY_OR_EXCLUSIVE,		// ^
 
-			BINARY_AND,					// &&
-			BINARY_OR,					// ||
+			TTAG_BINARY_AND,					// &&
+			TTAG_BINARY_OR,					// ||
 
-			BINARY_LESSER,				// <
-			BINARY_GREATER,				// >
-			BINARY_LESSER_EQUAL,		// <=
-			BINARY_GREATER_EQUAL,		// >=
-			BINARY_EQUAL_DOUBLE,		// ==
-			BINARY_EQUAL_NOT,			// !=
-			BINARY_EQUAL,				// =
+			TTAG_BINARY_LESSER,				// <
+			TTAG_BINARY_GREATER,				// >
+			TTAG_BINARY_LESSER_EQUAL,		// <=
+			TTAG_BINARY_GREATER_EQUAL,		// >=
+			TTAG_BINARY_EQUAL_DOUBLE,		// ==
+			TTAG_BINARY_EQUAL_NOT,			// !=
+			TTAG_BINARY_EQUAL,				// =
 
 			// TODO: Compound Assignment.
 
-		BINARY_END,
+		TTAG_BINARY_END,
 
 			// TODO: TERNARY ?
 
-		OPERATOR_END = BINARY_END,
-		SYMBOL_END = OPERATOR_END,
-		TAG_END = SYMBOL_END
+		TTAG_OPERATOR_END = TTAG_BINARY_END,
+		TTAG_SYMBOL_END = TTAG_OPERATOR_END,
+		TTAG_END = TTAG_SYMBOL_END
 	};
 
 public:
 	union // https://en.cppreference.com/w/cpp/language/union
 	{
-		int_tL			u_int;
-		float_tL		u_float;
-		String_tL*		u_string;
-		Array_tL*		u_array;
-		Function_tL*	u_function;
-		Builtin_tL*		u_builtin;
-		char*			u_identifier;
+		int_tL			val_int;
+		float_tL		val_float;
+		String_tL*		val_string;
+		Array_tL*		val_array;
+		Function_tL*	val_function;
+		Builtin_tL*		val_builtin;
+		char*			val_identifier;
 	};
 	lin_num line;
 	col_num column;
@@ -481,7 +481,7 @@ enum OPERATOR_ASSOCIATIVITY : int_tL
 #define OP_PRECEDENCE(val) ((val) & PRECEDENCE_MASK)
 #define OP_ASSOCIATIVITY(val) (ASSOCIATIVITY_GET(val))
 
-extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TAG_END];
+extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END];
 
 enum PARSE_FLAG : unsigned short
 {
@@ -514,96 +514,96 @@ int_tL LANGUAGE_reload();
 // https://stackoverflow.com/a/22676401
 // https://cplusplus.com/reference/algorithm/find_if/
 // https://stackoverflow.com/a/14595314
-static const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TAG_END]
+static const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END]
 {
 #define TOKEN_NAME_TAG(s) nullptr, STRINGIZING(s), Token::s, NULL
 
 	// INNER.
 
-	{ TOKEN_NAME_TAG(NONE) },
-	{ TOKEN_NAME_TAG(INT) },
-	{ TOKEN_NAME_TAG(FLOAT) },
-	{ TOKEN_NAME_TAG(STRING) },
-	{ TOKEN_NAME_TAG(ARRAY) },
-	{ TOKEN_NAME_TAG(FUNCTION) },
-	{ TOKEN_NAME_TAG(BUILTIN) },
+	{ TOKEN_NAME_TAG(TTAG_NONE) },
+	{ TOKEN_NAME_TAG(TTAG_INT) },
+	{ TOKEN_NAME_TAG(TTAG_FLOAT) },
+	{ TOKEN_NAME_TAG(TTAG_STRING) },
+	{ TOKEN_NAME_TAG(TTAG_ARRAY) },
+	{ TOKEN_NAME_TAG(TTAG_FUNCTION) },
+	{ TOKEN_NAME_TAG(TTAG_BUILTIN) },
 
-	{ TOKEN_NAME_TAG(VARIABLE) },
-	{ TOKEN_NAME_TAG(IDENTIFIER) },
-	{ TOKEN_NAME_TAG(REFERENCE) },
+	{ TOKEN_NAME_TAG(TTAG_VARIABLE) },
+	{ TOKEN_NAME_TAG(TTAG_IDENTIFIER) },
+	{ TOKEN_NAME_TAG(TTAG_REFERENCE) },
 
-	{ TOKEN_NAME_TAG(SEQUENCE) },
-	{ TOKEN_NAME_TAG(INDEX) },
-	{ TOKEN_NAME_TAG(ARRAY_INIT) },
-	{ TOKEN_NAME_TAG(CALL) },
+	{ TOKEN_NAME_TAG(TTAG_SEQUENCE) },
+	{ TOKEN_NAME_TAG(TTAG_INDEX) },
+	{ TOKEN_NAME_TAG(TTAG_ARRAY_INIT) },
+	{ TOKEN_NAME_TAG(TTAG_CALL) },
 
-	{ TOKEN_NAME_TAG(JUMP) },
-	{ TOKEN_NAME_TAG(JUMP_ON_FALSE) },
-	{ TOKEN_NAME_TAG(JUMP_ON_NOT_FALSE) },
+	{ TOKEN_NAME_TAG(TTAG_JUMP) },
+	{ TOKEN_NAME_TAG(TTAG_JUMP_ON_FALSE) },
+	{ TOKEN_NAME_TAG(TTAG_JUMP_ON_NOT_FALSE) },
 
 #undef TOKEN_NAME_TAG
 #define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s, NULL
 
 	// KEYWORDS.
 
-	{ "if",			TOKEN_NAME_TAG(IF) },
-	{ "else",		TOKEN_NAME_TAG(ELSE) },
-	{ "for",		TOKEN_NAME_TAG(FOR) },
-	{ "while",		TOKEN_NAME_TAG(WHILE) },
-	{ "do",			TOKEN_NAME_TAG(DO) },
-	{ "break",		TOKEN_NAME_TAG(BREAK) },
-	{ "continue",	TOKEN_NAME_TAG(CONTINUE) },
+	{ "if",			TOKEN_NAME_TAG(TTAG_IF) },
+	{ "else",		TOKEN_NAME_TAG(TTAG_ELSE) },
+	{ "for",		TOKEN_NAME_TAG(TTAG_FOR) },
+	{ "while",		TOKEN_NAME_TAG(TTAG_WHILE) },
+	{ "do",			TOKEN_NAME_TAG(TTAG_DO) },
+	{ "break",		TOKEN_NAME_TAG(TTAG_BREAK) },
+	{ "continue",	TOKEN_NAME_TAG(TTAG_CONTINUE) },
 	//SWITCH,
 	//CASE,
 	//DEFAULT,
-	{ "function",	TOKEN_NAME_TAG(FUNCTION_DEF) },
-	{ "return",		TOKEN_NAME_TAG(RETURN) },
-	{ "await",		TOKEN_NAME_TAG(AWAIT) },
-	{ "label",		TOKEN_NAME_TAG(LABEL) },
-	{ "goto",		TOKEN_NAME_TAG(GOTO) },
+	{ "function",	TOKEN_NAME_TAG(TTAG_FUNCTION_DEF) },
+	{ "return",		TOKEN_NAME_TAG(TTAG_RETURN) },
+	{ "await",		TOKEN_NAME_TAG(TTAG_AWAIT) },
+	{ "label",		TOKEN_NAME_TAG(TTAG_LABEL) },
+	{ "goto",		TOKEN_NAME_TAG(TTAG_GOTO) },
 
-	{ "false",		"FALSE",	Token::INT, LANGUAGE_FALSE_INT },
-	{ "true",		"TRUE",		Token::INT, LANGUAGE_TRUE_INT },
+	{ "false",		"TTAG_FALSE",	Token::TTAG_INT, LANGUAGE_FALSE_INT },
+	{ "true",		"TTAG_TRUE",		Token::TTAG_INT, LANGUAGE_TRUE_INT },
 
 #undef TOKEN_NAME_TAG
 #define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s
 
 	// SYMBOLS.
 
-	{ "==",		TOKEN_NAME_TAG(BINARY_EQUAL_DOUBLE),	PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "!=",		TOKEN_NAME_TAG(BINARY_EQUAL_NOT),		PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "<=",		TOKEN_NAME_TAG(BINARY_LESSER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ">=",		TOKEN_NAME_TAG(BINARY_GREATER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "<<",		TOKEN_NAME_TAG(BINARY_SHIFT_LEFT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ">>",		TOKEN_NAME_TAG(BINARY_SHIFT_RIGHT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "&&",		TOKEN_NAME_TAG(BINARY_AND),				PRECEDENCE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "||",		TOKEN_NAME_TAG(BINARY_OR),				PRECEDENCE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "&",		TOKEN_NAME_TAG(BINARY_AND_BITWISE),		PRECEDENCE_BITWISE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "|",		TOKEN_NAME_TAG(BINARY_OR_BITWISE),		PRECEDENCE_BITWISE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "^",		TOKEN_NAME_TAG(BINARY_OR_EXCLUSIVE),	PRECEDENCE_BITWISE_XOR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "+",		TOKEN_NAME_TAG(BINARY_ADD),				PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "-",		TOKEN_NAME_TAG(BINARY_SUBSTRACT),		PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "*",		TOKEN_NAME_TAG(BINARY_MULTIPLY),		PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "/",		TOKEN_NAME_TAG(BINARY_DIVIDE),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "%",		TOKEN_NAME_TAG(BINARY_MODULUS),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "<",		TOKEN_NAME_TAG(BINARY_LESSER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ">",		TOKEN_NAME_TAG(BINARY_GREATER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "=",		TOKEN_NAME_TAG(BINARY_EQUAL),			PRECEDENCE_ASSIGNMENT | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "==",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_DOUBLE),	PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "!=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_NOT),		PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "<=",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ">=",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "<<",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_LEFT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ">>",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_RIGHT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "&&",		TOKEN_NAME_TAG(TTAG_BINARY_AND),				PRECEDENCE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "||",		TOKEN_NAME_TAG(TTAG_BINARY_OR),				PRECEDENCE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "&",		TOKEN_NAME_TAG(TTAG_BINARY_AND_BITWISE),		PRECEDENCE_BITWISE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "|",		TOKEN_NAME_TAG(TTAG_BINARY_OR_BITWISE),		PRECEDENCE_BITWISE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "^",		TOKEN_NAME_TAG(TTAG_BINARY_OR_EXCLUSIVE),	PRECEDENCE_BITWISE_XOR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "+",		TOKEN_NAME_TAG(TTAG_BINARY_ADD),				PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "-",		TOKEN_NAME_TAG(TTAG_BINARY_SUBSTRACT),		PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "*",		TOKEN_NAME_TAG(TTAG_BINARY_MULTIPLY),		PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "/",		TOKEN_NAME_TAG(TTAG_BINARY_DIVIDE),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "%",		TOKEN_NAME_TAG(TTAG_BINARY_MODULUS),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "<",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ">",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL),			PRECEDENCE_ASSIGNMENT | ASSOCIATIVITY_RIGHT_TO_LEFT	},
 
-	{ "~",		TOKEN_NAME_TAG(UNARY_FLIP),				PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "!",		TOKEN_NAME_TAG(UNARY_NEGATION),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "+",		TOKEN_NAME_TAG(UNARY_POSITIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "-",		TOKEN_NAME_TAG(UNARY_NEGATIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "~",		TOKEN_NAME_TAG(TTAG_UNARY_FLIP),				PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "!",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATION),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "+",		TOKEN_NAME_TAG(TTAG_UNARY_POSITIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "-",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
 
-	{ ";",		TOKEN_NAME_TAG(SEMICOLON),				PRECEDENCE_INVALID											},
-	{ ",",		TOKEN_NAME_TAG(COMMA),					PRECEDENCE_SEQUENCE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ":",		TOKEN_NAME_TAG(COLON),					PRECEDENCE_TERNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "(",		TOKEN_NAME_TAG(PARENTHESIS_OPEN),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ")",		TOKEN_NAME_TAG(PARENTHESIS_CLOSE),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "[",		TOKEN_NAME_TAG(BRACKET_OPEN),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "]",		TOKEN_NAME_TAG(BRACKET_CLOSE),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "{",		TOKEN_NAME_TAG(BRACE_OPEN),				PRECEDENCE_INVALID											},
-	{ "}",		TOKEN_NAME_TAG(BRACE_CLOSE),			PRECEDENCE_INVALID											},
+	{ ";",		TOKEN_NAME_TAG(TTAG_SEMICOLON),				PRECEDENCE_INVALID											},
+	{ ",",		TOKEN_NAME_TAG(TTAG_COMMA),					PRECEDENCE_SEQUENCE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ":",		TOKEN_NAME_TAG(TTAG_COLON),					PRECEDENCE_TERNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+	{ "(",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_OPEN),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ ")",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_CLOSE),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "[",		TOKEN_NAME_TAG(TTAG_BRACKET_OPEN),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "]",		TOKEN_NAME_TAG(TTAG_BRACKET_CLOSE),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+	{ "{",		TOKEN_NAME_TAG(TTAG_BRACE_OPEN),				PRECEDENCE_INVALID											},
+	{ "}",		TOKEN_NAME_TAG(TTAG_BRACE_CLOSE),			PRECEDENCE_INVALID											},
 };
 
 LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
@@ -662,27 +662,27 @@ void interpreterError(const char* filename, lin_num line, col_num column, std::p
 	va_end(argp);
 }
 
-Token::Token() : line(0), column(0), tag(Token::NONE), u_int(0) {}
-Token::Token(lin_num l, col_num c, int_tL			val) : line(l), column(c), tag(Token::INT), u_int(val) {}
-Token::Token(lin_num l, col_num c, float_tL		val) : line(l), column(c), tag(Token::FLOAT), u_float(val) {}
-Token::Token(lin_num l, col_num c, String_tL* val) : line(l), column(c), tag(Token::STRING), u_string(val) { u_string->owners++; }
-Token::Token(lin_num l, col_num c, Array_tL* val) : line(l), column(c), tag(Token::ARRAY), u_array(val) { u_array->owners++; }
-Token::Token(lin_num l, col_num c, Function_tL* val) : line(l), column(c), tag(Token::FUNCTION), u_function(val) {}
-Token::Token(Builtin_tL* val) : line(0), column(0), tag(Token::BUILTIN), u_builtin(val) {}
-Token::Token(lin_num l, col_num c, char* val) : line(l), column(c), tag(Token::IDENTIFIER), u_identifier(val) {}
-Token::Token(lin_num l, col_num c, tok_tag t, int_tL			val) : line(l), column(c), tag(t), u_int(val) {}
+Token::Token() : line(0), column(0), tag(Token::TTAG_NONE), val_int(0) {}
+Token::Token(lin_num l, col_num c, int_tL			val) : line(l), column(c), tag(Token::TTAG_INT), val_int(val) {}
+Token::Token(lin_num l, col_num c, float_tL		val) : line(l), column(c), tag(Token::TTAG_FLOAT), val_float(val) {}
+Token::Token(lin_num l, col_num c, String_tL* val) : line(l), column(c), tag(Token::TTAG_STRING), val_string(val) { val_string->owners++; }
+Token::Token(lin_num l, col_num c, Array_tL* val) : line(l), column(c), tag(Token::TTAG_ARRAY), val_array(val) { val_array->owners++; }
+Token::Token(lin_num l, col_num c, Function_tL* val) : line(l), column(c), tag(Token::TTAG_FUNCTION), val_function(val) {}
+Token::Token(Builtin_tL* val) : line(0), column(0), tag(Token::TTAG_BUILTIN), val_builtin(val) {}
+Token::Token(lin_num l, col_num c, char* val) : line(l), column(c), tag(Token::TTAG_IDENTIFIER), val_identifier(val) {}
+Token::Token(lin_num l, col_num c, tok_tag t, int_tL			val) : line(l), column(c), tag(t), val_int(val) {}
 
 Token::Token(const Token& token)
 {
 	tag = token.tag;
 	switch (tag) {
-	case Token::FLOAT:		u_float = token.u_float;																											break;
-	case Token::STRING:		u_string = token.u_string;							u_string->owners++;																break;
-	case Token::ARRAY:		u_array = token.u_array;							u_array->owners++;																break;
-	case Token::FUNCTION:	u_function = token.u_function;																											break;
-	case Token::BUILTIN:	u_builtin = token.u_builtin;																											break;
-	case Token::IDENTIFIER:	u_identifier = new char[strlen(token.u_identifier) + 1];	std::memcpy(u_identifier, token.u_identifier, strlen(token.u_identifier) + 1);	break;
-	default:				u_int = token.u_int;																												break;
+	case Token::TTAG_FLOAT:		val_float = token.val_float;																											break;
+	case Token::TTAG_STRING:		val_string = token.val_string;							val_string->owners++;																break;
+	case Token::TTAG_ARRAY:		val_array = token.val_array;							val_array->owners++;																break;
+	case Token::TTAG_FUNCTION:	val_function = token.val_function;																											break;
+	case Token::TTAG_BUILTIN:	val_builtin = token.val_builtin;																											break;
+	case Token::TTAG_IDENTIFIER:	val_identifier = new char[strlen(token.val_identifier) + 1];	std::memcpy(val_identifier, token.val_identifier, strlen(token.val_identifier) + 1);	break;
+	default:				val_int = token.val_int;																												break;
 	}
 	line = token.line;
 	column = token.column;
@@ -691,8 +691,8 @@ Token::Token(const Token& token)
 Token::Token(Token&& token) noexcept
 {
 	tag = token.tag;
-	u_int = token.u_int;
-	token.u_int = NULL;
+	val_int = token.val_int;
+	token.val_int = NULL;
 	line = token.line;
 	column = token.column;
 }
@@ -705,7 +705,7 @@ Token& Token::operator=(const Token& token)
 Token& Token::operator=(Token&& token) noexcept
 {
 	std::swap(tag, token.tag);
-	std::swap(u_int, token.u_int);
+	std::swap(val_int, token.val_int);
 	line = token.line;
 	column = token.column;
 	return *this;
@@ -714,9 +714,9 @@ Token& Token::operator=(Token&& token) noexcept
 Token::~Token()
 {
 	switch (tag) {
-	case Token::STRING:		if (u_string != nullptr) { u_string->owners--;	if (u_string->owners == 0)	delete u_string; }		break;
-	case Token::ARRAY:		if (u_array != nullptr) { u_array->owners--;	if (u_array->owners == 0)	delete u_array; }		break;
-	case Token::IDENTIFIER:	if (u_identifier != nullptr)													delete[] u_identifier;	break;
+	case Token::TTAG_STRING:		if (val_string != nullptr) { val_string->owners--;	if (val_string->owners == 0)	delete val_string; }		break;
+	case Token::TTAG_ARRAY:		if (val_array != nullptr) { val_array->owners--;	if (val_array->owners == 0)	delete val_array; }		break;
+	case Token::TTAG_IDENTIFIER:	if (val_identifier != nullptr)													delete[] val_identifier;	break;
 	default:																														break;
 	}
 }
@@ -724,12 +724,12 @@ Token::~Token()
 bool Token::as_bool() const
 {
 	switch (tag) {
-	case Token::INT:		return u_int != LANGUAGE_ZERO_INT;
-	case Token::FLOAT:		return u_float != LANGUAGE_ZERO_FLOAT;
-	case Token::STRING:		return strlen(u_string->string_get());
-	case Token::ARRAY:		return u_array->array.size();
-	case Token::FUNCTION:	return u_function->loaded;
-	case Token::BUILTIN:	return true;
+	case Token::TTAG_INT:		return val_int != LANGUAGE_ZERO_INT;
+	case Token::TTAG_FLOAT:		return val_float != LANGUAGE_ZERO_FLOAT;
+	case Token::TTAG_STRING:		return strlen(val_string->string_get());
+	case Token::TTAG_ARRAY:		return val_array->array.size();
+	case Token::TTAG_FUNCTION:	return val_function->loaded;
+	case Token::TTAG_BUILTIN:	return true;
 	}
 	return false;
 }
@@ -737,13 +737,13 @@ bool Token::as_bool() const
 void Token::print() const
 {
 	switch (tag) {
-	case Token::NONE:		printf("NONE");																										break;
-	case Token::INT:		printf("%" fINT_TL, u_int);																							break;
-	case Token::FLOAT:		printf("%f", u_float);																								break;
-	case Token::STRING:		printf("\"%s\"", u_string->string_get());																			break;
-	case Token::ARRAY:		printf("[ "); for (const auto& element : u_array->array) { element.print(); printf(", "); } printf(" ]");			break;
-	case Token::FUNCTION:	printf("<FUNCTION'%s'>", u_function->loaded ? (u_function->name ? u_function->name : "ANONYMOUS") : "UNLOADED");	break;
-	case Token::BUILTIN:	printf("<BUILTIN'%p'>", u_builtin);																					break;
+	case Token::TTAG_NONE:		printf("TTAG_NONE");																										break;
+	case Token::TTAG_INT:		printf("%" fINT_TL, val_int);																							break;
+	case Token::TTAG_FLOAT:		printf("%f", val_float);																								break;
+	case Token::TTAG_STRING:		printf("\"%s\"", val_string->string_get());																			break;
+	case Token::TTAG_ARRAY:		printf("[ "); for (const auto& element : val_array->array) { element.print(); printf(", "); } printf(" ]");			break;
+	case Token::TTAG_FUNCTION:	printf("<TTAG_FUNCTION'%s'>", val_function->loaded ? (val_function->name ? val_function->name : "ANONYMOUS") : "UNLOADED");	break;
+	case Token::TTAG_BUILTIN:	printf("<TTAG_BUILTIN'%p'>", val_builtin);																					break;
 	default:				printf("<NOT_A_VALUE>");																							break;
 	}
 }
@@ -760,14 +760,14 @@ void Token::info() const
 	if (!iter) {
 		printf("INVALID_TAG(%hhd)", tag);
 	}
-	else if (tag < Token::INNER_END) {
+	else if (tag < Token::TTAG_INNER_END) {
 		printf("[ %-*s ] ", tag_name_width, iter->name);
 
-		if (tag < Token::VALUE_END)			print();
-		else if (tag == Token::VARIABLE
-			|| tag == Token::REFERENCE)		printf("'%s'", variable_name(u_int));
-		else if (tag == Token::IDENTIFIER)	printf("'%s'", u_identifier);
-		else								printf("%" fINT_TL, u_int);
+		if (tag < Token::TTAG_VALUE_END)			print();
+		else if (tag == Token::TTAG_VARIABLE
+			|| tag == Token::TTAG_REFERENCE)		printf("'%s'", variable_name(val_int));
+		else if (tag == Token::TTAG_IDENTIFIER)	printf("'%s'", val_identifier);
+		else								printf("%" fINT_TL, val_int);
 	}
 	else {
 		printf("[ %-*s ] %s", tag_name_width, iter->name, iter->sequence);
@@ -778,14 +778,14 @@ void Token::info() const
 
 const RegisteredSequence* tag_id(const tok_tag tag)
 {
-	return (tag < Token::TAG_BEGIN || Token::TAG_END <= tag) ?
+	return (tag < Token::TTAG_BEGIN || Token::TTAG_END <= tag) ?
 		nullptr :
 		(
-			(tag < Token::KEYWORD_END) ?
+			(tag < Token::TTAG_KEYWORD_END) ?
 			&LANGUAGE_TOKEN_TAG[tag] :
 			std::find_if(
-				std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_BEGIN,
-				std::begin(LANGUAGE_TOKEN_TAG) + Token::SYMBOL_END,
+				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN,
+				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END,
 				[tag](const RegisteredSequence& element) { return element.tag == tag; }
 			)
 			);
@@ -811,32 +811,32 @@ const char* variable_name(int_tL id)
 
 Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
 {
-	const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.u_int);
+	const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.val_int);
 	if (local != state.LOCALS.end()) {
 		variable = local->second;
-		return (variable.tag != Token::FUNCTION || variable.u_function->loaded) ? &local->second : nullptr;
+		return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &local->second : nullptr;
 	}
 
-	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.u_int);
+	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
 	if (global != VALUE_TABLE.end()) {
 		variable = global->second;
-		return (variable.tag != Token::FUNCTION || variable.u_function->loaded) ? &global->second : nullptr;
+		return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &global->second : nullptr;
 	}
 
-	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.u_int));
+	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.val_int));
 	return nullptr;
 }
 
 Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state)
 {
 	// Global scope File Functions should ALWAYS operate only on the GLOBAL VALUE_TABLE.
-	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.u_int);
+	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
 	if (global != VALUE_TABLE.end()) {
 		variable = global->second;
-		return (variable.tag != Token::FUNCTION || variable.u_function->loaded) ? &global->second : nullptr; // Check unloaded function.
+		return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &global->second : nullptr; // Check unloaded function.
 	}
 
-	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.u_int));
+	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.val_int));
 	return nullptr;
 }
 
@@ -864,80 +864,80 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 			switch (token.tag)
 			{
-			case Token::VARIABLE:
+			case Token::TTAG_VARIABLE:
 				if (!state.GET_VARIABLE_VALUE_(token, state)) return SOLVE_ERROR;
-				//case Token::NONE:
-			case Token::INT:
-			case Token::FLOAT:
-			case Token::STRING:
-			case Token::ARRAY:
-			case Token::REFERENCE:
+				//case Token::TTAG_NONE:
+			case Token::TTAG_INT:
+			case Token::TTAG_FLOAT:
+			case Token::TTAG_STRING:
+			case Token::TTAG_ARRAY:
+			case Token::TTAG_REFERENCE:
 				state.solution.push_back(std::move(token));
 				break;
 
-			case Token::FUNCTION:
-				if (!token.u_function->loaded) {
+			case Token::TTAG_FUNCTION:
+				if (!token.val_function->loaded) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[11]);
 					return SOLVE_ERROR;
 				}
-				//if (token.u_function->name != nullptr) { // Global function.
-					VALUE_TABLE.insert_or_assign(token.u_function->variable_id, token);
+				//if (token.val_function->name != nullptr) { // Global function.
+					VALUE_TABLE.insert_or_assign(token.val_function->variable_id, token);
 					break;
 				//}
 				//state.solution.push_back(std::move(token));
 				//break;
 
-			case Token::INDEX:
+			case Token::TTAG_INDEX:
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
 					return SOLVE_ERROR;
 				}
 
-				if (state.solution.back().tag != Token::INT) {
-					interpreterError(file_name(), state.solution.back().line, state.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::INDEX), tag_name(Token::INT), tag_name(state.solution.back().tag));
+				if (state.solution.back().tag != Token::TTAG_INT) {
+					interpreterError(file_name(), state.solution.back().line, state.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::TTAG_INDEX), tag_name(Token::TTAG_INT), tag_name(state.solution.back().tag));
 					return SOLVE_ERROR;
 				}
 
-				if (state.solution[state.solution.size() - 2].tag == Token::REFERENCE || state.solution[state.solution.size() - 2].tag == Token::INDEX) {
-					state.solution.back().tag = Token::INDEX; // Merge the INDEX tag into the u_int index value.
+				if (state.solution[state.solution.size() - 2].tag == Token::TTAG_REFERENCE || state.solution[state.solution.size() - 2].tag == Token::TTAG_INDEX) {
+					state.solution.back().tag = Token::TTAG_INDEX; // Merge the TTAG_INDEX tag into the val_int index value.
 				}
 				else {
 					Token index = std::move(state.solution.back());
 					state.solution.pop_back();
 
 					Token& arg = state.solution.back();
-					if (arg.tag == Token::ARRAY) {
-						if (index.u_int < 0 || arg.u_array->array.size() <= index.u_int) {
-							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), index.u_int, tag_name(arg.tag));
+					if (arg.tag == Token::TTAG_ARRAY) {
+						if (index.val_int < 0 || arg.val_array->array.size() <= index.val_int) {
+							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
 							return SOLVE_ERROR;
 						}
-						arg = arg.u_array->array[index.u_int];
+						arg = arg.val_array->array[index.val_int];
 					}
-					else if (arg.tag == Token::STRING) {
-						if (index.u_int < 0 || strlen(arg.u_string->string_get()) <= index.u_int) {
-							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), index.u_int, tag_name(arg.tag));
+					else if (arg.tag == Token::TTAG_STRING) {
+						if (index.val_int < 0 || strlen(arg.val_string->string_get()) <= index.val_int) {
+							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
 							return SOLVE_ERROR;
 						}
-						if (strlen(arg.u_string->string_get()) != 1) {
-							char cc[2]{ arg.u_string->string_get()[index.u_int], '\0' };
+						if (strlen(arg.val_string->string_get()) != 1) {
+							char cc[2]{ arg.val_string->string_get()[index.val_int], '\0' };
 							arg = Token(arg.line, arg.column, String_tL::init(cc, 1));
 						}
 					}
 					else {
-						interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[5], tag_name(Token::INDEX), tag_name(arg.tag));
+						interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(arg.tag));
 						return SOLVE_ERROR;
 					}
 				}
 
 				break;
 
-			case Token::SEQUENCE:
-				token.u_int = state.lastSequence;
+			case Token::TTAG_SEQUENCE:
+				token.val_int = state.lastSequence;
 				state.lastSequence = state.solution.size();
 				state.solution.push_back(std::move(token));
 				break;
 
-			case Token::UNARY_FLIP:
+			case Token::TTAG_UNARY_FLIP:
 			{
 				if (state.solution.size() < 1) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
@@ -945,8 +945,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				}
 
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::INT) {
-					arg.u_int = ~arg.u_int;
+				if (arg.tag == Token::TTAG_INT) {
+					arg.val_int = ~arg.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
@@ -955,7 +955,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::UNARY_NEGATION:
+			case Token::TTAG_UNARY_NEGATION:
 			{
 				if (state.solution.size() < 1) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
@@ -963,11 +963,11 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				}
 
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::INT) {
-					arg.u_int = !arg.u_int;
+				if (arg.tag == Token::TTAG_INT) {
+					arg.val_int = !arg.val_int;
 				}
-				else if (arg.tag == Token::FLOAT) {
-					arg.u_float = !arg.u_float;
+				else if (arg.tag == Token::TTAG_FLOAT) {
+					arg.val_float = !arg.val_float;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
@@ -976,7 +976,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::UNARY_POSITIVE:
+			case Token::TTAG_UNARY_POSITIVE:
 			{
 				if (state.solution.size() < 1) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
@@ -984,14 +984,14 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				}
 
 				const Token& arg = state.solution.back();
-				if (arg.tag != Token::INT && arg.tag != Token::FLOAT) {
+				if (arg.tag != Token::TTAG_INT && arg.tag != Token::TTAG_FLOAT) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
 					return SOLVE_ERROR;
 				}
 			}
 			break;
 
-			case Token::UNARY_NEGATIVE:
+			case Token::TTAG_UNARY_NEGATIVE:
 			{
 				if (state.solution.size() < 1) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
@@ -999,11 +999,11 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				}
 
 				Token& arg = state.solution.back();
-				if (arg.tag == Token::INT) {
-					arg.u_int = -arg.u_int;
+				if (arg.tag == Token::TTAG_INT) {
+					arg.val_int = -arg.val_int;
 				}
-				else if (arg.tag == Token::FLOAT) {
-					arg.u_float = -arg.u_float;
+				else if (arg.tag == Token::TTAG_FLOAT) {
+					arg.val_float = -arg.val_float;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
@@ -1012,7 +1012,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_ADD:
+			case Token::TTAG_BINARY_ADD:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1026,51 +1026,51 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int += right.u_int;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int += right.val_int;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(left.line, left.column, (float_tL)left.u_int + right.u_float); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (float_tL)left.val_int + right.val_float); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.u_float += (float_tL)right.u_int;
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left.val_float += (float_tL)right.val_int;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.u_float += right.u_float;
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left.val_float += right.val_float;
 					break;
-				case tagCOUPLE(Token::INT, Token::STRING):
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_STRING):
 				{
-					const size_t l0 = intlen(left.u_int);
-					const size_t l1 = strlen(right.u_string->string_get());
-					left = Token(left.line, left.column, String_tL_init(left.u_int, l0, right.u_string->string_get(), l1));
+					const size_t l0 = intlen(left.val_int);
+					const size_t l1 = strlen(right.val_string->string_get());
+					left = Token(left.line, left.column, String_tL_init(left.val_int, l0, right.val_string->string_get(), l1));
 				}
 				break;
-				case tagCOUPLE(Token::STRING, Token::INT):
+				case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_INT):
 				{
-					const size_t l0 = strlen(left.u_string->string_get());
-					const size_t l1 = intlen(right.u_int);
-					left = Token(left.line, left.column, String_tL_init(left.u_string->string_get(), l0, right.u_int, l1)); // This must trigger constructor on left so its str_tok gets decremented!
+					const size_t l0 = strlen(left.val_string->string_get());
+					const size_t l1 = intlen(right.val_int);
+					left = Token(left.line, left.column, String_tL_init(left.val_string->string_get(), l0, right.val_int, l1)); // This must trigger constructor on left so its str_tok gets decremented!
 				}
 				break;
-				case tagCOUPLE(Token::FLOAT, Token::STRING):
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_STRING):
 				{
-					const size_t l0 = snprintf(NULL, 0, "%f", left.u_float);
-					const size_t l1 = strlen(right.u_string->string_get());
-					left = Token(left.line, left.column, String_tL_init(left.u_float, l0, right.u_string->string_get(), l1));
+					const size_t l0 = snprintf(NULL, 0, "%f", left.val_float);
+					const size_t l1 = strlen(right.val_string->string_get());
+					left = Token(left.line, left.column, String_tL_init(left.val_float, l0, right.val_string->string_get(), l1));
 				}
 				break;
-				case tagCOUPLE(Token::STRING, Token::FLOAT):
+				case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_FLOAT):
 				{
-					const size_t l0 = strlen(left.u_string->string_get());
-					const size_t l1 = snprintf(NULL, 0, "%f", right.u_float);
-					left = Token(left.line, left.column, String_tL_init(left.u_string->string_get(), l0, right.u_float, l1));
+					const size_t l0 = strlen(left.val_string->string_get());
+					const size_t l1 = snprintf(NULL, 0, "%f", right.val_float);
+					left = Token(left.line, left.column, String_tL_init(left.val_string->string_get(), l0, right.val_float, l1));
 				}
 				break;
-				case tagCOUPLE(Token::STRING, Token::STRING):
+				case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
 				{
-					const size_t l0 = strlen(left.u_string->string_get());
-					const size_t l1 = strlen(right.u_string->string_get());
-					left = Token(left.line, left.column, String_tL_init(left.u_string->string_get(), l0, right.u_string->string_get(), l1));
+					const size_t l0 = strlen(left.val_string->string_get());
+					const size_t l1 = strlen(right.val_string->string_get());
+					left = Token(left.line, left.column, String_tL_init(left.val_string->string_get(), l0, right.val_string->string_get(), l1));
 				}
 				break;
 				default:
@@ -1080,7 +1080,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_SUBSTRACT:
+			case Token::TTAG_BINARY_SUBSTRACT:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1094,17 +1094,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int -= right.u_int;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int -= right.val_int;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(left.line, left.column, (float_tL)left.u_int - right.u_float);
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (float_tL)left.val_int - right.val_float);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.u_float -= (float_tL)right.u_int;
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left.val_float -= (float_tL)right.val_int;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.u_float -= right.u_float;
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left.val_float -= right.val_float;
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1113,7 +1113,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_MULTIPLY:
+			case Token::TTAG_BINARY_MULTIPLY:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1127,17 +1127,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int *= right.u_int;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int *= right.val_int;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left = Token(left.line, left.column, (float_tL)left.u_int * right.u_float);
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (float_tL)left.val_int * right.val_float);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left.u_float *= (float_tL)right.u_int;
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left.val_float *= (float_tL)right.val_int;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left.u_float *= right.u_float;
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left.val_float *= right.val_float;
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1145,7 +1145,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				}
 			}
 			break;
-			case Token::BINARY_DIVIDE:
+			case Token::TTAG_BINARY_DIVIDE:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1159,33 +1159,33 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					if (right.u_int == LANGUAGE_ZERO_INT) {
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					if (right.val_int == LANGUAGE_ZERO_INT) {
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
 						return SOLVE_ERROR;
 					}
-					left.u_int /= right.u_int;
+					left.val_int /= right.val_int;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					if (right.u_float == LANGUAGE_ZERO_FLOAT) {
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					if (right.val_float == LANGUAGE_ZERO_FLOAT) {
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
 						return SOLVE_ERROR;
 					}
-					left = Token(left.line, left.column, (float_tL)left.u_int / right.u_float);
+					left = Token(left.line, left.column, (float_tL)left.val_int / right.val_float);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					if (right.u_int == LANGUAGE_ZERO_INT) {
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					if (right.val_int == LANGUAGE_ZERO_INT) {
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
 						return SOLVE_ERROR;
 					}
-					left.u_float /= (float_tL)right.u_int;
+					left.val_float /= (float_tL)right.val_int;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					if (right.u_float == LANGUAGE_ZERO_FLOAT) {
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					if (right.val_float == LANGUAGE_ZERO_FLOAT) {
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
 						return SOLVE_ERROR;
 					}
-					left.u_float /= right.u_float;
+					left.val_float /= right.val_float;
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1194,7 +1194,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_MODULUS:
+			case Token::TTAG_BINARY_MODULUS:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1206,12 +1206,12 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token& left = state.solution.back();
 
-				if (left.tag == Token::INT && right.tag == Token::INT) {
-					if (right.u_int == LANGUAGE_ZERO_INT) {
+				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
+					if (right.val_int == LANGUAGE_ZERO_INT) {
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
 						return SOLVE_ERROR;
 					}
-					left.u_int %= right.u_int;
+					left.val_int %= right.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1220,7 +1220,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_SHIFT_LEFT:
+			case Token::TTAG_BINARY_SHIFT_LEFT:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1232,8 +1232,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token& left = state.solution.back();
 
-				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.u_int <<= right.u_int;
+				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
+					left.val_int <<= right.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1242,7 +1242,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_SHIFT_RIGHT:
+			case Token::TTAG_BINARY_SHIFT_RIGHT:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1254,8 +1254,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token& left = state.solution.back();
 
-				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.u_int >>= right.u_int;
+				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
+					left.val_int >>= right.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1264,7 +1264,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_AND_BITWISE:
+			case Token::TTAG_BINARY_AND_BITWISE:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1276,8 +1276,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token& left = state.solution.back();
 
-				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.u_int &= right.u_int;
+				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
+					left.val_int &= right.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1286,7 +1286,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_OR_BITWISE:
+			case Token::TTAG_BINARY_OR_BITWISE:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1298,8 +1298,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token& left = state.solution.back();
 
-				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.u_int |= right.u_int;
+				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
+					left.val_int |= right.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1308,7 +1308,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_OR_EXCLUSIVE:
+			case Token::TTAG_BINARY_OR_EXCLUSIVE:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1320,8 +1320,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token& left = state.solution.back();
 
-				if (left.tag == Token::INT && right.tag == Token::INT) {
-					left.u_int ^= right.u_int;
+				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
+					left.val_int ^= right.val_int;
 				}
 				else {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1330,7 +1330,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_AND:
+			case Token::TTAG_BINARY_AND:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1341,8 +1341,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				state.solution.pop_back();
 
 				Token& left = state.solution.back();
-				if (left.tag <= Token::NONE || Token::BUILTIN < left.tag ||
-					right.tag <= Token::NONE || Token::BUILTIN < right.tag) {
+				if (left.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < left.tag ||
+					right.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < right.tag) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
 					return SOLVE_ERROR;
 				}
@@ -1350,7 +1350,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_OR:
+			case Token::TTAG_BINARY_OR:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1361,8 +1361,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				state.solution.pop_back();
 
 				Token& left = state.solution.back();
-				if (left.tag <= Token::NONE || Token::BUILTIN < left.tag ||
-					right.tag <= Token::NONE || Token::BUILTIN < right.tag) {
+				if (left.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < left.tag ||
+					right.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < right.tag) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
 					return SOLVE_ERROR;
 				}
@@ -1370,7 +1370,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_LESSER:
+			case Token::TTAG_BINARY_LESSER:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1384,17 +1384,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int = (left.u_int < right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int = (left.val_int < right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.u_int = ((float_tL)left.u_int < right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left.val_int = ((float_tL)left.val_int < right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = Token(left.line, left.column, (left.u_float < (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left = Token(left.line, left.column, (left.val_float < (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = Token(left.line, left.column, (left.u_float < right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (left.val_float < right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1403,7 +1403,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_GREATER:
+			case Token::TTAG_BINARY_GREATER:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1417,17 +1417,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int = (left.u_int > right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int = (left.val_int > right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.u_int = ((float_tL)left.u_int > right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left.val_int = ((float_tL)left.val_int > right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = Token(left.line, left.column, (left.u_float > (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left = Token(left.line, left.column, (left.val_float > (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = Token(left.line, left.column, (left.u_float > right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (left.val_float > right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1436,7 +1436,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_LESSER_EQUAL:
+			case Token::TTAG_BINARY_LESSER_EQUAL:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1450,17 +1450,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int = (left.u_int <= right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int = (left.val_int <= right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.u_int = ((float_tL)left.u_int <= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left.val_int = ((float_tL)left.val_int <= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = Token(left.line, left.column, (left.u_float <= (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left = Token(left.line, left.column, (left.val_float <= (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = Token(left.line, left.column, (left.u_float <= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (left.val_float <= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1469,7 +1469,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_GREATER_EQUAL:
+			case Token::TTAG_BINARY_GREATER_EQUAL:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1483,17 +1483,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int = (left.u_int >= right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int = (left.val_int >= right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.u_int = ((float_tL)left.u_int >= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left.val_int = ((float_tL)left.val_int >= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = Token(left.line, left.column, (left.u_float >= (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left = Token(left.line, left.column, (left.val_float >= (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = Token(left.line, left.column, (left.u_float >= right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (left.val_float >= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1502,7 +1502,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_EQUAL_DOUBLE:
+			case Token::TTAG_BINARY_EQUAL_DOUBLE:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1516,17 +1516,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int = (left.u_int == right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int = (left.val_int == right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.u_int = ((float_tL)left.u_int == right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left.val_int = ((float_tL)left.val_int == right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = Token(left.line, left.column, (left.u_float == (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left = Token(left.line, left.column, (left.val_float == (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = Token(left.line, left.column, (left.u_float == right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (left.val_float == right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1535,7 +1535,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_EQUAL_NOT:
+			case Token::TTAG_BINARY_EQUAL_NOT:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
@@ -1549,17 +1549,17 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				switch (tagCOUPLE(left.tag, right.tag))
 				{
-				case tagCOUPLE(Token::INT, Token::INT):
-					left.u_int = (left.u_int != right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+					left.val_int = (left.val_int != right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::INT, Token::FLOAT):
-					left.u_int = ((float_tL)left.u_int != right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+					left.val_int = ((float_tL)left.val_int != right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::INT):
-					left = Token(left.line, left.column, (left.u_float != (float_tL)right.u_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+					left = Token(left.line, left.column, (left.val_float != (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
-				case tagCOUPLE(Token::FLOAT, Token::FLOAT):
-					left = Token(left.line, left.column, (left.u_float != right.u_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
+				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+					left = Token(left.line, left.column, (left.val_float != right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
 					break;
 				default:
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
@@ -1568,14 +1568,14 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::BINARY_EQUAL:
+			case Token::TTAG_BINARY_EQUAL:
 			{
 				// Resolve left-hand variable reference for assignment.
 				std::vector<int_tL> indices;
-				indices.reserve((!state.solution.empty() && state.solution.back().tag == Token::INDEX) ? state.solution.size() / 2 : 0);
-				while (!state.solution.empty() && state.solution.back().tag == Token::INDEX) {
+				indices.reserve((!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) ? state.solution.size() / 2 : 0);
+				while (!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) {
 					Token& index = state.solution.back();
-					indices.push_back(index.u_int);
+					indices.push_back(index.val_int);
 					state.solution.pop_back();
 				}
 
@@ -1586,8 +1586,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token left = std::move(state.solution.back());
 				state.solution.pop_back();
-				if (left.tag != Token::REFERENCE) {
-					interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::REFERENCE), tag_name(left.tag));
+				if (left.tag != Token::TTAG_REFERENCE) {
+					interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_REFERENCE), tag_name(left.tag));
 					return SOLVE_ERROR;
 				}
 
@@ -1595,40 +1595,40 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				if (!ref) return SOLVE_ERROR;
 				enum : tok_tag {
 					POINTER_CHAR = -1,
-					POINTER_ARRAY = Token::ARRAY,
-					POINTER_STRING = Token::STRING,
-					POINTER_REFERENCE = Token::REFERENCE,
+					POINTER_ARRAY = Token::TTAG_ARRAY,
+					POINTER_STRING = Token::TTAG_STRING,
+					POINTER_REFERENCE = Token::TTAG_REFERENCE,
 				};
 				tok_tag ref_type = static_cast<Token*>(ref)->tag;
 				for (int i = indices.size() - 1; i >= 0; i--) {
 					if (ref_type == POINTER_ARRAY) {
-						if (indices[i] < 0 || static_cast<Token*>(ref)->u_array->array.size() <= indices[i]) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), indices[i], tag_name(ref_type));
+						if (indices[i] < 0 || static_cast<Token*>(ref)->val_array->array.size() <= indices[i]) {
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(ref_type));
 							return SOLVE_ERROR;
 						}
-						ref = &static_cast<Token*>(ref)->u_array->array[indices[i]];
+						ref = &static_cast<Token*>(ref)->val_array->array[indices[i]];
 						ref_type = static_cast<Token*>(ref)->tag;
 					}
 					else if (ref_type == POINTER_STRING) {
-						if (indices[i] < 0 || strlen(static_cast<Token*>(ref)->u_string->string_get()) <= indices[i]) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), indices[i], tag_name(ref_type));
+						if (indices[i] < 0 || strlen(static_cast<Token*>(ref)->val_string->string_get()) <= indices[i]) {
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(ref_type));
 							return SOLVE_ERROR;
 						}
-						if (!static_cast<Token*>(ref)->u_string->owned) {
+						if (!static_cast<Token*>(ref)->val_string->owned) {
 							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[14], tag_name(POINTER_STRING));
 							return SOLVE_ERROR;
 						}
-						ref = &static_cast<Token*>(ref)->u_string->string_get()[indices[i]];
+						ref = &static_cast<Token*>(ref)->val_string->string_get()[indices[i]];
 						ref_type = POINTER_CHAR;
 					}
 					else if (ref_type == POINTER_CHAR) {
 						if (indices[i] != 0) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::INDEX), indices[i], tag_name(Token::STRING));
+							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(Token::TTAG_STRING));
 							return SOLVE_ERROR;
 						}
 					}
 					else {
-						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[5], tag_name(Token::INDEX), tag_name(ref_type));
+						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(ref_type));
 						return SOLVE_ERROR;
 					}
 				}
@@ -1636,14 +1636,14 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 				Token& right = state.solution.back();
 
 				if (ref_type == POINTER_REFERENCE) {
-					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left.u_int, right); // There can never be a REFERENCE inside an ARRAY.
+					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left.val_int, right); // There can never be a TTAG_REFERENCE inside an TTAG_ARRAY.
 				}
 				else if (ref_type == POINTER_CHAR) {
-					if (right.tag != Token::STRING || strlen(right.u_string->string_get()) != 1) {
-						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[9], tag_name(Token::STRING), tag_name(Token::STRING));
+					if (right.tag != Token::TTAG_STRING || strlen(right.val_string->string_get()) != 1) {
+						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[9], tag_name(Token::TTAG_STRING), tag_name(Token::TTAG_STRING));
 						return SOLVE_ERROR;
 					}
-					*static_cast<char*>(ref) = right.u_string->string_get()[0];
+					*static_cast<char*>(ref) = right.val_string->string_get()[0];
 				}
 				else {
 					*static_cast<Token*>(ref) = right;
@@ -1652,29 +1652,29 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::ARRAY_INIT:
+			case Token::TTAG_ARRAY_INIT:
 			{
-				if (state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::SEQUENCE) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::SEQUENCE));
+				if (state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::TTAG_SEQUENCE) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
 					return SOLVE_ERROR;
 				}
 
 				Token arr = Token(token.line, token.column, new Array_tL{}); // Build Array.
-				Array_tL* v = arr.u_array;
+				Array_tL* v = arr.val_array;
 				v->array.insert(v->array.end(), std::make_move_iterator(state.solution.begin() + state.lastSequence + 1), std::make_move_iterator(state.solution.end()));
 
 				size_t lastSequence = state.lastSequence;
-				state.lastSequence = state.solution[state.lastSequence].u_int;
+				state.lastSequence = state.solution[state.lastSequence].val_int;
 				state.solution.erase(state.solution.begin() + lastSequence, state.solution.end());
 
 				state.solution.push_back(std::move(arr));
 			}
 			break;
 
-			case Token::CALL:
+			case Token::TTAG_CALL:
 			{
-				if (state.lastSequence < 1 || state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::SEQUENCE) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::SEQUENCE));
+				if (state.lastSequence < 1 || state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::TTAG_SEQUENCE) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
 					return SOLVE_ERROR;
 				}
 
@@ -1683,13 +1683,13 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 
 				Token calling = std::move(state.solution[state.lastSequence - 1]);
 
-				if (calling.tag == Token::BUILTIN) {
+				if (calling.tag == Token::TTAG_BUILTIN) {
 					std::vector<Token> arguments;
 					arguments.reserve(nArgs);
 					arguments.insert(arguments.end(), std::make_move_iterator(state.solution.begin() + state.lastSequence + 1), std::make_move_iterator(state.solution.end()));
 
-					Builtin_tL* builtin = calling.u_builtin;
-					state.lastSequence = state.solution[state.lastSequence].u_int;
+					Builtin_tL* builtin = calling.val_builtin;
+					state.lastSequence = state.solution[state.lastSequence].val_int;
 					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
 #ifdef FUNCTION_RETURN_SINGLE
 					size_t stack_size = state.solution.size();
@@ -1709,8 +1709,8 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 						return answer;
 					}
 				}
-				else if (calling.tag == Token::FUNCTION) {
-					Function_tL* func = calling.u_function;
+				else if (calling.tag == Token::TTAG_FUNCTION) {
+					Function_tL* func = calling.val_function;
 					if (!func->loaded) {
 						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[11]);
 						return SOLVE_ERROR;
@@ -1723,7 +1723,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 					for (size_t i = 0, j = state.lastSequence + 1; i < nArgs; i++, j++) {
 						state.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[i], std::move(state.solution[j]));
 					}
-					state.lastSequence = state.solution[state.lastSequence].u_int;
+					state.lastSequence = state.solution[state.lastSequence].val_int;
 					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
 					thread.executing.emplace_back(std::move(exe)); // Modifying the thread as the last step since it invalidates references.
 					goto execution_end; // https://en.cppreference.com/w/cpp/language/goto
@@ -1735,20 +1735,20 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::GOTO:
+			case Token::TTAG_GOTO:
 			{
 				if (state.solution.size() != 1) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
 					return SOLVE_ERROR;
 				}
 				Token& label_name = state.solution.back();
-				if (label_name.tag != Token::STRING) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::STRING), tag_name(label_name.tag));
+				if (label_name.tag != Token::TTAG_STRING) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_STRING), tag_name(label_name.tag));
 					return SOLVE_ERROR;
 				}
-				const LABEL_TABLE_TYPE::iterator& label_num = state.program->labels.find(label_name.u_string->string_get());
+				const LABEL_TABLE_TYPE::iterator& label_num = state.program->labels.find(label_name.val_string->string_get());
 				if (label_num == state.program->labels.end()) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[12], tag_name(Token::LABEL), label_name.u_string->string_get());
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[12], tag_name(Token::TTAG_LABEL), label_name.val_string->string_get());
 					return SOLVE_ERROR;
 				}
 				state.program_counter = label_num->second;
@@ -1757,31 +1757,31 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 			}
 			break;
 
-			case Token::JUMP:
-				state.program_counter = token.u_int;
+			case Token::TTAG_JUMP:
+				state.program_counter = token.val_int;
 				state.solution.clear();
 				state.lastSequence = -1;
 				break;
 
-			case Token::JUMP_ON_FALSE:
-			case Token::JUMP_ON_NOT_FALSE:
+			case Token::TTAG_JUMP_ON_FALSE:
+			case Token::TTAG_JUMP_ON_NOT_FALSE:
 			{
 				if (state.solution.size() != 1) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
 					return SOLVE_ERROR;
 				}
 				Token& condition = state.solution.back();
-				if (condition.as_bool() == (token.tag == Token::JUMP_ON_NOT_FALSE))
-					state.program_counter = token.u_int;
+				if (condition.as_bool() == (token.tag == Token::TTAG_JUMP_ON_NOT_FALSE))
+					state.program_counter = token.val_int;
 				state.solution.clear();
 				state.lastSequence = -1;
 			}
 			break;
 
-			case Token::AWAIT:
+			case Token::TTAG_AWAIT:
 				return SOLVE_AWAIT;
 
-			case Token::RETURN:
+			case Token::TTAG_RETURN:
 				goto execution_return;
 
 			default:
@@ -1931,16 +1931,16 @@ void builtinError_(const char* filename, const char* builtin_name, const char* f
 
 BUILTIN_DEFINE(import)
 {
-	if (arguments.size() != 1 || arguments[0].tag != Token::STRING)
+	if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
 	{
-		builtinError("import", "Argument must be a single '%s'.", tag_name(Token::STRING));
+		builtinError("import", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
 		return SOLVE_ERROR;
 	}
 
 	std::filesystem::path file_path															// Resulting path.
 		= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
 			.remove_filename()																// Remove file to get containing folder.
-			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
+			/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.
 
 	SOLVE_RESULT solve = script_import(file_path.string().c_str());
@@ -1955,16 +1955,16 @@ BUILTIN_DEFINE(import)
 
 BUILTIN_DEFINE(load)
 {
-	if (arguments.size() != 1 || arguments[0].tag != Token::STRING)
+	if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
 	{
-		builtinError("load", "Argument must be a single '%s'.", tag_name(Token::STRING));
+		builtinError("load", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
 		return SOLVE_ERROR;
 	}
 
 	std::filesystem::path file_path															// Resulting path.
 		= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
 			.remove_filename()																// Remove file to get containing folder.
-			/ arguments[0].u_string->string_get())											// Concatenate requested resource relative to caller.
+			/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.
 
 	Function_tL* func = script_load(file_path.string().c_str());
@@ -2008,25 +2008,25 @@ BUILTIN_DEFINE(print)
 
 BUILTIN_DEFINE(max)
 {
-	if (arguments.size() != 1 || arguments[0].tag != Token::ARRAY || arguments[0].u_array->array.empty())
+	if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_ARRAY || arguments[0].val_array->array.empty())
 	{
-		builtinError("max", "Argument must be a single non-empty '%s'.", tag_name(Token::ARRAY));
+		builtinError("max", "Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
 		return SOLVE_ERROR;
 	}
 
 	if (std::find_if(
-		arguments[0].u_array->array.begin(),
-		arguments[0].u_array->array.end(),
-		[](const Token& element) { return element.tag != Token::INT && element.tag != Token::FLOAT; }) ==
-		arguments[0].u_array->array.end())
+		arguments[0].val_array->array.begin(),
+		arguments[0].val_array->array.end(),
+		[](const Token& element) { return element.tag != Token::TTAG_INT && element.tag != Token::TTAG_FLOAT; }) ==
+		arguments[0].val_array->array.end())
 	{
 		solution.push_back(
 			std::move(
 				*std::max_element(
-					arguments[0].u_array->array.begin(),
-					arguments[0].u_array->array.end(),
+					arguments[0].val_array->array.begin(),
+					arguments[0].val_array->array.end(),
 					[](const Token& left, const Token& right) {
-						return ((left.tag == Token::INT) ? left.u_int : left.u_float) < ((right.tag == Token::INT) ? right.u_int : right.u_float);
+						return ((left.tag == Token::TTAG_INT) ? left.val_int : left.val_float) < ((right.tag == Token::TTAG_INT) ? right.val_int : right.val_float);
 					}
 				)
 			)
@@ -2035,7 +2035,7 @@ BUILTIN_DEFINE(max)
 		return SOLVE_OK;
 	}
 
-	builtinError("max", "'%s' must contain only '%s' and '%s'.", tag_name(Token::ARRAY), tag_name(Token::INT), tag_name(Token::FLOAT));
+	builtinError("max", "'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
 	return SOLVE_ERROR;
 }
 
