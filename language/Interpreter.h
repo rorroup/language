@@ -109,7 +109,14 @@ public:
 struct Array_tL;
 struct Function_tL;
 struct Thread_tL;
-typedef SOLVE_RESULT Builtin_tL(std::vector<Token>&, std::vector<Token>&, Thread_tL*);
+
+#ifndef LANGUAGE_SOLVER_SIGNATURE
+#define LANGUAGE_SOLVER_SIGNATURE
+#endif // !LANGUAGE_SOLVER_SIGNATURE
+#ifndef LANGUAGE_SOLVER_ARGUMENTS
+#define LANGUAGE_SOLVER_ARGUMENTS
+#endif // !LANGUAGE_SOLVER_ARGUMENTS
+typedef SOLVE_RESULT Builtin_tL(std::vector<Token>&, std::vector<Token>&, Thread_tL* LANGUAGE_SOLVER_SIGNATURE);
 
 struct Token
 {
@@ -494,10 +501,10 @@ enum PARSE_FLAG : unsigned short
 const RegisteredSequence* tag_id(const tok_tag tag);
 const char* tag_name(tok_tag tag);
 const char* variable_name(int_tL id);
-SOLVE_RESULT script_run(Thread_tL& thread);
+SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE);
 Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
 Function_tL* script_load(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-SOLVE_RESULT script_import(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
 void script_unload(const char* filename);
 
 int_tL LANGUAGE_initialize();
@@ -852,7 +859,7 @@ VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state)
 
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
-SOLVE_RESULT script_run(Thread_tL& thread)
+SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE)
 {
 	while (!thread.executing.empty()) {
 		Execution_tL& state = thread.executing.back();
@@ -1694,7 +1701,7 @@ SOLVE_RESULT script_run(Thread_tL& thread)
 #ifdef FUNCTION_RETURN_SINGLE
 					size_t stack_size = state.solution.size();
 #endif // FUNCTION_RETURN_SINGLE
-					SOLVE_RESULT answer = builtin(arguments, state.solution, &thread);
+					SOLVE_RESULT answer = builtin(arguments, state.solution, &thread LANGUAGE_SOLVER_ARGUMENTS);
 #ifdef FUNCTION_RETURN_SINGLE
 					if (answer == SOLVE_ERROR) return answer;
 					if (state.solution.size() == stack_size) {
@@ -1875,7 +1882,7 @@ Function_tL* script_load(const char* filename, unsigned short flags)
 	return nullptr;
 }
 
-SOLVE_RESULT script_import(const char* filename, unsigned short flags)
+SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags)
 {
 	Function_tL* loaded_file = script_load(filename, flags);
 
@@ -1883,7 +1890,7 @@ SOLVE_RESULT script_import(const char* filename, unsigned short flags)
 	{
 		Thread_tL thread{ { Execution_tL(loaded_file) } };
 
-		return script_run(thread);
+		return script_run(thread LANGUAGE_SOLVER_ARGUMENTS);
 	}
 
 	return SOLVE_ERROR;
@@ -1926,7 +1933,7 @@ void builtinError_(const char* filename, const char* builtin_name, const char* f
 // https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
 #define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
 
-#define BUILTIN_DEFINE(name) SOLVE_RESULT name(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread)
+#define BUILTIN_DEFINE(name) SOLVE_RESULT name(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread LANGUAGE_SOLVER_SIGNATURE)
 #define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ NAME_TABLE_id(#name), Token(name) })
 
 BUILTIN_DEFINE(import)
@@ -1943,7 +1950,7 @@ BUILTIN_DEFINE(import)
 			/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
 		.lexically_normal();																// Resolve directory parenting.
 
-	SOLVE_RESULT solve = script_import(file_path.string().c_str());
+	SOLVE_RESULT solve = script_import(file_path.string().c_str() LANGUAGE_SOLVER_ARGUMENTS);
 
 	if (solve == SOLVE_ERROR)
 		builtinError("import", "Failed to import file '%s'.", file_path.string().c_str());
