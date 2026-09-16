@@ -11,10 +11,12 @@
 
 #define FUNCTION_RETURN_SINGLE
 
-// https://en.cppreference.com/w/cpp/container/unordered_map/unordered_map
-struct s_cstring_hash
+namespace Language
 {
-	// https://stackoverflow.com/questions/34597260/stdhash-value-on-char-value-and-not-on-memory-address
+	// https://en.cppreference.com/w/cpp/container/unordered_map/unordered_map
+	struct s_cstring_hash
+	{
+		// https://stackoverflow.com/questions/34597260/stdhash-value-on-char-value-and-not-on-memory-address
 #if SIZE_MAX >= ULLONG_MAX
 #define FNV_offset_basis UINT64_C(14695981039346656037)
 #define FNV_prime UINT64_C(1099511628211)
@@ -22,93 +24,93 @@ struct s_cstring_hash
 #define FNV_offset_basis UINT32_C(2166136261)
 #define FNV_prime UINT32_C(16777619)
 #endif // SIZE_MAX >= ULLONG_MAX
-	std::size_t operator()(const char* s) const
-	{
-		size_t hash = FNV_offset_basis;
-		while (*s != '\0') {
-			hash = (hash ^ *s) * FNV_prime;
-			s++;
+		std::size_t operator()(const char* s) const
+		{
+			size_t hash = FNV_offset_basis;
+			while (*s != '\0') {
+				hash = (hash ^ *s) * FNV_prime;
+				s++;
+			}
+			return hash;
 		}
-		return hash;
-	}
-};
+	};
 
-struct s_cstring_equal
-{
-	bool operator()(const char* lhs, const char* rhs) const
+	struct s_cstring_equal
 	{
-		return lhs != nullptr && rhs != nullptr && strlen(lhs) == strlen(rhs) && strcmp(lhs, rhs) == 0;
-	}
-};
+		bool operator()(const char* lhs, const char* rhs) const
+		{
+			return lhs != nullptr && rhs != nullptr && strlen(lhs) == strlen(rhs) && strcmp(lhs, rhs) == 0;
+		}
+	};
 
 #define umap_cstring_key(V) std::unordered_map<const char*, V, s_cstring_hash, s_cstring_equal>
 
-typedef char tok_tag;
-struct Token;
-enum SOLVE_RESULT : char
-{
-	SOLVE_AWAIT = -1,
-	SOLVE_ERROR = 0,
-	SOLVE_OK = 1,
-};
+	typedef char tok_tag;
+	struct Token;
+	enum SOLVE_RESULT : char
+	{
+		SOLVE_AWAIT = -1,
+		SOLVE_ERROR = 0,
+		SOLVE_OK = 1,
+	};
 
-typedef intptr_t int_tL;
+	typedef intptr_t int_tL;
 #ifdef PTR64
 #define LANGUAGE_INT(x) INT64_C(x)
 #define fINT_TL PRId64
-typedef double float_tL;
+	typedef double float_tL;
 #define LANGUAGE_FLOAT(x) (x)
 #else
 #define LANGUAGE_INT(x) INT32_C(x)
 #define fINT_TL PRId32
-typedef float float_tL;
+	typedef float float_tL;
 #define LANGUAGE_FLOAT(x) (x ##f)
 #endif // PTR64
 
 #define LANGUAGE_ZERO_INT LANGUAGE_INT(0)
 #define LANGUAGE_FALSE_INT LANGUAGE_ZERO_INT
-constexpr int_tL LANGUAGE_TRUE_INT = (int_tL)(!LANGUAGE_FALSE_INT);
+	constexpr int_tL LANGUAGE_TRUE_INT = (int_tL)(!LANGUAGE_FALSE_INT);
 
-constexpr float_tL LANGUAGE_ZERO_FLOAT = (float_tL)(LANGUAGE_ZERO_INT);
+	constexpr float_tL LANGUAGE_ZERO_FLOAT = (float_tL)(LANGUAGE_ZERO_INT);
 #define LANGUAGE_FALSE_FLOAT LANGUAGE_ZERO_FLOAT
-constexpr float_tL LANGUAGE_TRUE_FLOAT = (float_tL)(!LANGUAGE_FALSE_FLOAT);
+	constexpr float_tL LANGUAGE_TRUE_FLOAT = (float_tL)(!LANGUAGE_FALSE_FLOAT);
 
-typedef unsigned short owners_t;
+	typedef unsigned short owners_t;
 
-struct String_tL
-{
-	/*
-	* Variable size struct to store a determined size char array.
-	* https://www.geeksforgeeks.org/cpp/overloading-new-delete-operator-c/
-	* WARNING: ALWAYS INITIALIZE OBJECTS INDIVIDUALLY.
-	*/
-public:
-	owners_t owned : 1;
-	owners_t owners : 8 * sizeof(owners_t) - 1;
-	char string[sizeof(char*)];
+	struct String_tL
+	{
+		/*
+		* Variable size struct to store a determined size char array.
+		* https://www.geeksforgeeks.org/cpp/overloading-new-delete-operator-c/
+		* WARNING: ALWAYS INITIALIZE OBJECTS INDIVIDUALLY.
+		*/
+	public:
+		owners_t owned : 1;
+		owners_t owners : 8 * sizeof(owners_t) - 1;
+		char string[sizeof(char*)];
 
-	char* string_get() { return owned ? string : *(char**)string; }
-	
-	String_tL(const char* source)													{ owned = 0; owners = 0; *(const char**)string = source; }
-	String_tL(const char* source, size_t length)									{ owned = 1; owners = 0; std::memcpy(string, source, length + 1); }
-	String_tL(const char* left, size_t lengthL,	const char* right, size_t lengthR)	{ owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%s", left, right); }
-	String_tL(const char* left, size_t lengthL,	int_tL right, size_t lengthR)		{ owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%" fINT_TL, left, right); }
-	String_tL(int_tL left, size_t lengthL,		const char* right, size_t lengthR)	{ owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%" fINT_TL "%s", left, right); }
-	String_tL(const char* left, size_t lengthL,	float_tL right, size_t lengthR)		{ owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%f", left, right); }
-	String_tL(float_tL left, size_t lengthL,	const char* right, size_t lengthR)	{ owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%f%s", left, right); }
+		char* string_get() { return owned ? string : *(char**)string; }
 
-	void* operator new(size_t size, size_t length) { return ::operator new(sizeof(owners_t) + length + 1); }
-	void operator delete(void* p, size_t length) { ::operator delete(p); }
-	void operator delete(void* p) { ::operator delete(p); }
+		String_tL(const char* source) { owned = 0; owners = 0; *(const char**)string = source; }
+		String_tL(const char* source, size_t length) { owned = 1; owners = 0; std::memcpy(string, source, length + 1); }
+		String_tL(const char* left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%s", left, right); }
+		String_tL(const char* left, size_t lengthL, int_tL right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%" fINT_TL, left, right); }
+		String_tL(int_tL left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%" fINT_TL "%s", left, right); }
+		String_tL(const char* left, size_t lengthL, float_tL right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%f", left, right); }
+		String_tL(float_tL left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%f%s", left, right); }
+
+		void* operator new(size_t size, size_t length) { return ::operator new(sizeof(owners_t) + length + 1); }
+		void operator delete(void* p, size_t length) { ::operator delete(p); }
+		void operator delete(void* p) { ::operator delete(p); }
 
 #define String_tL_external(source) ::new String_tL(source)
-	static String_tL* init(const char* source, size_t length) { return new(length) String_tL(source, length); }
+		static String_tL* init(const char* source, size_t length) { return new(length) String_tL(source, length); }
 #define String_tL_init(argL, lenL, argR, lenR) (new((lenL) + (lenR)) String_tL((argL), (lenL), (argR), (lenR)))
-};
+	};
 
-struct Array_tL;
-struct Function_tL;
-struct Thread_tL;
+	struct Array_tL;
+	struct Function_tL;
+	struct Thread_tL;
 
 #ifndef LANGUAGE_SOLVER_SIGNATURE
 #define LANGUAGE_SOLVER_SIGNATURE
@@ -116,16 +118,16 @@ struct Thread_tL;
 #ifndef LANGUAGE_SOLVER_ARGUMENTS
 #define LANGUAGE_SOLVER_ARGUMENTS
 #endif // !LANGUAGE_SOLVER_ARGUMENTS
-typedef SOLVE_RESULT Builtin_tL(std::vector<Token>&, std::vector<Token>&, Thread_tL* LANGUAGE_SOLVER_SIGNATURE);
+	typedef SOLVE_RESULT Builtin_tL(std::vector<Token>&, std::vector<Token>&, Thread_tL* LANGUAGE_SOLVER_SIGNATURE);
 
-struct Token
-{
-public:
-	enum : tok_tag
+	struct Token
 	{
-		TTAG_BEGIN = 0,
-		TTAG_INNER_BEGIN = TTAG_BEGIN,
-		TTAG_VALUE_BEGIN = TTAG_INNER_BEGIN,
+	public:
+		enum : tok_tag
+		{
+			TTAG_BEGIN = 0,
+			TTAG_INNER_BEGIN = TTAG_BEGIN,
+			TTAG_VALUE_BEGIN = TTAG_INNER_BEGIN,
 
 			// VALUES.
 			TTAG_NONE = TTAG_VALUE_BEGIN,			// 
@@ -136,7 +138,7 @@ public:
 			TTAG_FUNCTION,					// User-defined function.
 			TTAG_BUILTIN,					// C++ function.
 
-		TTAG_VALUE_END,
+			TTAG_VALUE_END,
 
 			// VARIABLES.
 			TTAG_VARIABLE = TTAG_VALUE_END,		// 
@@ -154,8 +156,8 @@ public:
 			TTAG_JUMP_ON_FALSE,				// 
 			TTAG_JUMP_ON_NOT_FALSE,			// 
 
-		TTAG_INNER_END,
-		TTAG_KEYWORD_BEGIN = TTAG_INNER_END,
+			TTAG_INNER_END,
+			TTAG_KEYWORD_BEGIN = TTAG_INNER_END,
 
 			// KEYWORDS.
 			TTAG_IF = TTAG_KEYWORD_BEGIN,			// if
@@ -177,9 +179,9 @@ public:
 			TTAG_FALSE,						// false
 			TTAG_TRUE,						// true
 
-		TTAG_KEYWORD_END,
-		TTAG_SYMBOL_BEGIN = TTAG_KEYWORD_END,
-		TTAG_DELIMITER_BEGIN = TTAG_SYMBOL_BEGIN,
+			TTAG_KEYWORD_END,
+			TTAG_SYMBOL_BEGIN = TTAG_KEYWORD_END,
+			TTAG_DELIMITER_BEGIN = TTAG_SYMBOL_BEGIN,
 
 			// DELIMITERS.
 			TTAG_SEMICOLON = TTAG_DELIMITER_BEGIN,// ;
@@ -192,9 +194,9 @@ public:
 			TTAG_BRACE_OPEN,					// {
 			TTAG_BRACE_CLOSE,				// }
 
-		TTAG_DELIMITER_END,
-		TTAG_OPERATOR_BEGIN = TTAG_DELIMITER_END,
-		TTAG_UNARY_BEGIN = TTAG_OPERATOR_BEGIN,
+			TTAG_DELIMITER_END,
+			TTAG_OPERATOR_BEGIN = TTAG_DELIMITER_END,
+			TTAG_UNARY_BEGIN = TTAG_OPERATOR_BEGIN,
 
 			// OPERATORS.
 			TTAG_UNARY_FLIP = TTAG_UNARY_BEGIN,	// ~
@@ -202,8 +204,8 @@ public:
 			TTAG_UNARY_POSITIVE,				// +
 			TTAG_UNARY_NEGATIVE,				// -
 
-		TTAG_UNARY_END,
-		TTAG_BINARY_BEGIN = TTAG_UNARY_END,
+			TTAG_UNARY_END,
+			TTAG_BINARY_BEGIN = TTAG_UNARY_END,
 
 			TTAG_BINARY_ADD = TTAG_BINARY_BEGIN,	// +
 			TTAG_BINARY_SUBSTRACT,			// -
@@ -231,246 +233,246 @@ public:
 
 			// TODO: Compound Assignment.
 
-		TTAG_BINARY_END,
+			TTAG_BINARY_END,
 
 			// TODO: TERNARY ?
 
-		TTAG_OPERATOR_END = TTAG_BINARY_END,
-		TTAG_SYMBOL_END = TTAG_OPERATOR_END,
-		TTAG_END = TTAG_SYMBOL_END
+			TTAG_OPERATOR_END = TTAG_BINARY_END,
+			TTAG_SYMBOL_END = TTAG_OPERATOR_END,
+			TTAG_END = TTAG_SYMBOL_END
+		};
+
+	public:
+		union // https://en.cppreference.com/w/cpp/language/union
+		{
+			int_tL			val_int;
+			float_tL		val_float;
+			String_tL* val_string;
+			Array_tL* val_array;
+			Function_tL* val_function;
+			Builtin_tL* val_builtin;
+			char* val_identifier;
+		};
+		lin_num line;
+		col_num column;
+		tok_tag tag;
+
+		// Constructors.
+		Token();
+		Token(lin_num l, col_num c, int_tL			val);
+		Token(lin_num l, col_num c, float_tL		val);
+		Token(lin_num l, col_num c, String_tL* val);
+		Token(lin_num l, col_num c, Array_tL* val);
+		Token(lin_num l, col_num c, Function_tL* val);
+		Token(Builtin_tL* val);
+		Token(lin_num l, col_num c, char* val);
+		Token(lin_num l, col_num c, tok_tag t, int_tL			val);
+
+		// https://en.cppreference.com/w/cpp/language/rule_of_three.html
+		Token(const Token& token);					// Copy constructor.
+		Token(Token&& token) noexcept;				// Move constructor.
+		Token& operator=(const Token& token);		// Copy Assignment.
+		Token& operator=(Token&& token) noexcept;	// Move Assignment.
+
+		// Destructor.
+		~Token();
+
+	public:
+		bool as_bool() const;
+		void print() const;
+
+		void info() const;
 	};
 
-public:
-	union // https://en.cppreference.com/w/cpp/language/union
+	struct Array_tL
 	{
-		int_tL			val_int;
-		float_tL		val_float;
-		String_tL*		val_string;
-		Array_tL*		val_array;
-		Function_tL*	val_function;
-		Builtin_tL*		val_builtin;
-		char*			val_identifier;
+	public:
+		std::vector<Token> array;
+		unsigned short owners{ 0 };
 	};
-	lin_num line;
-	col_num column;
-	tok_tag tag;
 
-	// Constructors.
-	Token();
-	Token(lin_num l, col_num c,				int_tL			val);
-	Token(lin_num l, col_num c,				float_tL		val);
-	Token(lin_num l, col_num c,				String_tL*		val);
-	Token(lin_num l, col_num c,				Array_tL*		val);
-	Token(lin_num l, col_num c,				Function_tL*	val);
-	Token(									Builtin_tL*		val);
-	Token(lin_num l, col_num c,				char*			val);
-	Token(lin_num l, col_num c, tok_tag t,	int_tL			val);
+	typedef umap_cstring_key(const int_tL) NAME_TABLE_TYPE;
+	typedef std::unordered_map<int_tL, Token> VALUE_TABLE_TYPE;
 
-	// https://en.cppreference.com/w/cpp/language/rule_of_three.html
-	Token(const Token& token);					// Copy constructor.
-	Token(Token&& token) noexcept;				// Move constructor.
-	Token& operator=(const Token& token);		// Copy Assignment.
-	Token& operator=(Token&& token) noexcept;	// Move Assignment.
+	extern NAME_TABLE_TYPE NAME_TABLE;
+	extern VALUE_TABLE_TYPE VALUE_TABLE;
 
-	// Destructor.
-	~Token();
+	typedef umap_cstring_key(const size_t) LABEL_TABLE_TYPE;
+	struct SourceFile;
 
-public:
-	bool as_bool() const;
-	void print() const;
-
-	void info() const;
-};
-
-struct Array_tL
-{
-public:
-	std::vector<Token> array;
-	unsigned short owners{ 0 };
-};
-
-typedef umap_cstring_key(const int_tL) NAME_TABLE_TYPE;
-typedef std::unordered_map<int_tL, Token> VALUE_TABLE_TYPE;
-
-extern NAME_TABLE_TYPE NAME_TABLE;
-extern VALUE_TABLE_TYPE VALUE_TABLE;
-
-typedef umap_cstring_key(const size_t) LABEL_TABLE_TYPE;
-struct SourceFile;
-
-struct Program_tL
-{
-public:
-	std::vector<Token> instructions;
-	LABEL_TABLE_TYPE labels;
-
-	Program_tL() {}
-	~Program_tL() {
-		instructions.~vector();
-		for (auto& label : labels) delete[] label.first;
-		labels.clear();
-	}
-};
-
-struct Function_tL
-{
-	SourceFile* source{ nullptr };
-	char* name{ nullptr };
-	std::vector<int_tL> arg_id;
-	std::shared_ptr<Program_tL> program{ nullptr };
-	int_tL variable_id{ 0 };
-	bool loaded{ true };
-	bool global{ false };
-
-	void unload()
+	struct Program_tL
 	{
-		if (!loaded) return;
-		
-		loaded = false;
-		arg_id.clear();
-		program = nullptr;
-	}
+	public:
+		std::vector<Token> instructions;
+		LABEL_TABLE_TYPE labels;
 
-	~Function_tL()
-	{
-		unload();
-		if (name) delete[] name;
-		arg_id.~vector();
-	}
-};
-
-struct SourceFile
-{
-public:
-	std::string name;
-	std::unordered_map<std::string, Function_tL> functions;
-
-	void unload()
-	{
-		for (auto& function : functions)
-			function.second.unload();
-	}
-};
-
-struct Execution_tL;
-
-Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state);
-Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state);
-VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution_tL& state);
-VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state);
-
-struct Execution_tL
-{
-public:
-	VALUE_TABLE_TYPE LOCALS;
-	std::vector<Token> solution;
-	std::shared_ptr<Program_tL> program{ nullptr };
-	std::string name_file;
-	std::string name_function;
-	bool global{ false };
-	Token* (*GET_VARIABLE_VALUE_)(Token& variable, Execution_tL& state);
-	VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution_tL& state);
-	size_t program_counter;
-	size_t lastSequence;
-
-	Execution_tL(Function_tL* _function)
-	{
-		program = _function->program;
-		name_file = _function->source->name;
-		name_function = _function->name ? _function->name : "<anonymous>";
-		global = _function->global;
-		if (global) {
-			GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE_GLOBAL;
-			GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE_GLOBAL;
+		Program_tL() {}
+		~Program_tL() {
+			instructions.~vector();
+			for (auto& label : labels) delete[] label.first;
+			labels.clear();
 		}
-		else {
-			GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE;
-			GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE;
+	};
+
+	struct Function_tL
+	{
+		SourceFile* source{ nullptr };
+		char* name{ nullptr };
+		std::vector<int_tL> arg_id;
+		std::shared_ptr<Program_tL> program{ nullptr };
+		int_tL variable_id{ 0 };
+		bool loaded{ true };
+		bool global{ false };
+
+		void unload()
+		{
+			if (!loaded) return;
+
+			loaded = false;
+			arg_id.clear();
+			program = nullptr;
 		}
-		program_counter = 0;
-		lastSequence = -1;
-	}
-	Execution_tL(const Execution_tL& other)
+
+		~Function_tL()
+		{
+			unload();
+			if (name) delete[] name;
+			arg_id.~vector();
+		}
+	};
+
+	struct SourceFile
 	{
-		*this = other;
-	}
-	Execution_tL(Execution_tL&& other) noexcept
+	public:
+		std::string name;
+		std::unordered_map<std::string, Function_tL> functions;
+
+		void unload()
+		{
+			for (auto& function : functions)
+				function.second.unload();
+		}
+	};
+
+	struct Execution_tL;
+
+	Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state);
+	Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state);
+	VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution_tL& state);
+	VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state);
+
+	struct Execution_tL
 	{
-		*this = std::move(other);
-	}
-	Execution_tL& operator=(const Execution_tL& other)
-	{
-		if (this != &other) {
-			program = other.program;
-			name_file = other.name_file;
-			name_function = other.name_function;
+	public:
+		VALUE_TABLE_TYPE LOCALS;
+		std::vector<Token> solution;
+		std::shared_ptr<Program_tL> program{ nullptr };
+		std::string name_file;
+		std::string name_function;
+		bool global{ false };
+		Token* (*GET_VARIABLE_VALUE_)(Token& variable, Execution_tL& state);
+		VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution_tL& state);
+		size_t program_counter;
+		size_t lastSequence;
+
+		Execution_tL(Function_tL* _function)
+		{
+			program = _function->program;
+			name_file = _function->source->name;
+			name_function = _function->name ? _function->name : "<anonymous>";
+			global = _function->global;
+			if (global) {
+				GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE_GLOBAL;
+				GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE_GLOBAL;
+			}
+			else {
+				GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE;
+				GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE;
+			}
+			program_counter = 0;
+			lastSequence = -1;
+		}
+		Execution_tL(const Execution_tL& other)
+		{
+			*this = other;
+		}
+		Execution_tL(Execution_tL&& other) noexcept
+		{
+			*this = std::move(other);
+		}
+		Execution_tL& operator=(const Execution_tL& other)
+		{
+			if (this != &other) {
+				program = other.program;
+				name_file = other.name_file;
+				name_function = other.name_function;
+				global = other.global;
+				if (!global) LOCALS = other.LOCALS;
+				solution = other.solution;
+				GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+				GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+				program_counter = other.program_counter;
+				lastSequence = other.lastSequence;
+			}
+			return *this;
+		}
+		Execution_tL& operator=(Execution_tL&& other) noexcept
+		{
+			program.swap(other.program);
+			name_file.swap(other.name_file);
+			name_function.swap(other.name_function);
 			global = other.global;
-			if (!global) LOCALS = other.LOCALS;
-			solution = other.solution;
+			if (!global) LOCALS = std::move(other.LOCALS);
+			solution = std::move(other.solution);
 			GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
 			GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
 			program_counter = other.program_counter;
 			lastSequence = other.lastSequence;
+			return *this;
 		}
-		return *this;
-	}
-	Execution_tL& operator=(Execution_tL&& other) noexcept
+	};
+
+	struct Thread_tL
 	{
-		program.swap(other.program);
-		name_file.swap(other.name_file);
-		name_function.swap(other.name_function);
-		global = other.global;
-		if (!global) LOCALS = std::move(other.LOCALS);
-		solution = std::move(other.solution);
-		GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
-		GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
-		program_counter = other.program_counter;
-		lastSequence = other.lastSequence;
-		return *this;
-	}
-};
-
-struct Thread_tL
-{
-	std::vector<Execution_tL> executing;
+		std::vector<Execution_tL> executing;
 #ifdef LANGUAGE_THREAD_PARAMETERS
-	LANGUAGE_THREAD_PARAMETERS
+		LANGUAGE_THREAD_PARAMETERS
 #endif // LANGUAGE_THREAD_PARAMETERS
-};
+	};
 
-typedef std::unordered_map<std::string, SourceFile> LOADED_SOURCEFILE_TYPE;
+	typedef std::unordered_map<std::string, SourceFile> LOADED_SOURCEFILE_TYPE;
 
-extern LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
+	extern LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
 
-struct RegisteredSequence
-{
-	const char* sequence;
-	const char* name;
-	const tok_tag tag;
-	const int_tL value;
-};
+	struct RegisteredSequence
+	{
+		const char* sequence;
+		const char* name;
+		const tok_tag tag;
+		const int_tL value;
+	};
 
-// https://learn.microsoft.com/en-us/cpp/c-language/precedence-and-order-of-evaluation?view=msvc-170
-enum OPERATOR_PRECEDENCE : int_tL
-{
-	PRECEDENCE_INVALID = -100,
-	PRECEDENCE_SEQUENCE = 0,
-	PRECEDENCE_ASSIGNMENT,
-	PRECEDENCE_TERNARY,
-	PRECEDENCE_OR,
-	PRECEDENCE_AND,
-	PRECEDENCE_BITWISE_OR,
-	PRECEDENCE_BITWISE_XOR,
-	PRECEDENCE_BITWISE_AND,
-	PRECEDENCE_EQUALITY,
-	PRECEDENCE_RELATIONAL,
-	PRECEDENCE_SHIFT,
-	PRECEDENCE_ADDITIVE,
-	PRECEDENCE_MULTIPLICATIVE,
-	//PRECEDENCE_TYPECAST,
-	PRECEDENCE_UNARY,
-	PRECEDENCE_EXPRESSION,
-};
+	// https://learn.microsoft.com/en-us/cpp/c-language/precedence-and-order-of-evaluation?view=msvc-170
+	enum OPERATOR_PRECEDENCE : int_tL
+	{
+		PRECEDENCE_INVALID = -100,
+		PRECEDENCE_SEQUENCE = 0,
+		PRECEDENCE_ASSIGNMENT,
+		PRECEDENCE_TERNARY,
+		PRECEDENCE_OR,
+		PRECEDENCE_AND,
+		PRECEDENCE_BITWISE_OR,
+		PRECEDENCE_BITWISE_XOR,
+		PRECEDENCE_BITWISE_AND,
+		PRECEDENCE_EQUALITY,
+		PRECEDENCE_RELATIONAL,
+		PRECEDENCE_SHIFT,
+		PRECEDENCE_ADDITIVE,
+		PRECEDENCE_MULTIPLICATIVE,
+		//PRECEDENCE_TYPECAST,
+		PRECEDENCE_UNARY,
+		PRECEDENCE_EXPRESSION,
+	};
 
 #define PRECEDENCE_MIN PRECEDENCE_ASSIGNMENT
 
@@ -478,39 +480,39 @@ enum OPERATOR_PRECEDENCE : int_tL
 #define ASSOCIATIVITY_SET(val) ((val) << ASSOCIATIVITY_SHIFT)
 #define ASSOCIATIVITY_GET(val) ((val) >> ASSOCIATIVITY_SHIFT)
 
-enum OPERATOR_ASSOCIATIVITY : int_tL
-{
-	ASSOCIATIVITY_RIGHT_TO_LEFT = ASSOCIATIVITY_SET(0),
-	ASSOCIATIVITY_LEFT_TO_RIGHT = ASSOCIATIVITY_SET(1),
-};
+	enum OPERATOR_ASSOCIATIVITY : int_tL
+	{
+		ASSOCIATIVITY_RIGHT_TO_LEFT = ASSOCIATIVITY_SET(0),
+		ASSOCIATIVITY_LEFT_TO_RIGHT = ASSOCIATIVITY_SET(1),
+	};
 
 #define PRECEDENCE_MASK 0xFF
 #define OP_PRECEDENCE(val) ((val) & PRECEDENCE_MASK)
 #define OP_ASSOCIATIVITY(val) (ASSOCIATIVITY_GET(val))
 
-extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END];
+	extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END];
 
-enum PARSE_FLAG : unsigned short
-{
-	GLOBAL_FIRST			= 0x0001,
-	GLOBAL_ALL				= 0x0002,
-	ALLOW_FUNCTION_DEF		= 0x0004,
-};
+	enum PARSE_FLAG : unsigned short
+	{
+		GLOBAL_FIRST = 0x0001,
+		GLOBAL_ALL = 0x0002,
+		ALLOW_FUNCTION_DEF = 0x0004,
+	};
 
 #define intlen(n) ((n) == 0 ? 1 : ((n) > 0 ? log10(n) + 1 : log10(-(n)) + 2))
-const RegisteredSequence* tag_id(const tok_tag tag);
-const char* tag_name(tok_tag tag);
-const char* variable_name(int_tL id);
-SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE);
-Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-Function_tL* script_load(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-void script_unload(const char* filename);
+	const RegisteredSequence* tag_id(const tok_tag tag);
+	const char* tag_name(tok_tag tag);
+	const char* variable_name(int_tL id);
+	SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE);
+	Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+	Function_tL* script_load(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+	SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+	void script_unload(const char* filename);
 
-int_tL LANGUAGE_initialize();
-int_tL LANGUAGE_terminate();
-int_tL LANGUAGE_reload();
-
+	int_tL LANGUAGE_initialize();
+	int_tL LANGUAGE_terminate();
+	int_tL LANGUAGE_reload();
+}
 
 #ifdef LANGUAGE_IMPLEMENTATION
 // ================== INTERPRETER.CPP START ==================
@@ -518,168 +520,171 @@ int_tL LANGUAGE_reload();
 #include "Parser.h"
 #include "Lexer.h"
 
-// https://stackoverflow.com/a/22676401
-// https://cplusplus.com/reference/algorithm/find_if/
-// https://stackoverflow.com/a/14595314
-static const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END]
+namespace Language
 {
-#define TOKEN_NAME_TAG(s) nullptr, STRINGIZING(s), Token::s, NULL
+	// https://stackoverflow.com/a/22676401
+	// https://cplusplus.com/reference/algorithm/find_if/
+	// https://stackoverflow.com/a/14595314
+	static const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END]
+	{
+	#define TOKEN_NAME_TAG(s) nullptr, STRINGIZING(s), Token::s, NULL
 
-	// INNER.
+		// INNER.
 
-	{ TOKEN_NAME_TAG(TTAG_NONE) },
-	{ TOKEN_NAME_TAG(TTAG_INT) },
-	{ TOKEN_NAME_TAG(TTAG_FLOAT) },
-	{ TOKEN_NAME_TAG(TTAG_STRING) },
-	{ TOKEN_NAME_TAG(TTAG_ARRAY) },
-	{ TOKEN_NAME_TAG(TTAG_FUNCTION) },
-	{ TOKEN_NAME_TAG(TTAG_BUILTIN) },
+		{ TOKEN_NAME_TAG(TTAG_NONE) },
+		{ TOKEN_NAME_TAG(TTAG_INT) },
+		{ TOKEN_NAME_TAG(TTAG_FLOAT) },
+		{ TOKEN_NAME_TAG(TTAG_STRING) },
+		{ TOKEN_NAME_TAG(TTAG_ARRAY) },
+		{ TOKEN_NAME_TAG(TTAG_FUNCTION) },
+		{ TOKEN_NAME_TAG(TTAG_BUILTIN) },
 
-	{ TOKEN_NAME_TAG(TTAG_VARIABLE) },
-	{ TOKEN_NAME_TAG(TTAG_IDENTIFIER) },
-	{ TOKEN_NAME_TAG(TTAG_REFERENCE) },
+		{ TOKEN_NAME_TAG(TTAG_VARIABLE) },
+		{ TOKEN_NAME_TAG(TTAG_IDENTIFIER) },
+		{ TOKEN_NAME_TAG(TTAG_REFERENCE) },
 
-	{ TOKEN_NAME_TAG(TTAG_SEQUENCE) },
-	{ TOKEN_NAME_TAG(TTAG_INDEX) },
-	{ TOKEN_NAME_TAG(TTAG_ARRAY_INIT) },
-	{ TOKEN_NAME_TAG(TTAG_CALL) },
+		{ TOKEN_NAME_TAG(TTAG_SEQUENCE) },
+		{ TOKEN_NAME_TAG(TTAG_INDEX) },
+		{ TOKEN_NAME_TAG(TTAG_ARRAY_INIT) },
+		{ TOKEN_NAME_TAG(TTAG_CALL) },
 
-	{ TOKEN_NAME_TAG(TTAG_JUMP) },
-	{ TOKEN_NAME_TAG(TTAG_JUMP_ON_FALSE) },
-	{ TOKEN_NAME_TAG(TTAG_JUMP_ON_NOT_FALSE) },
+		{ TOKEN_NAME_TAG(TTAG_JUMP) },
+		{ TOKEN_NAME_TAG(TTAG_JUMP_ON_FALSE) },
+		{ TOKEN_NAME_TAG(TTAG_JUMP_ON_NOT_FALSE) },
 
-#undef TOKEN_NAME_TAG
-#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s, NULL
+	#undef TOKEN_NAME_TAG
+	#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s, NULL
 
-	// KEYWORDS.
+		// KEYWORDS.
 
-	{ "if",			TOKEN_NAME_TAG(TTAG_IF) },
-	{ "else",		TOKEN_NAME_TAG(TTAG_ELSE) },
-	{ "for",		TOKEN_NAME_TAG(TTAG_FOR) },
-	{ "while",		TOKEN_NAME_TAG(TTAG_WHILE) },
-	{ "do",			TOKEN_NAME_TAG(TTAG_DO) },
-	{ "break",		TOKEN_NAME_TAG(TTAG_BREAK) },
-	{ "continue",	TOKEN_NAME_TAG(TTAG_CONTINUE) },
-	//SWITCH,
-	//CASE,
-	//DEFAULT,
-	{ "function",	TOKEN_NAME_TAG(TTAG_FUNCTION_DEF) },
-	{ "return",		TOKEN_NAME_TAG(TTAG_RETURN) },
-	{ "await",		TOKEN_NAME_TAG(TTAG_AWAIT) },
-	{ "label",		TOKEN_NAME_TAG(TTAG_LABEL) },
-	{ "goto",		TOKEN_NAME_TAG(TTAG_GOTO) },
+		{ "if",			TOKEN_NAME_TAG(TTAG_IF) },
+		{ "else",		TOKEN_NAME_TAG(TTAG_ELSE) },
+		{ "for",		TOKEN_NAME_TAG(TTAG_FOR) },
+		{ "while",		TOKEN_NAME_TAG(TTAG_WHILE) },
+		{ "do",			TOKEN_NAME_TAG(TTAG_DO) },
+		{ "break",		TOKEN_NAME_TAG(TTAG_BREAK) },
+		{ "continue",	TOKEN_NAME_TAG(TTAG_CONTINUE) },
+		//SWITCH,
+		//CASE,
+		//DEFAULT,
+		{ "function",	TOKEN_NAME_TAG(TTAG_FUNCTION_DEF) },
+		{ "return",		TOKEN_NAME_TAG(TTAG_RETURN) },
+		{ "await",		TOKEN_NAME_TAG(TTAG_AWAIT) },
+		{ "label",		TOKEN_NAME_TAG(TTAG_LABEL) },
+		{ "goto",		TOKEN_NAME_TAG(TTAG_GOTO) },
 
-	{ "false",		"TTAG_FALSE",	Token::TTAG_INT, LANGUAGE_FALSE_INT },
-	{ "true",		"TTAG_TRUE",		Token::TTAG_INT, LANGUAGE_TRUE_INT },
+		{ "false",		"TTAG_FALSE",	Token::TTAG_INT, LANGUAGE_FALSE_INT },
+		{ "true",		"TTAG_TRUE",		Token::TTAG_INT, LANGUAGE_TRUE_INT },
 
-#undef TOKEN_NAME_TAG
-#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s
+	#undef TOKEN_NAME_TAG
+	#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s
 
-	// SYMBOLS.
+		// SYMBOLS.
 
-	{ "==",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_DOUBLE),	PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "!=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_NOT),		PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "<=",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ">=",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "<<",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_LEFT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ">>",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_RIGHT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "&&",		TOKEN_NAME_TAG(TTAG_BINARY_AND),				PRECEDENCE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "||",		TOKEN_NAME_TAG(TTAG_BINARY_OR),				PRECEDENCE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "&",		TOKEN_NAME_TAG(TTAG_BINARY_AND_BITWISE),		PRECEDENCE_BITWISE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "|",		TOKEN_NAME_TAG(TTAG_BINARY_OR_BITWISE),		PRECEDENCE_BITWISE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "^",		TOKEN_NAME_TAG(TTAG_BINARY_OR_EXCLUSIVE),	PRECEDENCE_BITWISE_XOR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "+",		TOKEN_NAME_TAG(TTAG_BINARY_ADD),				PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "-",		TOKEN_NAME_TAG(TTAG_BINARY_SUBSTRACT),		PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "*",		TOKEN_NAME_TAG(TTAG_BINARY_MULTIPLY),		PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "/",		TOKEN_NAME_TAG(TTAG_BINARY_DIVIDE),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "%",		TOKEN_NAME_TAG(TTAG_BINARY_MODULUS),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "<",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ">",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL),			PRECEDENCE_ASSIGNMENT | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+		{ "==",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_DOUBLE),	PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "!=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_NOT),		PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "<=",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ ">=",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "<<",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_LEFT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ ">>",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_RIGHT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "&&",		TOKEN_NAME_TAG(TTAG_BINARY_AND),				PRECEDENCE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "||",		TOKEN_NAME_TAG(TTAG_BINARY_OR),				PRECEDENCE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "&",		TOKEN_NAME_TAG(TTAG_BINARY_AND_BITWISE),		PRECEDENCE_BITWISE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "|",		TOKEN_NAME_TAG(TTAG_BINARY_OR_BITWISE),		PRECEDENCE_BITWISE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "^",		TOKEN_NAME_TAG(TTAG_BINARY_OR_EXCLUSIVE),	PRECEDENCE_BITWISE_XOR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "+",		TOKEN_NAME_TAG(TTAG_BINARY_ADD),				PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "-",		TOKEN_NAME_TAG(TTAG_BINARY_SUBSTRACT),		PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "*",		TOKEN_NAME_TAG(TTAG_BINARY_MULTIPLY),		PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "/",		TOKEN_NAME_TAG(TTAG_BINARY_DIVIDE),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "%",		TOKEN_NAME_TAG(TTAG_BINARY_MODULUS),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "<",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ ">",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL),			PRECEDENCE_ASSIGNMENT | ASSOCIATIVITY_RIGHT_TO_LEFT	},
 
-	{ "~",		TOKEN_NAME_TAG(TTAG_UNARY_FLIP),				PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "!",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATION),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "+",		TOKEN_NAME_TAG(TTAG_UNARY_POSITIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "-",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+		{ "~",		TOKEN_NAME_TAG(TTAG_UNARY_FLIP),				PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+		{ "!",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATION),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+		{ "+",		TOKEN_NAME_TAG(TTAG_UNARY_POSITIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+		{ "-",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
 
-	{ ";",		TOKEN_NAME_TAG(TTAG_SEMICOLON),				PRECEDENCE_INVALID											},
-	{ ",",		TOKEN_NAME_TAG(TTAG_COMMA),					PRECEDENCE_SEQUENCE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ":",		TOKEN_NAME_TAG(TTAG_COLON),					PRECEDENCE_TERNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-	{ "(",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_OPEN),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ ")",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_CLOSE),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "[",		TOKEN_NAME_TAG(TTAG_BRACKET_OPEN),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "]",		TOKEN_NAME_TAG(TTAG_BRACKET_CLOSE),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-	{ "{",		TOKEN_NAME_TAG(TTAG_BRACE_OPEN),				PRECEDENCE_INVALID											},
-	{ "}",		TOKEN_NAME_TAG(TTAG_BRACE_CLOSE),			PRECEDENCE_INVALID											},
-};
+		{ ";",		TOKEN_NAME_TAG(TTAG_SEMICOLON),				PRECEDENCE_INVALID											},
+		{ ",",		TOKEN_NAME_TAG(TTAG_COMMA),					PRECEDENCE_SEQUENCE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ ":",		TOKEN_NAME_TAG(TTAG_COLON),					PRECEDENCE_TERNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
+		{ "(",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_OPEN),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ ")",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_CLOSE),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "[",		TOKEN_NAME_TAG(TTAG_BRACKET_OPEN),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "]",		TOKEN_NAME_TAG(TTAG_BRACKET_CLOSE),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
+		{ "{",		TOKEN_NAME_TAG(TTAG_BRACE_OPEN),				PRECEDENCE_INVALID											},
+		{ "}",		TOKEN_NAME_TAG(TTAG_BRACE_CLOSE),			PRECEDENCE_INVALID											},
+	};
 
-LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
-NAME_TABLE_TYPE NAME_TABLE;
-VALUE_TABLE_TYPE VALUE_TABLE;
+	LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
+	NAME_TABLE_TYPE NAME_TABLE;
+	VALUE_TABLE_TYPE VALUE_TABLE;
 
-typedef unsigned char ErrMesType;
-enum : ErrMesType
-{
-	Interpreter = 0,
-	MATH_ERROR,
-	VARIABLE_UNINITIALIZED,
-	ARGUMENTS_MISMATCH,
-	TYPE_ERROR,
-	INDEX_ERROR,
-	FUNCTION_ERROR,
-	LABEL_ERROR,
-};
+	typedef unsigned char ErrMesType;
+	enum : ErrMesType
+	{
+		Interpreter = 0,
+		MATH_ERROR,
+		VARIABLE_UNINITIALIZED,
+		ARGUMENTS_MISMATCH,
+		TYPE_ERROR,
+		INDEX_ERROR,
+		FUNCTION_ERROR,
+		LABEL_ERROR,
+	};
 
-static const char* ERROR_MESSAGE_TYPES[]
-{
-	STRINGIZING(Interpreter),
-	STRINGIZING(MATH_ERROR),
-	STRINGIZING(VARIABLE_UNINITIALIZED),
-	STRINGIZING(ARGUMENTS_MISMATCH),
-	STRINGIZING(TYPE_ERROR),
-	STRINGIZING(INDEX_ERROR),
-	STRINGIZING(FUNCTION_ERROR),
-	STRINGIZING(LABEL_ERROR),
-};
+	static const char* ERROR_MESSAGE_TYPES[]
+	{
+		STRINGIZING(Interpreter),
+		STRINGIZING(MATH_ERROR),
+		STRINGIZING(VARIABLE_UNINITIALIZED),
+		STRINGIZING(ARGUMENTS_MISMATCH),
+		STRINGIZING(TYPE_ERROR),
+		STRINGIZING(INDEX_ERROR),
+		STRINGIZING(FUNCTION_ERROR),
+		STRINGIZING(LABEL_ERROR),
+	};
 
-static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
-{
-	{ Interpreter, nullptr },
-	{ MATH_ERROR, "Unable to divide by 'Zero'." },
-	{ VARIABLE_UNINITIALIZED, "Variable '%s' not initialized." },
-	{ ARGUMENTS_MISMATCH, "Operator '%s' expected '%" fINT_TL "' arguments but received '%zu' instead." },
-	{ ARGUMENTS_MISMATCH, "Operator '%s' has no valid matching '%s'." },
-	{ TYPE_ERROR, "Operator '%s' may not operate on '%s' token." },
-	{ TYPE_ERROR, "Operator '%s' may not operate on '%s' and '%s' tokens." },
-	{ TYPE_ERROR, "Operator '%s' expected '%s' token but received '%s' instead." },
-	{ INDEX_ERROR, "Operator '%s' position '%" fINT_TL "' of '%s' is out of bounds." },
-	{ TYPE_ERROR, "An indexed '%s' token may only be assigned a single character '%s'." },
-	{ TYPE_ERROR, "'%s' token is not callable." },
-	{ FUNCTION_ERROR, "Function unloaded." },
-	{ LABEL_ERROR, "'%s %s' is not registered." },
-	{ TYPE_ERROR, "Invalid token '%s' received." },
-	{ ARGUMENTS_MISMATCH, "External '%s' is immutable." },
-};
+	static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+	{
+		{ Interpreter, nullptr },
+		{ MATH_ERROR, "Unable to divide by 'Zero'." },
+		{ VARIABLE_UNINITIALIZED, "Variable '%s' not initialized." },
+		{ ARGUMENTS_MISMATCH, "Operator '%s' expected '%" fINT_TL "' arguments but received '%zu' instead." },
+		{ ARGUMENTS_MISMATCH, "Operator '%s' has no valid matching '%s'." },
+		{ TYPE_ERROR, "Operator '%s' may not operate on '%s' token." },
+		{ TYPE_ERROR, "Operator '%s' may not operate on '%s' and '%s' tokens." },
+		{ TYPE_ERROR, "Operator '%s' expected '%s' token but received '%s' instead." },
+		{ INDEX_ERROR, "Operator '%s' position '%" fINT_TL "' of '%s' is out of bounds." },
+		{ TYPE_ERROR, "An indexed '%s' token may only be assigned a single character '%s'." },
+		{ TYPE_ERROR, "'%s' token is not callable." },
+		{ FUNCTION_ERROR, "Function unloaded." },
+		{ LABEL_ERROR, "'%s %s' is not registered." },
+		{ TYPE_ERROR, "Invalid token '%s' received." },
+		{ ARGUMENTS_MISMATCH, "External '%s' is immutable." },
+	};
 
-void interpreterError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
-{
-	va_list argp;
-	va_start(argp, f);
-	printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
-	va_end(argp);
+	static void interpreterError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+	{
+		va_list argp;
+		va_start(argp, f);
+		printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+		va_end(argp);
+	}
 }
 
-Token::Token() : line(0), column(0), tag(Token::TTAG_NONE), val_int(0) {}
-Token::Token(lin_num l, col_num c, int_tL			val) : line(l), column(c), tag(Token::TTAG_INT), val_int(val) {}
-Token::Token(lin_num l, col_num c, float_tL		val) : line(l), column(c), tag(Token::TTAG_FLOAT), val_float(val) {}
-Token::Token(lin_num l, col_num c, String_tL* val) : line(l), column(c), tag(Token::TTAG_STRING), val_string(val) { val_string->owners++; }
-Token::Token(lin_num l, col_num c, Array_tL* val) : line(l), column(c), tag(Token::TTAG_ARRAY), val_array(val) { val_array->owners++; }
-Token::Token(lin_num l, col_num c, Function_tL* val) : line(l), column(c), tag(Token::TTAG_FUNCTION), val_function(val) {}
-Token::Token(Builtin_tL* val) : line(0), column(0), tag(Token::TTAG_BUILTIN), val_builtin(val) {}
-Token::Token(lin_num l, col_num c, char* val) : line(l), column(c), tag(Token::TTAG_IDENTIFIER), val_identifier(val) {}
-Token::Token(lin_num l, col_num c, tok_tag t, int_tL			val) : line(l), column(c), tag(t), val_int(val) {}
+Language::Token::Token() : line(0), column(0), tag(Token::TTAG_NONE), val_int(0) {}
+Language::Token::Token(lin_num l, col_num c, int_tL			val) : line(l), column(c), tag(Token::TTAG_INT), val_int(val) {}
+Language::Token::Token(lin_num l, col_num c, float_tL		val) : line(l), column(c), tag(Token::TTAG_FLOAT), val_float(val) {}
+Language::Token::Token(lin_num l, col_num c, String_tL* val) : line(l), column(c), tag(Token::TTAG_STRING), val_string(val) { val_string->owners++; }
+Language::Token::Token(lin_num l, col_num c, Array_tL* val) : line(l), column(c), tag(Token::TTAG_ARRAY), val_array(val) { val_array->owners++; }
+Language::Token::Token(lin_num l, col_num c, Function_tL* val) : line(l), column(c), tag(Token::TTAG_FUNCTION), val_function(val) {}
+Language::Token::Token(Builtin_tL* val) : line(0), column(0), tag(Token::TTAG_BUILTIN), val_builtin(val) {}
+Language::Token::Token(lin_num l, col_num c, char* val) : line(l), column(c), tag(Token::TTAG_IDENTIFIER), val_identifier(val) {}
+Language::Token::Token(lin_num l, col_num c, tok_tag t, int_tL			val) : line(l), column(c), tag(t), val_int(val) {}
 
-Token::Token(const Token& token)
+Language::Token::Token(const Token& token)
 {
 	tag = token.tag;
 	switch (tag) {
@@ -695,7 +700,7 @@ Token::Token(const Token& token)
 	column = token.column;
 }
 
-Token::Token(Token&& token) noexcept
+Language::Token::Token(Token&& token) noexcept
 {
 	tag = token.tag;
 	val_int = token.val_int;
@@ -704,12 +709,12 @@ Token::Token(Token&& token) noexcept
 	column = token.column;
 }
 
-Token& Token::operator=(const Token& token)
+Language::Token& Language::Token::operator=(const Token& token)
 {
 	return (this == &token) ? *this : *this = Token(token);
 }
 
-Token& Token::operator=(Token&& token) noexcept
+Language::Token& Language::Token::operator=(Token&& token) noexcept
 {
 	std::swap(tag, token.tag);
 	std::swap(val_int, token.val_int);
@@ -718,7 +723,7 @@ Token& Token::operator=(Token&& token) noexcept
 	return *this;
 }
 
-Token::~Token()
+Language::Token::~Token()
 {
 	switch (tag) {
 	case Token::TTAG_STRING:		if (val_string != nullptr) { val_string->owners--;	if (val_string->owners == 0)	delete val_string; }		break;
@@ -728,7 +733,7 @@ Token::~Token()
 	}
 }
 
-bool Token::as_bool() const
+bool Language::Token::as_bool() const
 {
 	switch (tag) {
 	case Token::TTAG_INT:		return val_int != LANGUAGE_ZERO_INT;
@@ -741,7 +746,7 @@ bool Token::as_bool() const
 	return false;
 }
 
-void Token::print() const
+void Language::Token::print() const
 {
 	switch (tag) {
 	case Token::TTAG_NONE:		printf("TTAG_NONE");																										break;
@@ -755,7 +760,7 @@ void Token::print() const
 	}
 }
 
-void Token::info() const
+void Language::Token::info() const
 {
 	// https://stackoverflow.com/a/63689821
 	static const int tag_name_width = strlen(std::max_element(std::begin(LANGUAGE_TOKEN_TAG), std::end(LANGUAGE_TOKEN_TAG), [](const RegisteredSequence& left, const RegisteredSequence& right) { return strlen(left.name) < strlen(right.name); })->name);
@@ -783,7 +788,7 @@ void Token::info() const
 	printf("\n");
 }
 
-const RegisteredSequence* tag_id(const tok_tag tag)
+const Language::RegisteredSequence* Language::tag_id(const tok_tag tag)
 {
 	return (tag < Token::TTAG_BEGIN || Token::TTAG_END <= tag) ?
 		nullptr :
@@ -798,13 +803,13 @@ const RegisteredSequence* tag_id(const tok_tag tag)
 			);
 }
 
-const char* tag_name(tok_tag tag)
+const char* Language::tag_name(tok_tag tag)
 {
 	const auto iter = tag_id(tag);
 	return iter ? iter->name : nullptr;
 }
 
-const char* variable_name(int_tL id)
+const char* Language::variable_name(int_tL id)
 {
 	if (id <= 0 || NAME_TABLE.size() < id)
 		return nullptr;
@@ -816,7 +821,7 @@ const char* variable_name(int_tL id)
 #endif // file_name
 #define file_name() state.name_file.c_str()
 
-Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
+Language::Token* Language::GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
 {
 	const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.val_int);
 	if (local != state.LOCALS.end()) {
@@ -834,7 +839,7 @@ Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
 	return nullptr;
 }
 
-Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state)
+Language::Token* Language::GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state)
 {
 	// Global scope File Functions should ALWAYS operate only on the GLOBAL VALUE_TABLE.
 	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
@@ -847,19 +852,19 @@ Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state)
 	return nullptr;
 }
 
-VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution_tL& state)
+Language::VALUE_TABLE_TYPE& Language::GET_ASSIGNMENT_TABLE(Execution_tL& state)
 {
 	return state.LOCALS;
 }
 
-VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state)
+Language::VALUE_TABLE_TYPE& Language::GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state)
 {
 	return VALUE_TABLE;
 }
 
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
-SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE)
+Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE)
 {
 	while (!thread.executing.empty()) {
 		Execution_tL& state = thread.executing.back();
@@ -1817,7 +1822,7 @@ SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE)
 	return SOLVE_OK;
 }
 
-Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags)
+Language::Function_tL* Language::script_load(const char* filename, const char* funcname, const char* source, unsigned short flags)
 {
 	Function_tL* function = nullptr;
 
@@ -1866,7 +1871,7 @@ Function_tL* script_load(const char* filename, const char* funcname, const char*
 	return function;
 }
 
-Function_tL* script_load(const char* filename, unsigned short flags)
+Language::Function_tL* Language::script_load(const char* filename, unsigned short flags)
 {
 	const char* source = readfile(filename);
 
@@ -1882,7 +1887,7 @@ Function_tL* script_load(const char* filename, unsigned short flags)
 	return nullptr;
 }
 
-SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags)
+Language::SOLVE_RESULT Language::script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags)
 {
 	Function_tL* loaded_file = script_load(filename, flags);
 
@@ -1896,7 +1901,7 @@ SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsig
 	return SOLVE_ERROR;
 }
 
-void script_unload(const char* filename)
+void Language::script_unload(const char* filename)
 {
 	const auto& loaded = LOADED_SOURCEFILE.find(filename);
 	if (loaded != LOADED_SOURCEFILE.end())
@@ -1909,175 +1914,178 @@ void script_unload(const char* filename)
 #include <filesystem>
 #include <algorithm>
 
-void builtinErrorVA(const char* format, va_list argp)
+namespace Language
 {
-	vprintf(format, argp);
-}
+	static void builtinErrorVA(const char* format, va_list argp)
+	{
+		vprintf(format, argp);
+	}
 
-void builtinError_(const char* filename, const char* builtin_name, const char* f, ...)
-{
-	printf(fERROR);
-	printf("Builtin <%s> '%s'. ", builtin_name, filename);
-	va_list argp;
-	va_start(argp, f);
-	builtinErrorVA(f, argp);
-	va_end(argp);
-	printf("\n");
-}
+	static void builtinError_(const char* filename, const char* builtin_name, const char* f, ...)
+	{
+		printf(fERROR);
+		printf("Builtin <%s> '%s'. ", builtin_name, filename);
+		va_list argp;
+		va_start(argp, f);
+		builtinErrorVA(f, argp);
+		va_end(argp);
+		printf("\n");
+	}
 
 #ifdef file_name
 #undef file_name
 #endif // file_name
 #define file_name() thread->executing.back().name_file.c_str()
 
-// https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
+	// https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
 #define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
 
 #define BUILTIN_DEFINE(name) SOLVE_RESULT name(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread LANGUAGE_SOLVER_SIGNATURE)
 #define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ NAME_TABLE_id(#name), Token(name) })
 
-BUILTIN_DEFINE(import)
-{
-	if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
+	BUILTIN_DEFINE(import)
 	{
-		builtinError("import", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
-		return SOLVE_ERROR;
+		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
+		{
+			builtinError("import", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
+			return SOLVE_ERROR;
+		}
+
+		std::filesystem::path file_path															// Resulting path.
+			= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
+				.remove_filename()																// Remove file to get containing folder.
+				/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
+			.lexically_normal();																// Resolve directory parenting.
+
+		SOLVE_RESULT solve = script_import(file_path.string().c_str() LANGUAGE_SOLVER_ARGUMENTS);
+
+		if (solve == SOLVE_ERROR)
+			builtinError("import", "Failed to import file '%s'.", file_path.string().c_str());
+
+		solution.emplace_back(0, 0, (int_tL)solve);
+
+		return solve;
 	}
 
-	std::filesystem::path file_path															// Resulting path.
-		= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
-			.remove_filename()																// Remove file to get containing folder.
-			/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
-		.lexically_normal();																// Resolve directory parenting.
-
-	SOLVE_RESULT solve = script_import(file_path.string().c_str() LANGUAGE_SOLVER_ARGUMENTS);
-
-	if (solve == SOLVE_ERROR)
-		builtinError("import", "Failed to import file '%s'.", file_path.string().c_str());
-
-	solution.emplace_back(0, 0, (int_tL)solve);
-
-	return solve;
-}
-
-BUILTIN_DEFINE(load)
-{
-	if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
+	BUILTIN_DEFINE(load)
 	{
-		builtinError("load", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
-		return SOLVE_ERROR;
-	}
+		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
+		{
+			builtinError("load", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
+			return SOLVE_ERROR;
+		}
 
-	std::filesystem::path file_path															// Resulting path.
-		= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
-			.remove_filename()																// Remove file to get containing folder.
-			/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
-		.lexically_normal();																// Resolve directory parenting.
+		std::filesystem::path file_path															// Resulting path.
+			= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
+				.remove_filename()																// Remove file to get containing folder.
+				/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
+			.lexically_normal();																// Resolve directory parenting.
 
-	Function_tL* func = script_load(file_path.string().c_str());
+		Function_tL* func = script_load(file_path.string().c_str());
 
-	if (!func)
-	{
-		builtinError("load", "Failed to load file '%s'.", file_path.string().c_str());
-		return SOLVE_ERROR;
-	}
+		if (!func)
+		{
+			builtinError("load", "Failed to load file '%s'.", file_path.string().c_str());
+			return SOLVE_ERROR;
+		}
 
-	solution.emplace_back(0, 0, func);
-
-	return SOLVE_OK;
-}
-
-BUILTIN_DEFINE(version)
-{
-	if (!arguments.empty())
-	{
-		builtinError("version", "This function takes no arguments.");
-		return SOLVE_ERROR;
-	}
-
-	solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
-	return SOLVE_OK;
-}
-
-BUILTIN_DEFINE(print)
-{
-	if (arguments.size() != 1)
-	{
-		builtinError("print", "This function takes a single argument.");
-		return SOLVE_ERROR;
-	}
-
-	arguments[0].print();
-	printf("\n");
-
-	return SOLVE_OK;
-}
-
-BUILTIN_DEFINE(max)
-{
-	if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_ARRAY || arguments[0].val_array->array.empty())
-	{
-		builtinError("max", "Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
-		return SOLVE_ERROR;
-	}
-
-	if (std::find_if(
-		arguments[0].val_array->array.begin(),
-		arguments[0].val_array->array.end(),
-		[](const Token& element) { return element.tag != Token::TTAG_INT && element.tag != Token::TTAG_FLOAT; }) ==
-		arguments[0].val_array->array.end())
-	{
-		solution.push_back(
-			std::move(
-				*std::max_element(
-					arguments[0].val_array->array.begin(),
-					arguments[0].val_array->array.end(),
-					[](const Token& left, const Token& right) {
-						return ((left.tag == Token::TTAG_INT) ? left.val_int : left.val_float) < ((right.tag == Token::TTAG_INT) ? right.val_int : right.val_float);
-					}
-				)
-			)
-		);
+		solution.emplace_back(0, 0, func);
 
 		return SOLVE_OK;
 	}
 
-	builtinError("max", "'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
-	return SOLVE_ERROR;
-}
+	BUILTIN_DEFINE(version)
+	{
+		if (!arguments.empty())
+		{
+			builtinError("version", "This function takes no arguments.");
+			return SOLVE_ERROR;
+		}
 
-int_tL NAME_TABLE_id(const char* name)
-{
-	char* key = (char*)name;
-	if (!NAME_TABLE.count(name)) {
-		const size_t len = strlen(name) + 1;
-		key = new char[len];
-		std::memcpy(key, name, len);
+		solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
+		return SOLVE_OK;
 	}
-	return NAME_TABLE.insert({ key, NAME_TABLE.size() + 1 }).first->second;
-}
 
-int register_function()
-{
-	BUILTIN_REGISTER(import);
-	BUILTIN_REGISTER(load);
-	BUILTIN_REGISTER(version);
-	BUILTIN_REGISTER(print);
-	BUILTIN_REGISTER(max);
+	BUILTIN_DEFINE(print)
+	{
+		if (arguments.size() != 1)
+		{
+			builtinError("print", "This function takes a single argument.");
+			return SOLVE_ERROR;
+		}
 
-	return 0;
+		arguments[0].print();
+		printf("\n");
+
+		return SOLVE_OK;
+	}
+
+	BUILTIN_DEFINE(max)
+	{
+		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_ARRAY || arguments[0].val_array->array.empty())
+		{
+			builtinError("max", "Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
+			return SOLVE_ERROR;
+		}
+
+		if (std::find_if(
+			arguments[0].val_array->array.begin(),
+			arguments[0].val_array->array.end(),
+			[](const Token& element) { return element.tag != Token::TTAG_INT && element.tag != Token::TTAG_FLOAT; }) ==
+			arguments[0].val_array->array.end())
+		{
+			solution.push_back(
+				std::move(
+					*std::max_element(
+						arguments[0].val_array->array.begin(),
+						arguments[0].val_array->array.end(),
+						[](const Token& left, const Token& right) {
+							return ((left.tag == Token::TTAG_INT) ? left.val_int : left.val_float) < ((right.tag == Token::TTAG_INT) ? right.val_int : right.val_float);
+						}
+					)
+				)
+			);
+
+			return SOLVE_OK;
+		}
+
+		builtinError("max", "'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
+		return SOLVE_ERROR;
+	}
+
+	int_tL NAME_TABLE_id(const char* name)
+	{
+		char* key = (char*)name;
+		if (!NAME_TABLE.count(name)) {
+			const size_t len = strlen(name) + 1;
+			key = new char[len];
+			std::memcpy(key, name, len);
+		}
+		return NAME_TABLE.insert({ key, NAME_TABLE.size() + 1 }).first->second;
+	}
+
+	int register_function()
+	{
+		BUILTIN_REGISTER(import);
+		BUILTIN_REGISTER(load);
+		BUILTIN_REGISTER(version);
+		BUILTIN_REGISTER(print);
+		BUILTIN_REGISTER(max);
+
+		return 0;
+	}
 }
 
 // BUILTIN END
 
-int_tL LANGUAGE_initialize()
+Language::int_tL Language::LANGUAGE_initialize()
 {
 	register_function();
 
 	return 1;
 }
 
-int_tL LANGUAGE_terminate()
+Language::int_tL Language::LANGUAGE_terminate()
 {
 	// Terminate all Thread_tL.
 
@@ -2089,7 +2097,7 @@ int_tL LANGUAGE_terminate()
 	return 1;
 }
 
-int_tL LANGUAGE_reload()
+Language::int_tL Language::LANGUAGE_reload()
 {
 	LANGUAGE_terminate();
 	LANGUAGE_initialize();
@@ -2101,15 +2109,15 @@ int_tL LANGUAGE_reload()
 
 int main()
 {
-	LANGUAGE_initialize();
+	Language::LANGUAGE_initialize();
 
-	SOLVE_RESULT result = script_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
+	Language::SOLVE_RESULT result = Language::script_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
 
-	if (result == SOLVE_OK)
+	if (result == Language::SOLVE_RESULT::SOLVE_OK)
 	{
 	}
 
-	LANGUAGE_terminate();
+	Language::LANGUAGE_terminate();
 
 	return 0;
 }

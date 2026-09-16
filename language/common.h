@@ -7,6 +7,8 @@
 #include <stdint.h> // intptr_t
 #include <inttypes.h> // PRI
 
+namespace Language
+{
 #define LANGUAGE_VERSION "b.1.1.4"
 
 // https://stackoverflow.com/questions/51616057/how-to-determine-pointer-size-preprocessor-c
@@ -31,13 +33,14 @@
 #define ANSI_CYAN    "\x1b[36m"
 #define ANSI_WHITE   "\x1b[0m"
 
-extern const char* fERROR;
+	extern const char* fERROR;
 
-typedef unsigned short lin_num;
+	typedef unsigned short lin_num;
 #define fLIN PRIu16
-typedef unsigned short col_num;
+	typedef unsigned short col_num;
 #define fCOL PRIu16
 
-void printLanguageError(const char* type, const char* subtype, const char* filename, lin_num line, col_num column, const char* format, va_list argp);
+	void printLanguageError(const char* type, const char* subtype, const char* filename, lin_num line, col_num column, const char* format, va_list argp);
+}
 
 #endif // !H_LANGUAGE_COMMON

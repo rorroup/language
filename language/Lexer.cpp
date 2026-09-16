@@ -1,7 +1,42 @@
 #include "Lexer.h"
 
+namespace Language
+{
+	typedef unsigned char ErrMesType;
+	enum : ErrMesType
+	{
+		Tokenizer = 0,
+		MALFORMED_TOKEN,
+		BUFFER_OVERFLOW,
+	};
+
+	static const char* ERROR_MESSAGE_TYPES[]
+	{
+		STRINGIZING(Tokenizer),
+		STRINGIZING(MALFORMED_TOKEN),
+		STRINGIZING(BUFFER_OVERFLOW),
+	};
+
+	static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+	{
+		{ Tokenizer, nullptr },
+		{ MALFORMED_TOKEN, "Number is empty." },
+		{ MALFORMED_TOKEN, "Unterminated string." },
+		{ MALFORMED_TOKEN, "Failed to interpret '%s' as a supported symbol." },
+		{ BUFFER_OVERFLOW, "'%s' tokens can not be more than '%d' characters long." },
+	};
+
+	static void tokenizerError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+	{
+		va_list argp;
+		va_start(argp, f);
+		printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+		va_end(argp);
+	}
+}
+
 // https://stackoverflow.com/questions/2602013/read-whole-ascii-file-into-c-stdstring
-const char* readfile(const char* file_name)
+const char* Language::readfile(const char* file_name)
 {
 	std::ifstream file_(file_name, std::ifstream::in);
 	if (file_.is_open()) {
@@ -22,39 +57,7 @@ const char* readfile(const char* file_name)
 	return nullptr;
 }
 
-typedef unsigned char ErrMesType;
-enum : ErrMesType
-{
-	Tokenizer = 0,
-	MALFORMED_TOKEN,
-	BUFFER_OVERFLOW,
-};
-
-static const char* ERROR_MESSAGE_TYPES[]
-{
-	STRINGIZING(Tokenizer),
-	STRINGIZING(MALFORMED_TOKEN),
-	STRINGIZING(BUFFER_OVERFLOW),
-};
-
-static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
-{
-	{ Tokenizer, nullptr },
-	{ MALFORMED_TOKEN, "Number is empty." },
-	{ MALFORMED_TOKEN, "Unterminated string." },
-	{ MALFORMED_TOKEN, "Failed to interpret '%s' as a supported symbol." },
-	{ BUFFER_OVERFLOW, "'%s' tokens can not be more than '%d' characters long." },
-};
-
-void tokenizerError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
-{
-	va_list argp;
-	va_start(argp, f);
-	printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
-	va_end(argp);
-}
-
-bool tokenize_source(const char* filename, const char* source, std::deque<Token>& tokens)
+bool Language::tokenize_source(const char* filename, const char* source, std::deque<Token>& tokens)
 {
 	enum class TOKEN_TYPE : char
 	{
@@ -74,6 +77,8 @@ bool tokenize_source(const char* filename, const char* source, std::deque<Token>
 		NUMBER_BINARY		=  2,
 		NUMBER_HEXADECIMAL	= 16,
 	};
+
+#define TAB_COLUMN 4
 
 	char EscDotCom = 0; // Escape, Decimal point, Comment.
 

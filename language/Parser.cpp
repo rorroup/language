@@ -3,68 +3,71 @@
 #define PARSE_ERROR -1
 #define OPERATION_EMPTY -10
 
-const char* Parser::file_name()
+const char* Language::Parser::file_name()
 {
 	return loaded ? loaded->name.c_str() : nullptr;
 }
 
-bool Parser::tag_unary(tok_tag tag)
+bool Language::Parser::tag_unary(tok_tag tag)
 {
 	return Token::TTAG_UNARY_BEGIN <= tag && tag < Token::TTAG_UNARY_END;
 }
 
-bool Parser::tag_binary(tok_tag tag)
+bool Language::Parser::tag_binary(tok_tag tag)
 {
 	return Token::TTAG_BINARY_BEGIN <= tag && tag < Token::TTAG_BINARY_END;
 }
 
-typedef unsigned char ErrMesType;
-enum : ErrMesType
+namespace Language
 {
-	Parser = 0,
-	SYNTAX_ERROR,
-	OPERATOR_MISSING,
-	OPERAND_MISSING,
-	EXPRESSION_MISSING,
-	DELIMITER_MISMATCH,
-	WRONG_CONTEXT,
-	NAME_DUPLICATE,
-};
+	typedef unsigned char ErrMesType;
+	enum : ErrMesType
+	{
+		Parser = 0,
+		SYNTAX_ERROR,
+		OPERATOR_MISSING,
+		OPERAND_MISSING,
+		EXPRESSION_MISSING,
+		DELIMITER_MISMATCH,
+		WRONG_CONTEXT,
+		NAME_DUPLICATE,
+	};
 
-static const char* ERROR_MESSAGE_TYPES[]
-{
-	STRINGIZING(Parser),
-	STRINGIZING(SYNTAX_ERROR),
-	STRINGIZING(OPERATOR_MISSING),
-	STRINGIZING(OPERAND_MISSING),
-	STRINGIZING(EXPRESSION_MISSING),
-	STRINGIZING(DELIMITER_MISMATCH),
-	STRINGIZING(WRONG_CONTEXT),
-	STRINGIZING(NAME_DUPLICATE),
-};
+	static const char* ERROR_MESSAGE_TYPES[]
+	{
+		STRINGIZING(Parser),
+		STRINGIZING(SYNTAX_ERROR),
+		STRINGIZING(OPERATOR_MISSING),
+		STRINGIZING(OPERAND_MISSING),
+		STRINGIZING(EXPRESSION_MISSING),
+		STRINGIZING(DELIMITER_MISMATCH),
+		STRINGIZING(WRONG_CONTEXT),
+		STRINGIZING(NAME_DUPLICATE),
+	};
 
-static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
-{
-	{ Parser, nullptr },
-	{ SYNTAX_ERROR, "Expected '%s' token%s." },
-	{ OPERAND_MISSING, "'%s' operator requires an argument." },
-	{ EXPRESSION_MISSING, "%s must contain an operation." },
-	{ DELIMITER_MISMATCH, "A corresponding '%s' is missing." },
-	{ WRONG_CONTEXT, "Global function definitions %s." },
-	{ OPERAND_MISSING, "'%s' operator must be followed by an operand." },
-	{ EXPRESSION_MISSING, "%s missing" },
-	{ WRONG_CONTEXT, "'%s' token may not be used in this context." },
-	{ NAME_DUPLICATE, "Label name '%s' can not be repeated." },
-	{ WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
-	{ NAME_DUPLICATE, "Function name '%s' already exists inside this file." },
-};
+	static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+	{
+		{ Parser, nullptr },
+		{ SYNTAX_ERROR, "Expected '%s' token%s." },
+		{ OPERAND_MISSING, "'%s' operator requires an argument." },
+		{ EXPRESSION_MISSING, "%s must contain an operation." },
+		{ DELIMITER_MISMATCH, "A corresponding '%s' is missing." },
+		{ WRONG_CONTEXT, "Global function definitions %s." },
+		{ OPERAND_MISSING, "'%s' operator must be followed by an operand." },
+		{ EXPRESSION_MISSING, "%s missing" },
+		{ WRONG_CONTEXT, "'%s' token may not be used in this context." },
+		{ NAME_DUPLICATE, "Label name '%s' can not be repeated." },
+		{ WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
+		{ NAME_DUPLICATE, "Function name '%s' already exists inside this file." },
+	};
 
-void parserError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
-{
-	va_list argp;
-	va_start(argp, f);
-	printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
-	va_end(argp);
+	static void parserError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+	{
+		va_list argp;
+		va_start(argp, f);
+		printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+		va_end(argp);
+	}
 }
 
 #define REQUIRE_CURRENT_TAG_RETURN(required_tag, returned) \
@@ -82,7 +85,7 @@ if (tokens[tokenIndex].tag != required_tag) { \
 /*
 Returns the id of the last structure in the sequence.
 */
-tok_tag Parser::parse_sequence(std::vector<Token>& program, const tok_tag separator_symbol = Token::TTAG_COMMA)
+Language::tok_tag Language::Parser::parse_sequence(std::vector<Token>& program, const tok_tag separator_symbol = Token::TTAG_COMMA)
 {
 	tok_tag parsed = OPERATION_EMPTY;
 	while (tokenIndex < tokens.size())
@@ -108,7 +111,7 @@ tok_tag Parser::parse_sequence(std::vector<Token>& program, const tok_tag separa
 /*
 Returns the id of the last parsed structure.
 */
-tok_tag Parser::parse_operand(std::vector<Token>& program)
+Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 {
 	static const RegisteredSequence* TOKEN_POSITIVE = tag_id(Token::TTAG_UNARY_POSITIVE);
 	static const RegisteredSequence* TOKEN_NEGATIVE = tag_id(Token::TTAG_UNARY_NEGATIVE);
@@ -302,7 +305,7 @@ tok_tag Parser::parse_operand(std::vector<Token>& program)
 /*
 Returns the id of the last parsed structure.
 */
-tok_tag Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min = PRECEDENCE_MIN)
+Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min = PRECEDENCE_MIN)
 {
 	std::vector<Token>& left = program;
 	tok_tag typeLast = parse_operand(left);
@@ -342,7 +345,7 @@ tok_tag Parser::parse_operation(std::vector<Token>& program, int_tL precedence_m
 	return typeLast;
 }
 
-short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
+short Language::Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = function.program->instructions;
 	short branches = 0;
@@ -435,7 +438,7 @@ short Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
 	return true;
 }
 
-char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
+char Language::Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = function.program->instructions;
 	if (tokenIndex >= tokens.size()) {
@@ -582,7 +585,7 @@ char Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
 	return true;
 }
 
-Function_tL* Parser::parse_function()
+Language::Function_tL* Language::Parser::parse_function()
 {
 	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_FUNCTION_DEF, nullptr);
 	tokenIndex++;
@@ -668,7 +671,7 @@ Function_tL* Parser::parse_function()
 	return &function;
 }
 
-char Parser::parse_instructions(Function_tL& function, std::vector<int> interrupts[2] = nullptr)
+char Language::Parser::parse_instructions(Function_tL& function, std::vector<int> interrupts[2] = nullptr)
 {
 	std::vector<Token>& program = function.program->instructions;
 	while (tokenIndex < tokens.size())
@@ -877,7 +880,7 @@ char Parser::parse_instructions(Function_tL& function, std::vector<int> interrup
 	return true;
 }
 
-Function_tL* Parser::parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags)
+Language::Function_tL* Language::Parser::parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags)
 {
 	loaded = file_;
 	functions = _functions;
