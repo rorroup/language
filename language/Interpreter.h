@@ -1,5 +1,5 @@
-#ifndef H_INTERPRETER
-#define H_INTERPRETER
+#ifndef H_LANGUAGE_INTERPRETER
+#define H_LANGUAGE_INTERPRETER
 
 #include <unordered_map>
 #include <vector>
@@ -2119,4 +2119,4 @@ int main()
 // =================== INTERPRETER.CPP END ===================
 #endif // LANGUAGE_IMPLEMENTATION
 
-#endif // !H_INTERPRETER
+#endif // !H_LANGUAGE_INTERPRETER

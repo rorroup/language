@@ -1,5 +1,5 @@
-#ifndef H_TOKENIZER
-#define H_TOKENIZER
+#ifndef H_LANGUAGE_LEXER
+#define H_LANGUAGE_LEXER
 
 #include <fstream>
 #include <iterator>
@@ -21,4 +21,4 @@ typedef unsigned short buf_size;
 const char* readfile(const char* file_name);
 bool tokenize_source(const char* filename, const char* source, std::deque<Token>& tokens);
 
-#endif // !H_TOKENIZER
+#endif // !H_LANGUAGE_LEXER
