@@ -1,5 +1,5 @@
-#ifndef H_COMMON
-#define H_COMMON
+#ifndef H_LANGUAGE_COMMON
+#define H_LANGUAGE_COMMON
 
 #include <stdio.h>
 #include <stdarg.h> // va_list // https://stackoverflow.com/questions/695982/passing-an-ellipsis-to-another-variadic-function?noredirect=1&lq=1
@@ -40,4 +40,4 @@ typedef unsigned short col_num;
 
 void printLanguageError(const char* type, const char* subtype, const char* filename, lin_num line, col_num column, const char* format, va_list argp);
 
-#endif // !H_COMMON
+#endif // !H_LANGUAGE_COMMON

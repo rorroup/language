@@ -1,5 +1,5 @@
-#ifndef H_PARSER
-#define H_PARSER
+#ifndef H_LANGUAGE_PARSER
+#define H_LANGUAGE_PARSER
 
 #include <iterator>
 #include <algorithm>
@@ -37,4 +37,4 @@ private:
 	static bool tag_binary(tok_tag tag);
 };
 
-#endif // !H_PARSER
+#endif // !H_LANGUAGE_PARSER
