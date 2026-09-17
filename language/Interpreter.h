@@ -13,38 +13,6 @@
 
 namespace Language
 {
-	// https://en.cppreference.com/w/cpp/container/unordered_map/unordered_map
-	struct s_cstring_hash
-	{
-		// https://stackoverflow.com/questions/34597260/stdhash-value-on-char-value-and-not-on-memory-address
-#if SIZE_MAX >= ULLONG_MAX
-#define FNV_offset_basis UINT64_C(14695981039346656037)
-#define FNV_prime UINT64_C(1099511628211)
-#else
-#define FNV_offset_basis UINT32_C(2166136261)
-#define FNV_prime UINT32_C(16777619)
-#endif // SIZE_MAX >= ULLONG_MAX
-		std::size_t operator()(const char* s) const
-		{
-			size_t hash = FNV_offset_basis;
-			while (*s != '\0') {
-				hash = (hash ^ *s) * FNV_prime;
-				s++;
-			}
-			return hash;
-		}
-	};
-
-	struct s_cstring_equal
-	{
-		bool operator()(const char* lhs, const char* rhs) const
-		{
-			return lhs != nullptr && rhs != nullptr && strlen(lhs) == strlen(rhs) && strcmp(lhs, rhs) == 0;
-		}
-	};
-
-#define umap_cstring_key(V) std::unordered_map<const char*, V, s_cstring_hash, s_cstring_equal>
-
 	typedef char tok_tag;
 	struct Token;
 	enum SOLVE_RESULT : char
@@ -291,7 +259,7 @@ namespace Language
 		unsigned short owners{ 0 };
 	};
 
-	typedef umap_cstring_key(const int_tL) NAME_TABLE_TYPE;
+	typedef std::unordered_map<std::string, const int_tL> NAME_TABLE_TYPE;
 	typedef std::unordered_map<int_tL, Token> VALUE_TABLE_TYPE;
 
 	extern NAME_TABLE_TYPE NAME_TABLE;
@@ -496,6 +464,8 @@ namespace Language
 	};
 
 #define intlen(n) ((n) == 0 ? 1 : ((n) > 0 ? log10(n) + 1 : log10(-(n)) + 2))
+	int_tL NAME_TABLE_get_name_id(const char* name); // Get ID for the provided name.
+	int_tL NAME_TABLE_get_name_id(const std::string& name); // Get ID for the provided name.
 	const RegisteredSequence* tag_id(const tok_tag tag);
 	const char* tag_name(tok_tag tag);
 	const char* variable_name(int_tL id);
@@ -670,6 +640,14 @@ namespace Language
 	}
 }
 
+/* NAME_TABLE_get_name_id.
+* Get the ID associated to the provided name, or incrementally register one if it does not exist.
+* ID start counting at '1' and will overflow naturally.
+* ID may be positive or negative. ID '0' does not exist.
+*/
+Language::int_tL Language::NAME_TABLE_get_name_id(const char* name) { return NAME_TABLE.try_emplace(name, NAME_TABLE.size() + 1).first->second; }
+Language::int_tL Language::NAME_TABLE_get_name_id(const std::string& name) { return NAME_TABLE.try_emplace(name, NAME_TABLE.size() + 1).first->second; }
+
 Language::Token::Token() : line(0), column(0), tag(Token::TTAG_NONE), val_int(0) {}
 Language::Token::Token(lin_num l, col_num c, int_tL			val) : line(l), column(c), tag(Token::TTAG_INT), val_int(val) {}
 Language::Token::Token(lin_num l, col_num c, float_tL		val) : line(l), column(c), tag(Token::TTAG_FLOAT), val_float(val) {}
@@ -807,9 +785,8 @@ const char* Language::tag_name(tok_tag tag)
 
 const char* Language::variable_name(int_tL id)
 {
-	if (id <= 0 || NAME_TABLE.size() < id)
-		return nullptr;
-	return std::find_if(NAME_TABLE.begin(), NAME_TABLE.end(), [id](const std::pair<const char*, const int_tL>& element) { return element.second == id; })->first; // TODO: Probably have an adjacent std::vector<const char*> to reversely index the name from its index.
+	return (id <= 0 || NAME_TABLE.size() < id) ? nullptr :
+		std::find_if(NAME_TABLE.begin(), NAME_TABLE.end(), [id](const std::pair<std::string, const int_tL>& element) { return element.second == id; })->first.c_str(); // TODO: Probably have an adjacent std::vector<const char*> to reversely index the name from its index.
 }
 
 #ifdef file_name
@@ -1915,7 +1892,7 @@ namespace Language
 #define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
 
 #define BUILTIN_DEFINE(name) SOLVE_RESULT name(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread LANGUAGE_SOLVER_SIGNATURE)
-#define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ NAME_TABLE_id(#name), Token(name) })
+#define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ NAME_TABLE_get_name_id(#name), Token(name) })
 
 	BUILTIN_DEFINE(import)
 	{
@@ -2027,17 +2004,6 @@ namespace Language
 		return SOLVE_ERROR;
 	}
 
-	int_tL NAME_TABLE_id(const char* name)
-	{
-		char* key = (char*)name;
-		if (!NAME_TABLE.count(name)) {
-			const size_t len = strlen(name) + 1;
-			key = new char[len];
-			std::memcpy(key, name, len);
-		}
-		return NAME_TABLE.insert({ key, NAME_TABLE.size() + 1 }).first->second;
-	}
-
 	int register_function()
 	{
 		BUILTIN_REGISTER(import);
@@ -2064,7 +2030,6 @@ Language::int_tL Language::LANGUAGE_terminate()
 	// Terminate all Thread_tL.
 
 	LOADED_SOURCEFILE.clear();
-	for (auto& variable : NAME_TABLE) delete[] variable.first;
 	NAME_TABLE.clear();
 	VALUE_TABLE.clear();
 
