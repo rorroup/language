@@ -297,20 +297,16 @@ namespace Language
 	extern NAME_TABLE_TYPE NAME_TABLE;
 	extern VALUE_TABLE_TYPE VALUE_TABLE;
 
-	typedef umap_cstring_key(const size_t) LABEL_TABLE_TYPE;
 	struct SourceFile;
 
 	struct Program_tL
 	{
 	public:
 		std::vector<Token> instructions;
-		LABEL_TABLE_TYPE labels;
 
 		Program_tL() {}
 		~Program_tL() {
 			instructions.~vector();
-			for (auto& label : labels) delete[] label.first;
-			labels.clear();
 		}
 	};
 
@@ -1744,28 +1740,6 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 					interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[10], tag_name(calling.tag));
 					return SOLVE_ERROR;
 				}
-			}
-			break;
-
-			case Token::TTAG_GOTO:
-			{
-				if (state.solution.size() != 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
-					return SOLVE_ERROR;
-				}
-				Token& label_name = state.solution.back();
-				if (label_name.tag != Token::TTAG_STRING) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_STRING), tag_name(label_name.tag));
-					return SOLVE_ERROR;
-				}
-				const LABEL_TABLE_TYPE::iterator& label_num = state.program->labels.find(label_name.val_string->string_get());
-				if (label_num == state.program->labels.end()) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[12], tag_name(Token::TTAG_LABEL), label_name.val_string->string_get());
-					return SOLVE_ERROR;
-				}
-				state.program_counter = label_num->second;
-				state.solution.clear();
-				state.lastSequence = -1;
 			}
 			break;
 

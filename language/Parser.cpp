@@ -59,6 +59,7 @@ namespace Language
 		{ NAME_DUPLICATE, "Label name '%s' can not be repeated." },
 		{ WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
 		{ NAME_DUPLICATE, "Function name '%s' already exists inside this file." },
+		{ EXPRESSION_MISSING, "Label name '%s' not exists in function '%s'." },
 	};
 
 	static void parserError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
@@ -81,6 +82,30 @@ if (tokens[tokenIndex].tag != required_tag) { \
 }
 
 #define REQUIRE_CURRENT_TAG(required_tag) REQUIRE_CURRENT_TAG_RETURN(required_tag, PARSE_ERROR)
+
+/* goto_label.
+* Assign matching registered GOTO and LABEL token label names to their corresponding JUMP indices.
+*/
+bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps)
+{
+	// Aliases.
+	std::vector<Token>& program = _function.program->instructions;
+	std::vector<std::pair<size_t, std::string>>& gotos = _jumps.first;
+	std::unordered_map<std::string, size_t>& labels = _jumps.second;
+
+	for (const auto& _goto : gotos)
+	{
+		const auto& _label = labels.find(_goto.second); // Find destination LABEL matching GOTO label name.
+		if (_label == labels.end()) // GOTO label name not found.
+		{
+			parserError(_function.source->name.c_str(), program[_goto.first].line, program[_goto.first].column, ERROR_MESSAGES[12], _goto.second.c_str(), _function.name);
+			return false;
+		}
+		program[_goto.first].val_int = _label->second; // Assign LABEL token index as GOTO associated JUMP destination.
+	}
+
+	return true;
+}
 
 /*
 Returns the id of the last structure in the sequence.
@@ -345,7 +370,10 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 	return typeLast;
 }
 
-short Language::Parser::parse_if(Function_tL& function, std::vector<int> interrupts[2])
+/* parse_if.
+* Parse 'if' and 'else' branching inside the current function.
+*/
+short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = function.program->instructions;
 	short branches = 0;
@@ -417,7 +445,7 @@ short Language::Parser::parse_if(Function_tL& function, std::vector<int> interru
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
 		tokenIndex++;
 
-		if (parse_instructions(function, interrupts) == PARSE_ERROR)
+		if (parse_instructions(function, _jumps, interrupts) == PARSE_ERROR)
 			return PARSE_ERROR;
 
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
@@ -438,7 +466,10 @@ short Language::Parser::parse_if(Function_tL& function, std::vector<int> interru
 	return true;
 }
 
-char Language::Parser::parse_loop(Function_tL& function, std::vector<int> interrupts[2])
+/* parse_loop.
+* Parse 'for' and 'do'/'while' loops inside the current function.
+*/
+char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = function.program->instructions;
 	if (tokenIndex >= tokens.size()) {
@@ -523,7 +554,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::vector<int> interr
 	tokenIndex++;
 
 	std::vector<int> interruptions[2] = { std::vector<int>{}, std::vector<int>{} };
-	if (parse_instructions(function, interruptions) == PARSE_ERROR)
+	if (parse_instructions(function, _jumps, interruptions) == PARSE_ERROR)
 		return PARSE_ERROR;
 
 	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
@@ -572,7 +603,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::vector<int> interr
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
 		tokenIndex++;
 
-		if (parse_instructions(function, interrupts) == PARSE_ERROR)
+		if (parse_instructions(function, _jumps, interrupts) == PARSE_ERROR)
 			return PARSE_ERROR;
 
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
@@ -660,7 +691,10 @@ Language::Function_tL* Language::Parser::parse_function()
 	tokenIndex++;
 
 	scopeLevel++;
-	if (parse_instructions(function, nullptr) == PARSE_ERROR)
+	std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current function 'goto' and 'label' declarations.
+	if (parse_instructions(function, jumps, nullptr) == PARSE_ERROR)
+		return nullptr;
+	if (!goto_label(function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
 		return nullptr;
 	scopeLevel--;
 
@@ -671,7 +705,10 @@ Language::Function_tL* Language::Parser::parse_function()
 	return &function;
 }
 
-char Language::Parser::parse_instructions(Function_tL& function, std::vector<int> interrupts[2] = nullptr)
+/* parse_instructions.
+* Parse complete source code by calling every other parser respectively.
+*/
+char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = function.program->instructions;
 	while (tokenIndex < tokens.size())
@@ -711,7 +748,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::vector<int
 			return true;
 
 		case Token::TTAG_IF:
-			if (parse_if(function, interrupts) == PARSE_ERROR)
+			if (parse_if(function, _jumps, interrupts) == PARSE_ERROR)
 				return PARSE_ERROR;
 			break;
 
@@ -722,7 +759,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::vector<int
 		case Token::TTAG_FOR:
 		case Token::TTAG_WHILE:
 		case Token::TTAG_DO:
-			if (parse_loop(function, interrupts) == PARSE_ERROR)
+			if (parse_loop(function, _jumps, interrupts) == PARSE_ERROR)
 				return PARSE_ERROR;
 			break;
 
@@ -801,38 +838,38 @@ char Language::Parser::parse_instructions(Function_tL& function, std::vector<int
 			tokenIndex++;
 			break;
 
-		case Token::TTAG_LABEL:
+		/* label declaration.
+		* label "label name":
+		* Register label position index within the current function.
+		*/
+		case Token::TTAG_LABEL:																									// 'label' keyword.
 		{
 			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_STRING); // Expected a "string" for the label name.
-			if (function.program->labels.find(tokens[tokenIndex].val_string->string_get()) != function.program->labels.end()) {
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[9], tokens[tokenIndex].val_string->string_get());
+			REQUIRE_CURRENT_TAG(Token::TTAG_STRING);																			// "String" label name.
+			tokenIndex++;
+			REQUIRE_CURRENT_TAG(Token::TTAG_COLON);																				// COLON symbol.
+			const auto& insertion = _jumps.second.try_emplace(tokens[tokenIndex - 1].val_string->string_get(), program.size());	// Register label name and token index.
+			if (!insertion.second) { // Label name already existed.
+				parserError(file_name(), tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, ERROR_MESSAGES[9], tokens[tokenIndex - 1].val_string->string_get());
 				return PARSE_ERROR;
 			}
-			const size_t len = strlen(tokens[tokenIndex].val_string->string_get()) + 1;
-			char* label_name = new char[len];
-			memcpy(label_name, tokens[tokenIndex].val_string->string_get(), len);
-			function.program->labels.insert({ label_name, program.size() }); // Labels are not OWNED.
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_COLON);
 			tokenIndex++;
 		}
 		break;
 
-		case Token::TTAG_GOTO:
+		/* goto instruction.
+		* goto "label name";
+		* Set a JUMP instruction and register its target label name.
+		* Label names and positions are resolved after parsing the function.
+		*/
+		case Token::TTAG_GOTO:																										// 'goto' keyword.
 		{
 			tokenIndex++;
-			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
-			if (parse_result == PARSE_ERROR)
-				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
-			program.push_back(std::move(token));
-			if (parse_result == Token::TTAG_FUNCTION) {
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Evaluing operand");
-				return PARSE_ERROR;
-			}
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
+			REQUIRE_CURRENT_TAG(Token::TTAG_STRING);																				// "String" label name.
+			tokenIndex++;
+			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);																				// SEMICOLON symbol.
+			_jumps.first.emplace_back(program.size(), tokens[tokenIndex - 1].val_string->string_get());								// Register JUMP token index and target label name.
+			program.emplace_back(tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Add the token to JUMP to the specified label position.
 			tokenIndex++;
 		}
 		break;
@@ -899,8 +936,10 @@ Language::Function_tL* Language::Parser::parse(SourceFile* file_, std::unordered
 	const size_t len = strlen(funcname) + 1;
 	file_function->name = new char[len];
 	std::memcpy(file_function->name, funcname, len);
-
-	if (parse_instructions(*file_function, nullptr) == PARSE_ERROR)
+	std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current file function 'goto' and 'label' declarations.
+	if (parse_instructions(*file_function, jumps, nullptr) == PARSE_ERROR)
+		return nullptr;
+	if (!goto_label(*file_function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
 		return nullptr;
 
 	if (tokenIndex < tokens.size()) {

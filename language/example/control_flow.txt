@@ -2,16 +2,25 @@ print("============ CONTROL FLOW =============");
 
 target = 0;
 
-goto "position_" + target;
+goto "position_0";
 
 label "position_2":
 
 target = 1;
 print("target = " + target);
 
-goto "position_" + target;
+goto "position_1";
 
 label "position_0":
+
+function inner()
+{
+	goto "location_1";
+label "location_1":
+	print("location_1 inside 'inner' function!");
+label "position_1":
+	print("position_1 inside 'inner' function!");
+}
 
 i = 7;
 do{
@@ -25,5 +34,6 @@ else{ // no break;
 goto "position_2";
 
 label "position_1":
+inner();
 
 print("");
