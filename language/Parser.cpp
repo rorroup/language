@@ -185,9 +185,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 
 	case Token::TTAG_IDENTIFIER:
 	{
-		const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ token.val_identifier, NAME_TABLE.size() + 1 });
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_VARIABLE, insertion.first->second);
-		if (insertion.second) token.val_identifier = nullptr; // Steal.
+		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_VARIABLE, NAME_TABLE_get_name_id(token.val_identifier)); // Variable name ID.
 		typeLast = Token::TTAG_VARIABLE;
 		tokenIndex++;
 	}
@@ -648,19 +646,10 @@ Language::Function_tL* Language::Parser::parse_function()
 	}
 	Function_tL& function = function_insert.first->second;
 
-	const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].val_identifier, NAME_TABLE.size() + 1 });
-
-	if (insertion.second) {
-		size_t len = strlen(tokens[tokenIndex].val_identifier) + 1;
-		function.name = new char[len];
-		memcpy(function.name, tokens[tokenIndex].val_identifier, len);
-	}
-	else {
-		function.name = tokens[tokenIndex].val_identifier;
-	}
+	function.name = tokens[tokenIndex].val_identifier; // Function name.
 	tokens[tokenIndex].val_identifier = nullptr; // Steal.
 
-	function.variable_id = insertion.first->second;
+	function.variable_id = NAME_TABLE_get_name_id(function.name); // Function name ID.
 	function.program = std::make_shared<Program_tL>();
 	function.program->instructions.reserve(tokens.size() - tokenIndex);
 	function.global = flags & PARSE_FLAG::GLOBAL_ALL;
@@ -673,9 +662,7 @@ Language::Function_tL* Language::Parser::parse_function()
 	while (tokenIndex < tokens.size()) {
 		if (tokens[tokenIndex].tag != Token::TTAG_IDENTIFIER)
 			break;
-		const std::pair<NAME_TABLE_TYPE::iterator, bool>& insertion = NAME_TABLE.insert({ tokens[tokenIndex].val_identifier, NAME_TABLE.size() + 1 });
-		function.arg_id.emplace_back(insertion.first->second);
-		if (insertion.second) tokens[tokenIndex].val_identifier = nullptr; // Steal.
+		function.arg_id.emplace_back(NAME_TABLE_get_name_id(tokens[tokenIndex].val_identifier)); // Function argument name ID.
 		tokenIndex++;
 
 		if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != Token::TTAG_COMMA)
