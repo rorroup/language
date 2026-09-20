@@ -107,30 +107,6 @@ bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<
 	return true;
 }
 
-/*
-Returns the id of the last structure in the sequence.
-*/
-Language::tok_tag Language::Parser::parse_sequence(std::vector<Token>& program, const tok_tag separator_symbol = Token::TTAG_COMMA)
-{
-	tok_tag parsed = OPERATION_EMPTY;
-	while (tokenIndex < tokens.size())
-	{
-		std::vector<Token> element;
-		parsed = parse_operation(element, PRECEDENCE_MIN);
-		if (parsed == PARSE_ERROR)
-			return PARSE_ERROR;
-		if (parsed == OPERATION_EMPTY)
-			break;
-		program.insert(program.end(), std::make_move_iterator(element.begin()), std::make_move_iterator(element.end()));
-		if (tokenIndex >= tokens.size())
-			break;
-		if (tokens[tokenIndex].tag != separator_symbol)
-			break;
-		tokenIndex++;
-	}
-	return parsed;
-}
-
 // Precedence climbing.
 // https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
 /*
@@ -195,7 +171,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	{
 		tokenIndex++;
 		std::vector<Token> inner;
-		typeLast = parse_operation(inner, PRECEDENCE_MIN);
+		typeLast = parse_operation(inner, PRECEDENCE_ASSIGNMENT);
 		if (typeLast == PARSE_ERROR)
 			return typeLast;
 		if (typeLast == OPERATION_EMPTY) {
@@ -214,7 +190,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 		program.emplace_back(token.line, token.column, Token::TTAG_SEQUENCE, -1);
 		tokenIndex++;
 		std::vector<Token> sequence;
-		if (parse_sequence(sequence, Token::TTAG_COMMA) == PARSE_ERROR)
+		if (parse_operation(sequence, PRECEDENCE_SEQUENCE) == PARSE_ERROR)
 			return PARSE_ERROR;
 		program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);
@@ -266,7 +242,6 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	*/
 
 	case Token::TTAG_SEMICOLON:
-	case Token::TTAG_COMMA:
 	case Token::TTAG_COLON:
 	case Token::TTAG_PARENTHESIS_CLOSE:
 	case Token::TTAG_BRACKET_CLOSE:
@@ -297,7 +272,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 			program.emplace_back(token.line, token.column, Token::TTAG_SEQUENCE, -1);
 			tokenIndex++;
 			std::vector<Token> sequence;
-			if (parse_sequence(sequence, Token::TTAG_COMMA) == PARSE_ERROR)
+			if (parse_operation(sequence, PRECEDENCE_SEQUENCE) == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
 			REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
@@ -308,7 +283,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 		else if (tokens[tokenIndex].tag == Token::TTAG_BRACKET_OPEN) { // Index.
 			tokenIndex++;
 			std::vector<Token> index;
-			if (parse_operation(index, PRECEDENCE_MIN) == PARSE_ERROR)
+			if (parse_operation(index, PRECEDENCE_ASSIGNMENT) == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(index.begin()), std::make_move_iterator(index.end()));
 			REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);
@@ -325,44 +300,61 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	return typeLast;
 }
 
-/*
-Returns the id of the last parsed structure.
+/* parse_operation.
+* Build operation Token stack in Reverse Polish Notation (operator at the end) respecting the order of operations.
+* Uses Precedence Climbing algorithm to build the branches following operator precedence.
+* The resulting abstract syntax tree is turned into the program stack in RPN.
+* https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
+* Returns the id of the last parsed structure.
+* 
+* Assignment special handling:
+*	Assignment operands are deliberately flipped because the right hand side is supposed to resolve before being assigned to the left hand variable.
+*	Considering an ARRAY 'a' and an INT 'i' in the following 2 cases:
+*		(Case 1) a[i] + a[i = 1];
+*		(Case 2) a[i] = a[i = 1];
+*	The addition operation SHOULD index the left instance of the array on the previous value of 'i',
+*	whereas the assignment SHOULD index it on the right hand newly assigned value of '1'.
+*	This is particularly problematic when the assigned value clears the array, thus any previously computed indices are invalidated.
+*	To solve this problem the left hand side variable WILL ALWAYS be dereferenced last, just before the assignment.
+*	This way the subsequent assignment only occurs on a valid variable reference.
 */
-Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min = PRECEDENCE_MIN)
+Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min)
 {
 	std::vector<Token>& left = program;
-	tok_tag typeLast = parse_operand(left);
-	if (typeLast == PARSE_ERROR || typeLast == OPERATION_EMPTY)
+	tok_tag typeLast = parse_operand(left); // Parse left hand side operand.
+	if (typeLast < Token::TTAG_BEGIN) // No operand.
 		return typeLast;
 
+	// Variable assignment operation.
 	if (tokenIndex < tokens.size() && tokens[tokenIndex].tag == Token::TTAG_BINARY_EQUAL && left[0].tag == Token::TTAG_VARIABLE) {
 		left[0].tag = Token::TTAG_REFERENCE;
 	}
 
+	// Precedence analisis and branching.
+#define OP_PRECEDENCE(val) ((val) & PRECEDENCE_MASK_)
+#define OP_ASSOCIATIVITY(val) ((val) & ASSOCIATIVITY_MASK_)
 	while (tokenIndex < tokens.size() && tag_binary(tokens[tokenIndex].tag) && OP_PRECEDENCE(tokens[tokenIndex].val_int) >= precedence_min)
 	{
-		Token& token = tokens[tokenIndex];
+		Token& binary = tokens[tokenIndex]; // Binary operator.
 		tokenIndex++;
 
-#define PRECEDENCE_MIN_NEXT(val) (OP_PRECEDENCE(val) + OP_ASSOCIATIVITY(val))
 		std::vector<Token> right;
-		typeLast = parse_operation(right, PRECEDENCE_MIN_NEXT(token.val_int));
+		typeLast = parse_operation(right, OP_PRECEDENCE(binary.val_int) + (OP_ASSOCIATIVITY(binary.val_int) ? 1 : 0)); // Compute new min precedence to parse right hand side operation.
 		if (typeLast == PARSE_ERROR)
 			return typeLast;
 		if (typeLast == OPERATION_EMPTY) {
-			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag));
+			if (binary.tag == Token::TTAG_BINARY_COMMA) // Trailing comma is allowed.
+				break;
+			parserError(file_name(), binary.line, binary.column, ERROR_MESSAGES[6], tag_name(binary.tag));
 			return PARSE_ERROR;
 		}
 
 		// Combine operands and operator in RPN.
-		if (token.tag == Token::TTAG_BINARY_EQUAL) { // Backwards.
-			right.insert(right.end(), std::make_move_iterator(left.begin()), std::make_move_iterator(left.end()));
-			std::swap(left, right);
-		}
-		else {
-			left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));
-		}
-		left.push_back(std::move(token));
+		if (binary.tag == Token::TTAG_BINARY_EQUAL)	// Assignment operator.
+			left.swap(right);						// Invert order.
+		left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));	// Stack together left and right hand operands.
+		if (binary.tag != Token::TTAG_BINARY_COMMA)																// Skip comma sequence operator.
+			left.push_back(std::move(binary));																	// Move operator to the end.
 	}
 
 	return typeLast;
@@ -426,7 +418,7 @@ short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<st
 			tokenIndex++;
 
 			std::vector<Token> condition;
-			tok_tag parsed = parse_operation(condition, PRECEDENCE_MIN);
+			tok_tag parsed = parse_operation(condition, PRECEDENCE_ASSIGNMENT);
 			if (parsed == PARSE_ERROR)
 				return PARSE_ERROR;
 			if (parsed == OPERATION_EMPTY) {
@@ -488,7 +480,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<s
 
 	if (keyword.tag == Token::TTAG_FOR) {
 		std::vector<Token> init;
-		tok_tag loop_init = parse_operation(init, PRECEDENCE_MIN);
+		tok_tag loop_init = parse_operation(init, PRECEDENCE_ASSIGNMENT);
 		if (loop_init == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_init != OPERATION_EMPTY) {
@@ -503,7 +495,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<s
 	std::vector<Token> condition_content{};
 	tok_tag loop_condition = OPERATION_EMPTY;
 	if (keyword.tag != Token::TTAG_DO) {
-		loop_condition = parse_operation(condition_content, PRECEDENCE_MIN);
+		loop_condition = parse_operation(condition_content, PRECEDENCE_ASSIGNMENT);
 		if (loop_condition == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_condition == OPERATION_EMPTY && keyword.tag == Token::TTAG_WHILE) {
@@ -520,7 +512,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<s
 		tokenIndex++;
 		increment_position = { tokens[tokenIndex].line, tokens[tokenIndex].column };
 
-		loop_increment = parse_operation(increment_content, PRECEDENCE_MIN);
+		loop_increment = parse_operation(increment_content, PRECEDENCE_ASSIGNMENT);
 		if (loop_increment == PARSE_ERROR)
 			return PARSE_ERROR;
 	}
@@ -569,7 +561,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<s
 			program[index].val_int = program.size();
 
 		std::vector<Token> condition;
-		loop_condition = parse_operation(condition, PRECEDENCE_MIN);
+		loop_condition = parse_operation(condition, PRECEDENCE_ASSIGNMENT);
 		if (loop_condition == PARSE_ERROR)
 			return PARSE_ERROR;
 		if (loop_condition == OPERATION_EMPTY) {
@@ -665,7 +657,7 @@ Language::Function_tL* Language::Parser::parse_function()
 		function.arg_id.emplace_back(NAME_TABLE_get_name_id(tokens[tokenIndex].val_identifier)); // Function argument name ID.
 		tokenIndex++;
 
-		if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != Token::TTAG_COMMA)
+		if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != Token::TTAG_BINARY_COMMA)
 			break;
 		tokenIndex++;
 	}
@@ -711,7 +703,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 		case Token::TTAG_IDENTIFIER:
 		{
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
@@ -725,7 +717,6 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 		}
 		break;
 
-		case Token::TTAG_COMMA:
 		case Token::TTAG_COLON:
 		case Token::TTAG_BRACE_OPEN:
 			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
@@ -788,7 +779,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 			// // Anonymous function.
 			//tokenIndex--;
 			//std::vector<Token> operation;
-			//tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
+			//tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);
 			//if (parse_result == PARSE_ERROR)
 			//	return PARSE_ERROR;
 			//program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
@@ -806,7 +797,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 		{
 			tokenIndex++;
 			std::vector<Token> sequence;
-			tok_tag parse_result = parse_sequence(sequence, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(sequence, PRECEDENCE_SEQUENCE);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
@@ -884,7 +875,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 		default: // All Operators and Operation Delimiters.
 		{
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_MIN);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
 			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
