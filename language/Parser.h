@@ -22,7 +22,7 @@ namespace Language
 		SourceFile* loaded{ nullptr };
 		std::unordered_map<std::string, Function_tL>* functions{ nullptr };
 
-		tok_tag parse_operand(std::vector<Token>& program);
+		tok_tag parse_operand(std::vector<Token>& program); // Parse a single operand.
 		tok_tag parse_operation(std::vector<Token>& program, int_tL precedence_min); // Parse operator joined operation.
 
 		short parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2]); // Conditional branching parser.

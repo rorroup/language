@@ -107,195 +107,152 @@ bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<
 	return true;
 }
 
-// Precedence climbing.
-// https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
-/*
-Returns the id of the last parsed structure.
+/* parse_operand.
+* Parse a single operand (atom).
+* Operand contains:
+*	Any combination of Pre Unary operators.
+*	The operand structure: a simple Value, Array, Variable, or Parenthesised operation.
+*	Any combination of Post operations, such as Array Indexing (Brackets) or Function Call (Parenthesis).
+* Returns the tag ID of the last parsed structure on success.
 */
 Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 {
 	static const RegisteredSequence* TOKEN_POSITIVE = tag_id(Token::TTAG_UNARY_POSITIVE);
 	static const RegisteredSequence* TOKEN_NEGATIVE = tag_id(Token::TTAG_UNARY_NEGATIVE);
 
-	int unary_begin = tokenIndex;
-	int unary_end = -1;
+	const auto unary_begin = tokens.rend() - tokenIndex;	// Reverse iterator up to the first Pre Unary operator.
+	auto unary_end = unary_begin;							// Reverse iterator up to the last Pre Unary operator.
 
+	// Parse Pre Unary operators.
 	while (tokenIndex < tokens.size())
 	{
 		Token& unary = tokens[tokenIndex];
-
-		if (tag_unary(unary.tag) || unary.tag == Token::TTAG_BINARY_ADD || unary.tag == Token::TTAG_BINARY_SUBSTRACT) {
-			if		(unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value);
-			else if	(unary.tag == Token::TTAG_BINARY_SUBSTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value);
-			unary_end = tokenIndex;
-		}
-		else break;
-
+		if		(unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value); // ADD to POSITIVE.
+		else if	(unary.tag == Token::TTAG_BINARY_SUBSTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
+		else if	(!tag_unary(unary.tag)) break; // Non Unary operator.
+		unary_end--;
 		tokenIndex++;
 	}
 
+	// No main operand structure parsed yet.
 	tok_tag typeLast = OPERATION_EMPTY;
 
 	if (tokenIndex >= tokens.size())
 	{
-		if (unary_end != -1) {
-			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[2], tag_name(tokens[tokenIndex].tag));
+		if (unary_end != unary_begin) { // Unary operators found.
+			parserError(file_name(), unary_end->line, unary_end->column, ERROR_MESSAGES[6], tag_name(unary_end->tag));
 			return PARSE_ERROR;
 		}
 
-		return typeLast;
+		return OPERATION_EMPTY;
 	}
 
-	Token& token = tokens[tokenIndex];
-	
-	switch (token.tag)
+	// Operand main structure.
+	Token& operand = tokens[tokenIndex];
+	switch (operand.tag)
 	{
+	// Simple Value.
 	case Token::TTAG_NONE:
 	case Token::TTAG_INT:
 	case Token::TTAG_FLOAT:
 	case Token::TTAG_STRING:
-		typeLast = token.tag;
-		program.push_back(std::move(tokens[tokenIndex]));
+		typeLast = operand.tag; // Register tag.
+		program.push_back(std::move(tokens[tokenIndex])); // Move Value.
 		tokenIndex++;
 		break;
 
+	// Variable.
 	case Token::TTAG_IDENTIFIER:
 	{
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_VARIABLE, NAME_TABLE_get_name_id(token.val_identifier)); // Variable name ID.
-		typeLast = Token::TTAG_VARIABLE;
+		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_VARIABLE, NAME_TABLE_get_name_id(operand.val_identifier)); // Variable name ID.
+		typeLast = Token::TTAG_VARIABLE; // Register tag.
 		tokenIndex++;
 	}
 	break;
 
-	case Token::TTAG_PARENTHESIS_OPEN: // Parenthesised expression.
+	// Parenthesised expression.
+	case Token::TTAG_PARENTHESIS_OPEN:																					// Open parenthesis.
 	{
 		tokenIndex++;
 		std::vector<Token> inner;
-		typeLast = parse_operation(inner, PRECEDENCE_ASSIGNMENT);
+		typeLast = parse_operation(inner, PRECEDENCE_ASSIGNMENT);														// Parse parenthesis inner operation.
 		if (typeLast == PARSE_ERROR)
 			return typeLast;
 		if (typeLast == OPERATION_EMPTY) {
 			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[3], "Parenthesised expression");
 			return PARSE_ERROR;
 		}
-		program.insert(program.end(), std::make_move_iterator(inner.begin()), std::make_move_iterator(inner.end()));
-		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
-		typeLast = tokens[tokenIndex].tag;
+		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);																// Close parenthesis.
+		program.insert(program.end(), std::make_move_iterator(inner.begin()), std::make_move_iterator(inner.end()));	// Move parenthesis content.
+		typeLast = tokens[tokenIndex].tag;																				// Register closing parenthesis tag.
 		tokenIndex++;
 	}
 	break;
 
-	case Token::TTAG_BRACKET_OPEN: // Array.
+	// Array.
+	case Token::TTAG_BRACKET_OPEN:																							// Open bracket.
 	{
-		program.emplace_back(token.line, token.column, Token::TTAG_SEQUENCE, -1);
+		program.emplace_back(operand.line, operand.column, Token::TTAG_SEQUENCE, -1);										// Register start of the Array sequence.
 		tokenIndex++;
-		std::vector<Token> sequence;
-		if (parse_operation(sequence, PRECEDENCE_SEQUENCE) == PARSE_ERROR)
+		std::vector<Token> elements;
+		if (parse_operation(elements, PRECEDENCE_SEQUENCE) == PARSE_ERROR)													// Parse Array elements sequence.
 			return PARSE_ERROR;
-		program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
-		REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);
+		REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);																		// Close bracket.
+		program.insert(program.end(), std::make_move_iterator(elements.begin()), std::make_move_iterator(elements.end()));	// Move Array content.
+		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_ARRAY_INIT, LANGUAGE_INT(1));	// Register Array Initialization Token.
+		typeLast = Token::TTAG_ARRAY_INIT;																					// Register Array Initialization tag.
 		tokenIndex++;
-		program.emplace_back(token.line, token.column, Token::TTAG_ARRAY_INIT, LANGUAGE_INT(1));
-		typeLast = Token::TTAG_ARRAY_INIT;
 	}
 	break;
 
-	case Token::TTAG_FUNCTION_DEF:
-	//	// Anonymous function.
-	//{
-	//	loaded->functions.emplace_back(Function_tL{ loaded }); // Register function.
-	//	Function_tL& func = loaded->functions.back();
-	//	func.program = std::make_shared<Program_tL>();
-	//	if (parse_function(func) == PARSE_ERROR)
-	//		return PARSE_ERROR;
-	//	if (func.name != nullptr) {
-	//		parserError(file_name(), token.line, token.column, ERROR_MESSAGES[5], "can not form part of an operation");
-	//		return PARSE_ERROR;
-	//	}
-	//	program.emplace_back(token.line, token.column, &func);
-	//	typeLast = Token::TTAG_FUNCTION;
-	//}
-	//break;
-
-	/* Impossible to come from the tokenized stream.
-	case Token::TTAG_ARRAY:
-	case Token::TTAG_FUNCTION:
-	case Token::TTAG_BUILTIN:
-
-	case Token::TTAG_VARIABLE:
-	case Token::TTAG_REFERENCE:
-
-	case Token::TTAG_SEQUENCE:
-	case Token::TTAG_INDEX:
-	case Token::TTAG_ARRAY_INIT:
-	case Token::TTAG_CALL:
-
-	case Token::TTAG_JUMP:
-	case Token::TTAG_JUMP_ON_FALSE:
-	case Token::TTAG_JUMP_ON_NOT_FALSE:
-
-	case Token::TTAG_UNARY_FLIP:
-	case Token::TTAG_UNARY_NEGATION:
-	case Token::TTAG_UNARY_POSITIVE:
-	case Token::TTAG_UNARY_NEGATIVE:
-		return typeLast;
+	/* Remaining invalid operand tags.
+	* Impossible to come from the tokenized stream (Special operations).
+	* Non operation tags (Keywords and Delimiters).
+	* Binary operators.
 	*/
+	default:
+		if (unary_end != unary_begin) { // Unary operators found.
+			parserError(file_name(), unary_end->line, unary_end->column, ERROR_MESSAGES[6], tag_name(unary_end->tag));
+			return PARSE_ERROR;
+		}
 
-	case Token::TTAG_SEMICOLON:
-	case Token::TTAG_COLON:
-	case Token::TTAG_PARENTHESIS_CLOSE:
-	case Token::TTAG_BRACKET_CLOSE:
-	case Token::TTAG_BRACE_OPEN:
-	case Token::TTAG_BRACE_CLOSE:
-
-	case Token::TTAG_IF:
-	case Token::TTAG_ELSE:
-	case Token::TTAG_FOR:
-	case Token::TTAG_WHILE:
-	case Token::TTAG_DO:
-	case Token::TTAG_BREAK:
-	case Token::TTAG_CONTINUE:
-	case Token::TTAG_RETURN:
-	case Token::TTAG_AWAIT:
-	case Token::TTAG_LABEL:
-	case Token::TTAG_GOTO:
-		return typeLast;
-
-	default: // ALL remaining BINARY_OPERATORS:
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[4], "Binary Operator");
-		return PARSE_ERROR;
+		return OPERATION_EMPTY;
 	}
 
+	// Post operators.
 	while (tokenIndex < tokens.size())
 	{
-		if (tokens[tokenIndex].tag == Token::TTAG_PARENTHESIS_OPEN) { // Call.
-			program.emplace_back(token.line, token.column, Token::TTAG_SEQUENCE, -1);
+		// Function Call.
+		if (tokens[tokenIndex].tag == Token::TTAG_PARENTHESIS_OPEN)																	// Open parenthesis.
+		{
+			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_SEQUENCE, -1);						// Register Call sequence start.
 			tokenIndex++;
-			std::vector<Token> sequence;
-			if (parse_operation(sequence, PRECEDENCE_SEQUENCE) == PARSE_ERROR)
+			std::vector<Token> arguments;
+			if (parse_operation(arguments, PRECEDENCE_SEQUENCE) == PARSE_ERROR)														// Parse Call arguments sequence.
 				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
-			REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
+			REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);																		// Close parenthesis.
+			program.insert(program.end(), std::make_move_iterator(arguments.begin()), std::make_move_iterator(arguments.end()));	// Move Call arguments.
+			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_CALL, LANGUAGE_INT(1));			// Register Call Token.
+			typeLast = Token::TTAG_CALL;																							// Register Call tag.
 			tokenIndex++;
-			program.emplace_back(token.line, token.column, Token::TTAG_CALL, LANGUAGE_INT(1));
-			typeLast = Token::TTAG_CALL;
 		}
-		else if (tokens[tokenIndex].tag == Token::TTAG_BRACKET_OPEN) { // Index.
+		// Array Index.
+		else if (tokens[tokenIndex].tag == Token::TTAG_BRACKET_OPEN)														// Open bracket.
+		{
 			tokenIndex++;
 			std::vector<Token> index;
-			if (parse_operation(index, PRECEDENCE_ASSIGNMENT) == PARSE_ERROR)
+			if (parse_operation(index, PRECEDENCE_ASSIGNMENT) == PARSE_ERROR)												// Parse Index operation.
 				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(index.begin()), std::make_move_iterator(index.end()));
-			REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);
+			REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);																	// Close bracket.
+			program.insert(program.end(), std::make_move_iterator(index.begin()), std::make_move_iterator(index.end()));	// Move Index operation.
+			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_INDEX, LANGUAGE_INT(1));	// Register Array Index Token.
+			typeLast = Token::TTAG_INDEX;																					// Register Array Index tag.
 			tokenIndex++;
-			program.emplace_back(token.line, token.column, Token::TTAG_INDEX, LANGUAGE_INT(1));
-			typeLast = Token::TTAG_INDEX;
 		}
 		else break;
 	}
 
-	if (unary_end != -1)
-		program.insert(program.end(), std::make_move_iterator(tokens.rend() - unary_end - 1), std::make_move_iterator(tokens.rend() - unary_begin));
+	program.insert(program.end(), std::make_move_iterator(unary_end), std::make_move_iterator(unary_begin)); // Move Unary operators backwards.
 
 	return typeLast;
 }
