@@ -267,16 +267,7 @@ namespace Language
 
 	struct SourceFile;
 
-	struct Program_tL
-	{
-	public:
-		std::vector<Token> instructions;
-
-		Program_tL() {}
-		~Program_tL() {
-			instructions.~vector();
-		}
-	};
+	typedef std::vector<Token> Program_tL; // Token stack of parsed instructions for solving.
 
 	struct Function_tL
 	{
@@ -842,9 +833,9 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 	while (!thread.executing.empty()) {
 		Execution_tL& state = thread.executing.back();
 
-		while (state.program_counter < state.program->instructions.size())
+		while (state.program_counter < state.program->size())
 		{
-			Token token = state.program->instructions[state.program_counter];
+			Token token = (*state.program)[state.program_counter];
 			state.program_counter++;
 
 			switch (token.tag)

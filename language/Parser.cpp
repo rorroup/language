@@ -89,7 +89,7 @@ if (tokens[tokenIndex].tag != required_tag) { \
 bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps)
 {
 	// Aliases.
-	std::vector<Token>& program = _function.program->instructions;
+	std::vector<Token>& program = *_function.program;
 	std::vector<std::pair<size_t, std::string>>& gotos = _jumps.first;
 	std::unordered_map<std::string, size_t>& labels = _jumps.second;
 
@@ -373,7 +373,7 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 */
 short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
-	std::vector<Token>& program = function.program->instructions;
+	std::vector<Token>& program = *function.program;
 	short branches = 0;
 	int condition_index = -1;
 	std::vector<size_t> block_end_index{};
@@ -469,7 +469,7 @@ short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<st
 */
 char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
-	std::vector<Token>& program = function.program->instructions;
+	std::vector<Token>& program = *function.program;
 	if (tokenIndex >= tokens.size()) {
 		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
 		return PARSE_ERROR;
@@ -651,7 +651,7 @@ Language::Function_tL* Language::Parser::parse_function()
 
 	function.variable_id = NAME_TABLE_get_name_id(function.name); // Function name ID.
 	function.program = std::make_shared<Program_tL>();
-	function.program->instructions.reserve(tokens.size() - tokenIndex);
+	function.program->reserve(tokens.size() - tokenIndex);
 	function.global = flags & PARSE_FLAG::GLOBAL_ALL;
 
 	tokenIndex++;
@@ -688,7 +688,7 @@ Language::Function_tL* Language::Parser::parse_function()
 	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_BRACE_CLOSE, nullptr);
 	tokenIndex++;
 
-	function.program->instructions.shrink_to_fit();
+	function.program->shrink_to_fit();
 	return &function;
 }
 
@@ -697,7 +697,7 @@ Language::Function_tL* Language::Parser::parse_function()
 */
 char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
-	std::vector<Token>& program = function.program->instructions;
+	std::vector<Token>& program = *function.program;
 	while (tokenIndex < tokens.size())
 	{
 		const Token& token = tokens[tokenIndex];
@@ -918,7 +918,7 @@ Language::Function_tL* Language::Parser::parse(SourceFile* file_, std::unordered
 	Function_tL* file_function = &file_function_insert.first->second;
 	file_function->global = flags & (PARSE_FLAG::GLOBAL_FIRST | PARSE_FLAG::GLOBAL_ALL);
 	file_function->program = std::make_shared<Program_tL>();
-	file_function->program->instructions.reserve(tokens.size() - tokenIndex);
+	file_function->program->reserve(tokens.size() - tokenIndex);
 
 	const size_t len = strlen(funcname) + 1;
 	file_function->name = new char[len];
@@ -937,10 +937,10 @@ Language::Function_tL* Language::Parser::parse(SourceFile* file_, std::unordered
 	/*
 	* TODO: At some point check
 	* !tokens.empty();
-	* !file_function->program->instructions.empty();
+	* !file_function->program->empty();
 	* The source code may be all blankspaces and semicolons.
 	*/
 
-	file_function->program->instructions.shrink_to_fit();
+	file_function->program->shrink_to_fit();
 	return file_function;
 }
