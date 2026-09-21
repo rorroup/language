@@ -642,134 +642,99 @@ Language::Function_tL* Language::Parser::parse_function()
 }
 
 /* parse_instructions.
-* Parse complete source code by calling every other parser respectively.
+* Parse complete source code in the current block by calling every other parser respectively.
 */
 char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
 {
 	std::vector<Token>& program = *function.program;
 	while (tokenIndex < tokens.size())
 	{
-		const Token& token = tokens[tokenIndex];
-
+		/* Parse and stack an individual structure.
+		* ALWAYS assumed to be an operation unless a keyword states otherwise.
+		* It calls the corresponding method, but some are processed locally.
+		*/
+		Token& token = tokens[tokenIndex];
 		switch (token.tag)
 		{
-		case Token::TTAG_NONE:
-		case Token::TTAG_INT:
-		case Token::TTAG_FLOAT:
-		case Token::TTAG_STRING:
-		case Token::TTAG_IDENTIFIER:
-		{
-			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);
-			if (parse_result == PARSE_ERROR)
-				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
-			if (parse_result == Token::TTAG_FUNCTION) {
-				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-				break;
-			}
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-			tokenIndex++;
-		}
-		break;
-
-		case Token::TTAG_COLON:
-		case Token::TTAG_BRACE_OPEN:
-			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
-			return PARSE_ERROR;
-
-		case Token::TTAG_BRACE_CLOSE:
+		/* End of the current structure special symbol (not consumed).
+		*/
+		case Token::TTAG_BRACE_CLOSE: // }
 			return true;
 
-		case Token::TTAG_IF:
+		/* if/else structure.
+		*/
+		case Token::TTAG_IF: // if
 			if (parse_if(function, _jumps, interrupts) == PARSE_ERROR)
 				return PARSE_ERROR;
 			break;
 
-		case Token::TTAG_ELSE:
+		case Token::TTAG_ELSE: // else
 			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
 			return PARSE_ERROR;
 
-		case Token::TTAG_FOR:
-		case Token::TTAG_WHILE:
-		case Token::TTAG_DO:
+		/* Loop structure.
+		*/
+		case Token::TTAG_FOR:	// for
+		case Token::TTAG_WHILE:	// while
+		case Token::TTAG_DO:	// do
 			if (parse_loop(function, _jumps, interrupts) == PARSE_ERROR)
 				return PARSE_ERROR;
 			break;
 
-		case Token::TTAG_BREAK:
-			if (interrupts == nullptr) {
+		/* Loop interruption instruction.
+		* break;
+		* continue;
+		*/
+		case Token::TTAG_BREAK:							// break
+		case Token::TTAG_CONTINUE:						// continue
+			if (interrupts == nullptr) { // Not inside a loop.
 				parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
 				return PARSE_ERROR;
 			}
-			interrupts[0].push_back(program.size());
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, -1);
+			tokenIndex++;
+			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
+			interrupts[token.tag - Token::TTAG_BREAK].push_back(program.size());				// Register JUMP index.
+			program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Register JUMP Token.
 			tokenIndex++;
 			break;
 
-		case Token::TTAG_CONTINUE:
-			if (interrupts == nullptr) {
-				parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
-				return PARSE_ERROR;
-			}
-			interrupts[1].push_back(program.size());
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, -1);
-			tokenIndex++;
-			break;
-
-		case Token::TTAG_FUNCTION_DEF:
+		/* Function definition.
+		*/
+		case Token::TTAG_FUNCTION_DEF: // function
 		{
-			//tokenIndex++;
-			//if (tokenIndex < tokens.size()) {
-			//	if (tokens[tokenIndex].tag == Token::TTAG_IDENTIFIER) {
-			//		tokenIndex--;
-					std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
-					Function_tL* parse_result = parse_function();
-					if (parse_result == nullptr)
-						return PARSE_ERROR;
-					const auto& original = loaded->functions.find(parse_result->name);
-					program.emplace_back(function_position.first, function_position.second, (original == loaded->functions.end()) ? parse_result : &original->second);
-					//break;
-			//	}
-			//}
-			// // Anonymous function.
-			//tokenIndex--;
-			//std::vector<Token> operation;
-			//tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);
-			//if (parse_result == PARSE_ERROR)
-			//	return PARSE_ERROR;
-			//program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
-			//if (parse_result == Token::TTAG_FUNCTION) {
-			//	program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-			//	break;
-			//}
-			//REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
-			//program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-			//tokenIndex++;
+			std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
+			Function_tL* parse_result = parse_function();
+			if (parse_result == nullptr)
+				return PARSE_ERROR;
+			const auto& original = loaded->functions.find(parse_result->name);
+			program.emplace_back(function_position.first, function_position.second, (original == loaded->functions.end()) ? parse_result : &original->second);
 		}
 		break;
 
-		case Token::TTAG_RETURN:
+		/* Return instruction.
+		* return operations;
+		*/
+		case Token::TTAG_RETURN:													// return
 		{
 			tokenIndex++;
 			std::vector<Token> sequence;
-			tok_tag parse_result = parse_operation(sequence, PRECEDENCE_SEQUENCE);
+			tok_tag parse_result = parse_operation(sequence, PRECEDENCE_SEQUENCE);	// Operations
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));
-			program.push_back(std::move(token));
-			if (parse_result == Token::TTAG_FUNCTION)
-				break;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
+			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);								// Semicolon.
+			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));	// Move operations.
+			program.push_back(std::move(token));																				// Move return Token.
 			tokenIndex++;
 		}
 		break;
 
-		case Token::TTAG_AWAIT:
-			program.emplace_back(std::move(tokens[tokenIndex]));
+		/* Await instruction.
+		* await;
+		*/
+		case Token::TTAG_AWAIT:										// await
+			program.emplace_back(std::move(token)); // Move await.
 			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
+			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);				// Semicolon.
 			tokenIndex++;
 			break;
 
@@ -809,39 +774,23 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 		}
 		break;
 
-		/* Impossible to come from the tokenized stream.
-		case Token::TTAG_VARIABLE:
-		case Token::TTAG_REFERENCE:
-		case Token::TTAG_ARRAY:
-		case Token::TTAG_SEQUENCE:
-		case Token::TTAG_ARRAY_INIT:
-		case Token::TTAG_INDEX:
-		case Token::TTAG_CALL:
-		case Token::TTAG_BUILTIN:
-		case Token::TTAG_FUNCTION:
-		case Token::TTAG_JUMP:
-		case Token::TTAG_JUMP_ON_FALSE:
-		case Token::TTAG_JUMP_ON_NOT_FALSE:
-			return PARSE_ERROR;
+		/* Operation structure.
+		* operation;
+		* ALL Operands.
+		* ALL Symbols.
+		* Impossible to come from the tokenized stream (Special operations).
 		*/
-
-		case Token::TTAG_SEMICOLON:
-			tokenIndex++;
-			break;
-
-		default: // All Operators and Operation Delimiters.
+		default:
 		{
 			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);
+			tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);	// Operation.
 			if (parse_result == PARSE_ERROR)
 				return PARSE_ERROR;
-			program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));
-			if (parse_result == Token::TTAG_FUNCTION) {
-				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-				break;
+			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);									// Semicolon.
+			if (parse_result != OPERATION_EMPTY) {
+				program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));	// Move operation.
+				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);			// End of operation JUMP Token.
 			}
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
 			tokenIndex++;
 		}
 		break;
