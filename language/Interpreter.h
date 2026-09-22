@@ -91,124 +91,136 @@ namespace Language
 	struct Token
 	{
 	public:
+		/* enum TTAG_*.
+		* Tags that qualify how a Token value is stored, read and processed.
+		* They are generally assigned upon construction when tokenizing or parsing.
+		*/
 		enum : tok_tag
 		{
-			TTAG_BEGIN = 0,
-			TTAG_INNER_BEGIN = TTAG_BEGIN,
-			TTAG_VALUE_BEGIN = TTAG_INNER_BEGIN,
+			TTAG_BEGIN_ = 0,
 
-			// VALUES.
-			TTAG_NONE = TTAG_VALUE_BEGIN,			// 
-			TTAG_INT,						// 
-			TTAG_FLOAT,						// 
-			TTAG_STRING,						// 
-			TTAG_ARRAY,						// 
-			TTAG_FUNCTION,					// User-defined function.
-			TTAG_BUILTIN,					// C++ function.
+				// Tags used during program execution.
+				TTAG_INNER_BEGIN_ = TTAG_BEGIN_,
 
-			TTAG_VALUE_END,
+					// Language value types.
+					TTAG_VALUE_BEGIN_ = TTAG_INNER_BEGIN_,
+							TTAG_NONE = TTAG_VALUE_BEGIN_,			// Not used.
+							TTAG_INT,								// Integer number.
+							TTAG_FLOAT,								// Floating point number.
+							TTAG_STRING,							// String.
+							TTAG_ARRAY,								// Array.
+							TTAG_FUNCTION,							// Language defined function.
+							TTAG_BUILTIN,							// C++ function.
+					TTAG_VALUE_END_,
 
-			// VARIABLES.
-			TTAG_VARIABLE = TTAG_VALUE_END,		// 
-			TTAG_IDENTIFIER,					// 
-			TTAG_REFERENCE,					// 
+					// Language reference types.
+					TTAG_VARIABLE_BEGIN_ = TTAG_VALUE_END_,
+							TTAG_IDENTIFIER = TTAG_VARIABLE_BEGIN_,	// Name of a variable.
+							TTAG_VARIABLE,							// Reference to a variable.
+							TTAG_REFERENCE,							// Reference to a variable.
+					TTAG_VARIABLE_END_,
 
-			// SPECIAL OPERATIONS.
-			TTAG_SEQUENCE,					// 
-			TTAG_INDEX,						// 
-			TTAG_ARRAY_INIT,					// 
-			TTAG_CALL,						// 
+					// Special operations.
+					TTAG_SPECIAL_BEGIN_ = TTAG_VARIABLE_END_,
+							TTAG_SEQUENCE = TTAG_SPECIAL_BEGIN_,	// Sequence delimitation.
+							TTAG_INDEX,								// Array indexing.
+							TTAG_ARRAY_INIT,						// Array initialization.
+							TTAG_CALL,								// Function call.
+					TTAG_SPECIAL_END_,
 
-			// PROGRAM COUNTER CONTROLLERS.
-			TTAG_JUMP,						// 
-			TTAG_JUMP_ON_FALSE,				// 
-			TTAG_JUMP_ON_NOT_FALSE,			// 
+					// Program counter controllers.
+					TTAG_PCOUNTER_BEGIN_ = TTAG_SPECIAL_END_,
+							TTAG_JUMP = TTAG_PCOUNTER_BEGIN_,		// Jump to a position in the program.
+							TTAG_JUMP_ON_FALSE,						// Jump when result evaluates to false.
+							TTAG_JUMP_ON_NOT_FALSE,					// Jump when result not evaluates to false.
+					TTAG_PCOUNTER_END_,
 
-			TTAG_INNER_END,
-			TTAG_KEYWORD_BEGIN = TTAG_INNER_END,
+				TTAG_INNER_END_ = TTAG_PCOUNTER_END_,
 
-			// KEYWORDS.
-			TTAG_IF = TTAG_KEYWORD_BEGIN,			// if
-			TTAG_ELSE,						// else
-			TTAG_FOR,						// for
-			TTAG_WHILE,						// while
-			TTAG_DO,							// do
-			TTAG_BREAK,						// break
-			TTAG_CONTINUE,					// continue
-			//SWITCH,
-			//CASE,
-			//DEFAULT,
-			TTAG_FUNCTION_DEF,				// function
-			TTAG_RETURN,						// return
-			TTAG_AWAIT,						// await
-			TTAG_LABEL,						// label
-			TTAG_GOTO,						// goto
+				// Language reserved words.
+				TTAG_KEYWORD_BEGIN_ = TTAG_INNER_END_,
+							TTAG_IF = TTAG_KEYWORD_BEGIN_,			// if
+							TTAG_ELSE,								// else
+							TTAG_FOR,								// for
+							TTAG_WHILE,								// while
+							TTAG_DO,								// do
+							TTAG_BREAK,								// break
+							TTAG_CONTINUE,							// continue
+							//SWITCH,
+							//CASE,
+							//DEFAULT,
+							TTAG_FUNCTION_DEF,						// function
+							TTAG_RETURN,							// return
+							TTAG_AWAIT,								// await
+							TTAG_LABEL,								// label
+							TTAG_GOTO,								// goto
+							TTAG_FALSE,								// false
+							TTAG_TRUE,								// true
+				TTAG_KEYWORD_END_,
 
-			TTAG_FALSE,						// false
-			TTAG_TRUE,						// true
+				// Language supported symbols.
+				TTAG_SYMBOL_BEGIN_ = TTAG_KEYWORD_END_,
 
-			TTAG_KEYWORD_END,
-			TTAG_SYMBOL_BEGIN = TTAG_KEYWORD_END,
-			TTAG_DELIMITER_BEGIN = TTAG_SYMBOL_BEGIN,
+					// Symbols that delimit scopes or special operations.
+					TTAG_DELIMITER_BEGIN_ = TTAG_SYMBOL_BEGIN_,
+							TTAG_SEMICOLON = TTAG_DELIMITER_BEGIN_,	// ;
+							TTAG_COLON,								// :
+							TTAG_PARENTHESIS_OPEN,					// (
+							TTAG_PARENTHESIS_CLOSE,					// )
+							TTAG_BRACKET_OPEN,						// [
+							TTAG_BRACKET_CLOSE,						// ]
+							TTAG_BRACE_OPEN,						// {
+							TTAG_BRACE_CLOSE,						// }
+					TTAG_DELIMITER_END_,
 
-			// DELIMITERS.
-			TTAG_SEMICOLON = TTAG_DELIMITER_BEGIN,// ;
-			TTAG_COLON,						// :
-			TTAG_PARENTHESIS_OPEN,			// (
-			TTAG_PARENTHESIS_CLOSE,			// )
-			TTAG_BRACKET_OPEN,				// [
-			TTAG_BRACKET_CLOSE,				// ]
-			TTAG_BRACE_OPEN,					// {
-			TTAG_BRACE_CLOSE,				// }
+					// Symbols that resolve to operations.
+					TTAG_OPERATOR_BEGIN_ = TTAG_DELIMITER_END_,
 
-			TTAG_DELIMITER_END,
-			TTAG_OPERATOR_BEGIN = TTAG_DELIMITER_END,
-			TTAG_UNARY_BEGIN = TTAG_OPERATOR_BEGIN,
+						// Unary operators.
+						TTAG_UNARY_BEGIN_ = TTAG_OPERATOR_BEGIN_,
+							TTAG_UNARY_FLIP = TTAG_UNARY_BEGIN_,	// ~ (bitwise not)
+							TTAG_UNARY_NEGATION,					// ! (logic not)
+							TTAG_UNARY_POSITIVE,					// +
+							TTAG_UNARY_NEGATIVE,					// -
+						TTAG_UNARY_END_,
 
-			// OPERATORS.
-			TTAG_UNARY_FLIP = TTAG_UNARY_BEGIN,	// ~
-			TTAG_UNARY_NEGATION,				// !
-			TTAG_UNARY_POSITIVE,				// +
-			TTAG_UNARY_NEGATIVE,				// -
+						// Binary operators.
+						TTAG_BINARY_BEGIN_ = TTAG_UNARY_END_,
+							// Arithmetic.
+							TTAG_BINARY_ADD = TTAG_BINARY_BEGIN_,	// +
+							TTAG_BINARY_SUBTRACT,					// -
+							TTAG_BINARY_MULTIPLY,					// *
+							TTAG_BINARY_DIVIDE,						// /
+							TTAG_BINARY_MODULUS,					// %
+							// Bit shift.
+							TTAG_BINARY_SHIFT_LEFT,					// <<
+							TTAG_BINARY_SHIFT_RIGHT,				// >>
+							// Bitwise logic.
+							TTAG_BINARY_AND_BITWISE,				// &
+							TTAG_BINARY_OR_BITWISE,					// |
+							TTAG_BINARY_OR_EXCLUSIVE,				// ^
+							// Boolean logic.
+							TTAG_BINARY_AND,						// &&
+							TTAG_BINARY_OR,							// ||
+							// Comparison.
+							TTAG_BINARY_LESSER,						// <
+							TTAG_BINARY_GREATER,					// >
+							TTAG_BINARY_LESSER_EQUAL,				// <=
+							TTAG_BINARY_GREATER_EQUAL,				// >=
+							TTAG_BINARY_EQUAL_DOUBLE,				// ==
+							TTAG_BINARY_EQUAL_NOT,					// !=
+							// Assignment.
+							TTAG_BINARY_EQUAL,						// =
+							// TODO: Compound Assignment.
+							// Sequence.
+							TTAG_BINARY_COMMA,						// ,
+						TTAG_BINARY_END_,
 
-			TTAG_UNARY_END,
-			TTAG_BINARY_BEGIN = TTAG_UNARY_END,
+						// TODO: TERNARY ?
 
-			TTAG_BINARY_ADD = TTAG_BINARY_BEGIN,	// +
-			TTAG_BINARY_SUBSTRACT,			// -
-			TTAG_BINARY_MULTIPLY,			// *
-			TTAG_BINARY_DIVIDE,				// /
-			TTAG_BINARY_MODULUS,				// %
-
-			TTAG_BINARY_SHIFT_LEFT,			// <<
-			TTAG_BINARY_SHIFT_RIGHT,			// >>
-
-			TTAG_BINARY_AND_BITWISE,			// &
-			TTAG_BINARY_OR_BITWISE,			// |
-			TTAG_BINARY_OR_EXCLUSIVE,		// ^
-
-			TTAG_BINARY_AND,					// &&
-			TTAG_BINARY_OR,					// ||
-
-			TTAG_BINARY_LESSER,				// <
-			TTAG_BINARY_GREATER,				// >
-			TTAG_BINARY_LESSER_EQUAL,		// <=
-			TTAG_BINARY_GREATER_EQUAL,		// >=
-			TTAG_BINARY_EQUAL_DOUBLE,		// ==
-			TTAG_BINARY_EQUAL_NOT,			// !=
-			TTAG_BINARY_EQUAL,				// =
-
-			// TODO: Compound Assignment.
-
-			TTAG_BINARY_COMMA,						// ,
-
-			TTAG_BINARY_END,
-
-			// TODO: TERNARY ?
-
-			TTAG_OPERATOR_END = TTAG_BINARY_END,
-			TTAG_SYMBOL_END = TTAG_OPERATOR_END,
-			TTAG_END = TTAG_SYMBOL_END
+					TTAG_OPERATOR_END_ = TTAG_BINARY_END_,
+				TTAG_SYMBOL_END_ = TTAG_OPERATOR_END_,
+			TTAG_END_ = TTAG_SYMBOL_END_
 		};
 
 	public:
@@ -740,10 +752,10 @@ void Language::Token::info() const
 	if (!iter) {
 		printf("INVALID_TAG(%hhd)", tag);
 	}
-	else if (tag < Token::TTAG_INNER_END) {
+	else if (tag < Token::TTAG_INNER_END_) {
 		printf("[ %-*s ] ", tag_name_width, iter->name);
 
-		if (tag < Token::TTAG_VALUE_END)			print();
+		if (tag < Token::TTAG_VALUE_END_)			print();
 		else if (tag == Token::TTAG_VARIABLE
 			|| tag == Token::TTAG_REFERENCE)		printf("'%s'", variable_name(val_int));
 		else if (tag == Token::TTAG_IDENTIFIER)	printf("'%s'", val_identifier);
@@ -758,14 +770,14 @@ void Language::Token::info() const
 
 const Language::RegisteredSequence* Language::tag_id(const tok_tag tag)
 {
-	return (tag < Token::TTAG_BEGIN || Token::TTAG_END <= tag) ?
+	return (tag < Token::TTAG_BEGIN_ || Token::TTAG_END_ <= tag) ?
 		nullptr :
 		(
-			(tag < Token::TTAG_KEYWORD_END) ?
+			(tag < Token::TTAG_KEYWORD_END_) ?
 			&LANGUAGE_TOKEN_TAG[tag] :
 			std::find_if(
-				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN,
-				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END,
+				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN_,
+				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END_,
 				[tag](const RegisteredSequence& element) { return element.tag == tag; }
 			)
 			);
@@ -1059,7 +1071,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
-			case Token::TTAG_BINARY_SUBSTRACT:
+			case Token::TTAG_BINARY_SUBTRACT:
 			{
 				if (state.solution.size() < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
