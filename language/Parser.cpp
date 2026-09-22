@@ -117,8 +117,8 @@ bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<
 */
 Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 {
-	static const RegisteredSequence* TOKEN_POSITIVE = tag_id(Token::TTAG_UNARY_POSITIVE);
-	static const RegisteredSequence* TOKEN_NEGATIVE = tag_id(Token::TTAG_UNARY_NEGATIVE);
+	static const TokenTagInfo* TOKEN_POSITIVE = tag_id(Token::TTAG_UNARY_POSITIVE);
+	static const TokenTagInfo* TOKEN_NEGATIVE = tag_id(Token::TTAG_UNARY_NEGATIVE);
 
 	const auto unary_begin = tokens.rend() - tokenIndex;	// Reverse iterator up to the first Pre Unary operator.
 	auto unary_end = unary_begin;							// Reverse iterator up to the last Pre Unary operator.

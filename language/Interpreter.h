@@ -412,14 +412,6 @@ namespace Language
 
 	extern LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
 
-	struct RegisteredSequence
-	{
-		const char* sequence;
-		const char* name;
-		const tok_tag tag;
-		const int_tL value;
-	};
-
 	/* OPERATOR_PRECEDENCE.
 	* Precedence of operators to resolve order of operations.
 	* First least significant byte.
@@ -460,7 +452,109 @@ namespace Language
 		ASSOCIATIVITY_MASK_ = ASSOCIATIVITY_LEFT_TO_RIGHT
 	};
 
-	extern const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END];
+	/* TokenTagInfo.
+	* Token tag numeric ID alongside its respective information.
+	*/
+	struct TokenTagInfo
+	{
+	public:
+		const char* name;	// Tag name.
+		const tok_tag tag;	// TTAG_ enum ID.
+		const char* text;	// Associated source text, if applicable.
+		const int_tL value;	// Tag numeric value, if applicable.
+	};
+
+	/* LANGUAGE_TOKEN_TAG.
+	* Register ALL valid Language Token tags with their associated data.
+	* https://stackoverflow.com/a/22676401
+	* https://cplusplus.com/reference/algorithm/find_if/
+	* https://stackoverflow.com/a/14595314
+	*/
+	inline const TokenTagInfo LANGUAGE_TOKEN_TAG[]
+	{
+#define LANGUAGE_TTAG_NAME(s) STRINGIZING(s), Token::TTAG_ ## s
+		// Inner tags, in tag ascending order.
+
+		{ LANGUAGE_TTAG_NAME(NONE) },
+		{ LANGUAGE_TTAG_NAME(INT) },
+		{ LANGUAGE_TTAG_NAME(FLOAT) },
+		{ LANGUAGE_TTAG_NAME(STRING) },
+		{ LANGUAGE_TTAG_NAME(ARRAY) },
+		{ LANGUAGE_TTAG_NAME(FUNCTION) },
+		{ LANGUAGE_TTAG_NAME(BUILTIN) },
+
+		{ LANGUAGE_TTAG_NAME(IDENTIFIER) },
+		{ LANGUAGE_TTAG_NAME(VARIABLE) },
+		{ LANGUAGE_TTAG_NAME(REFERENCE) },
+
+		{ LANGUAGE_TTAG_NAME(SEQUENCE) },
+		{ LANGUAGE_TTAG_NAME(INDEX) },
+		{ LANGUAGE_TTAG_NAME(ARRAY_INIT) },
+		{ LANGUAGE_TTAG_NAME(CALL) },
+
+		{ LANGUAGE_TTAG_NAME(JUMP) },
+		{ LANGUAGE_TTAG_NAME(JUMP_ON_FALSE) },
+		{ LANGUAGE_TTAG_NAME(JUMP_ON_NOT_FALSE) },
+
+		// Keyword tags, in tag ascending order.
+
+		{ LANGUAGE_TTAG_NAME(IF),					"if" },
+		{ LANGUAGE_TTAG_NAME(ELSE),					"else" },
+		{ LANGUAGE_TTAG_NAME(FOR),					"for" },
+		{ LANGUAGE_TTAG_NAME(WHILE),				"while" },
+		{ LANGUAGE_TTAG_NAME(DO),					"do" },
+		{ LANGUAGE_TTAG_NAME(BREAK),				"break" },
+		{ LANGUAGE_TTAG_NAME(CONTINUE),				"continue" },
+		//SWITCH,
+		//CASE,
+		//DEFAULT,
+		{ LANGUAGE_TTAG_NAME(FUNCTION_DEF),			"function" },
+		{ LANGUAGE_TTAG_NAME(RETURN),				"return" },
+		{ LANGUAGE_TTAG_NAME(AWAIT),				"await" },
+		{ LANGUAGE_TTAG_NAME(LABEL),				"label" },
+		{ LANGUAGE_TTAG_NAME(GOTO),					"goto" },
+
+		{ "FALSE",	Token::TTAG_INT,				"false",	LANGUAGE_FALSE_INT },	// Tag of the parsed Token instead of its ID.
+		{ "TRUE",	Token::TTAG_INT,				"true",		LANGUAGE_TRUE_INT },	// Tag of the parsed Token instead of its ID.
+
+		// Symbol tags, in text length descending order.
+
+		{ LANGUAGE_TTAG_NAME(BINARY_EQUAL_DOUBLE),	"==",		PRECEDENCE_EQUALITY			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_EQUAL_NOT),		"!=",		PRECEDENCE_EQUALITY			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_LESSER_EQUAL),	"<=",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_GREATER_EQUAL),	">=",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_SHIFT_LEFT),	"<<",		PRECEDENCE_SHIFT			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_SHIFT_RIGHT),	">>",		PRECEDENCE_SHIFT			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_AND),			"&&",		PRECEDENCE_AND				| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_OR),			"||",		PRECEDENCE_OR				| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_AND_BITWISE),	"&",		PRECEDENCE_BITWISE_AND		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_OR_BITWISE),	"|",		PRECEDENCE_BITWISE_OR		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_OR_EXCLUSIVE),	"^",		PRECEDENCE_BITWISE_XOR		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_ADD),			"+",		PRECEDENCE_ADDITIVE			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_SUBTRACT),		"-",		PRECEDENCE_ADDITIVE			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_MULTIPLY),		"*",		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_DIVIDE),		"/",		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_MODULUS),		"%",		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_LESSER),		"<",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_GREATER),		">",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BINARY_EQUAL),			"=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
+		{ LANGUAGE_TTAG_NAME(BINARY_COMMA),			",",		PRECEDENCE_SEQUENCE			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+
+		{ LANGUAGE_TTAG_NAME(UNARY_FLIP),			"~",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+		{ LANGUAGE_TTAG_NAME(UNARY_NEGATION),		"!",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+		{ LANGUAGE_TTAG_NAME(UNARY_POSITIVE),		"+",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+		{ LANGUAGE_TTAG_NAME(UNARY_NEGATIVE),		"-",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+
+		{ LANGUAGE_TTAG_NAME(SEMICOLON),			";" },
+		{ LANGUAGE_TTAG_NAME(COLON),				":",		PRECEDENCE_TERNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+		{ LANGUAGE_TTAG_NAME(PARENTHESIS_OPEN),		"(",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(PARENTHESIS_CLOSE),	")",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BRACKET_OPEN),			"[",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BRACKET_CLOSE),		"]",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
+		{ LANGUAGE_TTAG_NAME(BRACE_OPEN),			"{" },
+		{ LANGUAGE_TTAG_NAME(BRACE_CLOSE),			"}" },
+#undef LANGUAGE_TTAG_NAME
+	};
 
 	enum PARSE_FLAG : unsigned short
 	{
@@ -472,7 +566,7 @@ namespace Language
 #define intlen(n) ((n) == 0 ? 1 : ((n) > 0 ? log10(n) + 1 : log10(-(n)) + 2))
 	int_tL NAME_TABLE_get_name_id(const char* name); // Get ID for the provided name.
 	int_tL NAME_TABLE_get_name_id(const std::string& name); // Get ID for the provided name.
-	const RegisteredSequence* tag_id(const tok_tag tag);
+	const TokenTagInfo* tag_id(const tok_tag tag);
 	const char* tag_name(tok_tag tag);
 	const char* variable_name(int_tL id);
 	SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE);
@@ -494,101 +588,6 @@ namespace Language
 
 namespace Language
 {
-	// https://stackoverflow.com/a/22676401
-	// https://cplusplus.com/reference/algorithm/find_if/
-	// https://stackoverflow.com/a/14595314
-	static const RegisteredSequence LANGUAGE_TOKEN_TAG[Token::TTAG_END]
-	{
-	#define TOKEN_NAME_TAG(s) nullptr, STRINGIZING(s), Token::s, NULL
-
-		// INNER.
-
-		{ TOKEN_NAME_TAG(TTAG_NONE) },
-		{ TOKEN_NAME_TAG(TTAG_INT) },
-		{ TOKEN_NAME_TAG(TTAG_FLOAT) },
-		{ TOKEN_NAME_TAG(TTAG_STRING) },
-		{ TOKEN_NAME_TAG(TTAG_ARRAY) },
-		{ TOKEN_NAME_TAG(TTAG_FUNCTION) },
-		{ TOKEN_NAME_TAG(TTAG_BUILTIN) },
-
-		{ TOKEN_NAME_TAG(TTAG_VARIABLE) },
-		{ TOKEN_NAME_TAG(TTAG_IDENTIFIER) },
-		{ TOKEN_NAME_TAG(TTAG_REFERENCE) },
-
-		{ TOKEN_NAME_TAG(TTAG_SEQUENCE) },
-		{ TOKEN_NAME_TAG(TTAG_INDEX) },
-		{ TOKEN_NAME_TAG(TTAG_ARRAY_INIT) },
-		{ TOKEN_NAME_TAG(TTAG_CALL) },
-
-		{ TOKEN_NAME_TAG(TTAG_JUMP) },
-		{ TOKEN_NAME_TAG(TTAG_JUMP_ON_FALSE) },
-		{ TOKEN_NAME_TAG(TTAG_JUMP_ON_NOT_FALSE) },
-
-	#undef TOKEN_NAME_TAG
-	#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s, NULL
-
-		// KEYWORDS.
-
-		{ "if",			TOKEN_NAME_TAG(TTAG_IF) },
-		{ "else",		TOKEN_NAME_TAG(TTAG_ELSE) },
-		{ "for",		TOKEN_NAME_TAG(TTAG_FOR) },
-		{ "while",		TOKEN_NAME_TAG(TTAG_WHILE) },
-		{ "do",			TOKEN_NAME_TAG(TTAG_DO) },
-		{ "break",		TOKEN_NAME_TAG(TTAG_BREAK) },
-		{ "continue",	TOKEN_NAME_TAG(TTAG_CONTINUE) },
-		//SWITCH,
-		//CASE,
-		//DEFAULT,
-		{ "function",	TOKEN_NAME_TAG(TTAG_FUNCTION_DEF) },
-		{ "return",		TOKEN_NAME_TAG(TTAG_RETURN) },
-		{ "await",		TOKEN_NAME_TAG(TTAG_AWAIT) },
-		{ "label",		TOKEN_NAME_TAG(TTAG_LABEL) },
-		{ "goto",		TOKEN_NAME_TAG(TTAG_GOTO) },
-
-		{ "false",		"TTAG_FALSE",	Token::TTAG_INT, LANGUAGE_FALSE_INT },
-		{ "true",		"TTAG_TRUE",		Token::TTAG_INT, LANGUAGE_TRUE_INT },
-
-	#undef TOKEN_NAME_TAG
-	#define TOKEN_NAME_TAG(s) STRINGIZING(s), Token::s
-
-		// SYMBOLS.
-
-		{ "==",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_DOUBLE),	PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "!=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL_NOT),		PRECEDENCE_EQUALITY | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "<=",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ ">=",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER_EQUAL),	PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "<<",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_LEFT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ ">>",		TOKEN_NAME_TAG(TTAG_BINARY_SHIFT_RIGHT),		PRECEDENCE_SHIFT | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "&&",		TOKEN_NAME_TAG(TTAG_BINARY_AND),				PRECEDENCE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "||",		TOKEN_NAME_TAG(TTAG_BINARY_OR),				PRECEDENCE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "&",		TOKEN_NAME_TAG(TTAG_BINARY_AND_BITWISE),		PRECEDENCE_BITWISE_AND | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "|",		TOKEN_NAME_TAG(TTAG_BINARY_OR_BITWISE),		PRECEDENCE_BITWISE_OR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "^",		TOKEN_NAME_TAG(TTAG_BINARY_OR_EXCLUSIVE),	PRECEDENCE_BITWISE_XOR | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "+",		TOKEN_NAME_TAG(TTAG_BINARY_ADD),				PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "-",		TOKEN_NAME_TAG(TTAG_BINARY_SUBSTRACT),		PRECEDENCE_ADDITIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "*",		TOKEN_NAME_TAG(TTAG_BINARY_MULTIPLY),		PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "/",		TOKEN_NAME_TAG(TTAG_BINARY_DIVIDE),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "%",		TOKEN_NAME_TAG(TTAG_BINARY_MODULUS),			PRECEDENCE_MULTIPLICATIVE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "<",		TOKEN_NAME_TAG(TTAG_BINARY_LESSER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ ">",		TOKEN_NAME_TAG(TTAG_BINARY_GREATER),			PRECEDENCE_RELATIONAL | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "=",		TOKEN_NAME_TAG(TTAG_BINARY_EQUAL),			PRECEDENCE_ASSIGNMENT | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-		{ ",",		TOKEN_NAME_TAG(TTAG_BINARY_COMMA),					PRECEDENCE_SEQUENCE | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-
-		{ "~",		TOKEN_NAME_TAG(TTAG_UNARY_FLIP),				PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-		{ "!",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATION),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-		{ "+",		TOKEN_NAME_TAG(TTAG_UNARY_POSITIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-		{ "-",		TOKEN_NAME_TAG(TTAG_UNARY_NEGATIVE),			PRECEDENCE_UNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-
-		{ ";",		TOKEN_NAME_TAG(TTAG_SEMICOLON), },
-		{ ":",		TOKEN_NAME_TAG(TTAG_COLON),					PRECEDENCE_TERNARY | ASSOCIATIVITY_RIGHT_TO_LEFT	},
-		{ "(",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_OPEN),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ ")",		TOKEN_NAME_TAG(TTAG_PARENTHESIS_CLOSE),		PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "[",		TOKEN_NAME_TAG(TTAG_BRACKET_OPEN),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "]",		TOKEN_NAME_TAG(TTAG_BRACKET_CLOSE),			PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT	},
-		{ "{",		TOKEN_NAME_TAG(TTAG_BRACE_OPEN), },
-		{ "}",		TOKEN_NAME_TAG(TTAG_BRACE_CLOSE), },
-	};
-
 	LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
 	NAME_TABLE_TYPE NAME_TABLE;
 	VALUE_TABLE_TYPE VALUE_TABLE;
@@ -743,11 +742,11 @@ void Language::Token::print() const
 void Language::Token::info() const
 {
 	// https://stackoverflow.com/a/63689821
-	static const int tag_name_width = strlen(std::max_element(std::begin(LANGUAGE_TOKEN_TAG), std::end(LANGUAGE_TOKEN_TAG), [](const RegisteredSequence& left, const RegisteredSequence& right) { return strlen(left.name) < strlen(right.name); })->name);
+	static const int tag_name_width = strlen(std::max_element(std::begin(LANGUAGE_TOKEN_TAG), std::end(LANGUAGE_TOKEN_TAG), [](const TokenTagInfo& left, const TokenTagInfo& right) { return strlen(left.name) < strlen(right.name); })->name);
 
 	printf("%03" fLIN ", %03" fCOL " ", line, column);
 
-	const RegisteredSequence* iter = tag_id(tag);
+	const TokenTagInfo* iter = tag_id(tag);
 
 	if (!iter) {
 		printf("INVALID_TAG(%hhd)", tag);
@@ -762,13 +761,13 @@ void Language::Token::info() const
 		else								printf("%" fINT_TL, val_int);
 	}
 	else {
-		printf("[ %-*s ] %s", tag_name_width, iter->name, iter->sequence);
+		printf("[ %-*s ] %s", tag_name_width, iter->name, iter->text);
 	}
 
 	printf("\n");
 }
 
-const Language::RegisteredSequence* Language::tag_id(const tok_tag tag)
+const Language::TokenTagInfo* Language::tag_id(const tok_tag tag)
 {
 	return (tag < Token::TTAG_BEGIN_ || Token::TTAG_END_ <= tag) ?
 		nullptr :
@@ -778,7 +777,7 @@ const Language::RegisteredSequence* Language::tag_id(const tok_tag tag)
 			std::find_if(
 				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN_,
 				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END_,
-				[tag](const RegisteredSequence& element) { return element.tag == tag; }
+				[tag](const TokenTagInfo& element) { return element.tag == tag; }
 			)
 			);
 }
