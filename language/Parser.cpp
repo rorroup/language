@@ -10,12 +10,12 @@ const char* Language::Parser::file_name()
 
 bool Language::Parser::tag_unary(tok_tag tag)
 {
-	return Token::TTAG_UNARY_BEGIN <= tag && tag < Token::TTAG_UNARY_END;
+	return Token::TTAG_UNARY_BEGIN_ <= tag && tag < Token::TTAG_UNARY_END_;
 }
 
 bool Language::Parser::tag_binary(tok_tag tag)
 {
-	return Token::TTAG_BINARY_BEGIN <= tag && tag < Token::TTAG_BINARY_END;
+	return Token::TTAG_BINARY_BEGIN_ <= tag && tag < Token::TTAG_BINARY_END_;
 }
 
 namespace Language
@@ -128,7 +128,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	{
 		Token& unary = tokens[tokenIndex];
 		if		(unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value); // ADD to POSITIVE.
-		else if	(unary.tag == Token::TTAG_BINARY_SUBSTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
+		else if	(unary.tag == Token::TTAG_BINARY_SUBTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
 		else if	(!tag_unary(unary.tag)) break; // Non Unary operator.
 		unary_end--;
 		tokenIndex++;
@@ -279,7 +279,7 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 {
 	std::vector<Token>& left = program;
 	tok_tag typeLast = parse_operand(left); // Parse left hand side operand.
-	if (typeLast < Token::TTAG_BEGIN) // No operand.
+	if (typeLast < Token::TTAG_BEGIN_) // No operand.
 		return typeLast;
 
 	// Variable assignment operation.
