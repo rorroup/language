@@ -207,10 +207,10 @@ bool Language::tokenize_source(const char* filename, const char* source, std::de
 			}
 			else
 			{
-				const RegisteredSequence* iter = std::find_if(
+				const TokenTagInfo* iter = std::find_if(
 					std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_KEYWORD_BEGIN_,
 					std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_KEYWORD_END_,
-					[buffer, i](const RegisteredSequence& element) { return strlen(element.sequence) == i && strcmp(element.sequence, buffer) == 0; }
+					[buffer, i](const TokenTagInfo& element) { return strlen(element.text) == i && strcmp(element.text, buffer) == 0; }
 				);
 				if (iter == std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_KEYWORD_END_) {
 					char* s = new char[i + 1];
@@ -290,15 +290,15 @@ bool Language::tokenize_source(const char* filename, const char* source, std::de
 				buf_size j = 0;
 				while (j < i)
 				{
-					const RegisteredSequence* iter = std::find_if(
+					const TokenTagInfo* iter = std::find_if(
 						std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN_,
 						std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END_,
-						[buffer, j](const RegisteredSequence& element) { return strncmp(&buffer[j], element.sequence, strlen(element.sequence)) == 0; }
+						[buffer, j](const TokenTagInfo& element) { return strncmp(&buffer[j], element.text, strlen(element.text)) == 0; }
 					);
 					if (iter != std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END_) {
 						tokens.emplace_back(line_start, tok_start, iter->tag, iter->value);
-						j += strlen(iter->sequence);
-						tok_start += strlen(iter->sequence);
+						j += strlen(iter->text);
+						tok_start += strlen(iter->text);
 					}
 					else // Unsupported symbol.
 					{
