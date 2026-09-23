@@ -1027,646 +1027,6 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
-			case Token::TTAG_BINARY_ADD:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int += right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (float_tL)left.val_int + right.val_float); // Constructor + Move Assignment + Destructor. // TODO: Bypass by assigning tag and value?
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left.val_float += (float_tL)right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left.val_float += right.val_float;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_STRING):
-				{
-					const size_t l0 = intlen(left.val_int);
-					const size_t l1 = strlen(right.val_string->string_get());
-					left = Token(left.line, left.column, String_tL_init(left.val_int, l0, right.val_string->string_get(), l1));
-				}
-				break;
-				case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_INT):
-				{
-					const size_t l0 = strlen(left.val_string->string_get());
-					const size_t l1 = intlen(right.val_int);
-					left = Token(left.line, left.column, String_tL_init(left.val_string->string_get(), l0, right.val_int, l1)); // This must trigger constructor on left so its str_tok gets decremented!
-				}
-				break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_STRING):
-				{
-					const size_t l0 = snprintf(NULL, 0, "%f", left.val_float);
-					const size_t l1 = strlen(right.val_string->string_get());
-					left = Token(left.line, left.column, String_tL_init(left.val_float, l0, right.val_string->string_get(), l1));
-				}
-				break;
-				case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_FLOAT):
-				{
-					const size_t l0 = strlen(left.val_string->string_get());
-					const size_t l1 = snprintf(NULL, 0, "%f", right.val_float);
-					left = Token(left.line, left.column, String_tL_init(left.val_string->string_get(), l0, right.val_float, l1));
-				}
-				break;
-				case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
-				{
-					const size_t l0 = strlen(left.val_string->string_get());
-					const size_t l1 = strlen(right.val_string->string_get());
-					left = Token(left.line, left.column, String_tL_init(left.val_string->string_get(), l0, right.val_string->string_get(), l1));
-				}
-				break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_SUBTRACT:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int -= right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (float_tL)left.val_int - right.val_float);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left.val_float -= (float_tL)right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left.val_float -= right.val_float;
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_MULTIPLY:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int *= right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (float_tL)left.val_int * right.val_float);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left.val_float *= (float_tL)right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left.val_float *= right.val_float;
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-			case Token::TTAG_BINARY_DIVIDE:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					if (right.val_int == LANGUAGE_ZERO_INT) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-						return SOLVE_ERROR;
-					}
-					left.val_int /= right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					if (right.val_float == LANGUAGE_ZERO_FLOAT) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-						return SOLVE_ERROR;
-					}
-					left = Token(left.line, left.column, (float_tL)left.val_int / right.val_float);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					if (right.val_int == LANGUAGE_ZERO_INT) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-						return SOLVE_ERROR;
-					}
-					left.val_float /= (float_tL)right.val_int;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					if (right.val_float == LANGUAGE_ZERO_FLOAT) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-						return SOLVE_ERROR;
-					}
-					left.val_float /= right.val_float;
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_MODULUS:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
-					if (right.val_int == LANGUAGE_ZERO_INT) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-						return SOLVE_ERROR;
-					}
-					left.val_int %= right.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_SHIFT_LEFT:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
-					left.val_int <<= right.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_SHIFT_RIGHT:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
-					left.val_int >>= right.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_AND_BITWISE:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
-					left.val_int &= right.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_OR_BITWISE:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
-					left.val_int |= right.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_OR_EXCLUSIVE:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				if (left.tag == Token::TTAG_INT && right.tag == Token::TTAG_INT) {
-					left.val_int ^= right.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_AND:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-				if (left.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < left.tag ||
-					right.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < right.tag) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-				left = Token(token.line, token.column, left.as_bool() && right.as_bool() ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-			}
-			break;
-
-			case Token::TTAG_BINARY_OR:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-				if (left.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < left.tag ||
-					right.tag <= Token::TTAG_NONE || Token::TTAG_BUILTIN < right.tag) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-				left = Token(token.line, token.column, left.as_bool() || right.as_bool() ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-			}
-			break;
-
-			case Token::TTAG_BINARY_LESSER:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int = (left.val_int < right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left.val_int = ((float_tL)left.val_int < right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left = Token(left.line, left.column, (left.val_float < (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (left.val_float < right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_GREATER:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int = (left.val_int > right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left.val_int = ((float_tL)left.val_int > right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left = Token(left.line, left.column, (left.val_float > (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (left.val_float > right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_LESSER_EQUAL:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int = (left.val_int <= right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left.val_int = ((float_tL)left.val_int <= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left = Token(left.line, left.column, (left.val_float <= (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (left.val_float <= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_GREATER_EQUAL:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int = (left.val_int >= right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left.val_int = ((float_tL)left.val_int >= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left = Token(left.line, left.column, (left.val_float >= (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (left.val_float >= right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_EQUAL_DOUBLE:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int = (left.val_int == right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left.val_int = ((float_tL)left.val_int == right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left = Token(left.line, left.column, (left.val_float == (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (left.val_float == right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_EQUAL_NOT:
-			{
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token right = std::move(state.solution.back());
-				state.solution.pop_back();
-
-				Token& left = state.solution.back();
-
-				switch (tagCOUPLE(left.tag, right.tag))
-				{
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-					left.val_int = (left.val_int != right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-					left.val_int = ((float_tL)left.val_int != right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-					left = Token(left.line, left.column, (left.val_float != (float_tL)right.val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-					left = Token(left.line, left.column, (left.val_float != right.val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT);
-					break;
-				default:
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left.tag), tag_name(right.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
-
-			case Token::TTAG_BINARY_EQUAL:
-			{
-				// Resolve left-hand variable reference for assignment.
-				std::vector<int_tL> indices;
-				indices.reserve((!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) ? state.solution.size() / 2 : 0);
-				while (!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) {
-					Token& index = state.solution.back();
-					indices.push_back(index.val_int);
-					state.solution.pop_back();
-				}
-
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
-					return SOLVE_ERROR;
-				}
-
-				Token left = std::move(state.solution.back());
-				state.solution.pop_back();
-				if (left.tag != Token::TTAG_REFERENCE) {
-					interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_REFERENCE), tag_name(left.tag));
-					return SOLVE_ERROR;
-				}
-
-				void* ref = indices.size() ? state.GET_VARIABLE_VALUE_(left, state) : &left;
-				if (!ref) return SOLVE_ERROR;
-				enum : tok_tag {
-					POINTER_CHAR = -1,
-					POINTER_ARRAY = Token::TTAG_ARRAY,
-					POINTER_STRING = Token::TTAG_STRING,
-					POINTER_REFERENCE = Token::TTAG_REFERENCE,
-				};
-				tok_tag ref_type = static_cast<Token*>(ref)->tag;
-				for (int i = indices.size() - 1; i >= 0; i--) {
-					if (ref_type == POINTER_ARRAY) {
-						if (indices[i] < 0 || static_cast<Token*>(ref)->val_array->array.size() <= indices[i]) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(ref_type));
-							return SOLVE_ERROR;
-						}
-						ref = &static_cast<Token*>(ref)->val_array->array[indices[i]];
-						ref_type = static_cast<Token*>(ref)->tag;
-					}
-					else if (ref_type == POINTER_STRING) {
-						if (indices[i] < 0 || strlen(static_cast<Token*>(ref)->val_string->string_get()) <= indices[i]) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(ref_type));
-							return SOLVE_ERROR;
-						}
-						if (!static_cast<Token*>(ref)->val_string->owned) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[14], tag_name(POINTER_STRING));
-							return SOLVE_ERROR;
-						}
-						ref = &static_cast<Token*>(ref)->val_string->string_get()[indices[i]];
-						ref_type = POINTER_CHAR;
-					}
-					else if (ref_type == POINTER_CHAR) {
-						if (indices[i] != 0) {
-							interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(Token::TTAG_STRING));
-							return SOLVE_ERROR;
-						}
-					}
-					else {
-						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(ref_type));
-						return SOLVE_ERROR;
-					}
-				}
-
-				Token& right = state.solution.back();
-
-				if (ref_type == POINTER_REFERENCE) {
-					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left.val_int, right); // There can never be a TTAG_REFERENCE inside an TTAG_ARRAY.
-				}
-				else if (ref_type == POINTER_CHAR) {
-					if (right.tag != Token::TTAG_STRING || strlen(right.val_string->string_get()) != 1) {
-						interpreterError(file_name(), left.line, left.column, ERROR_MESSAGES[9], tag_name(Token::TTAG_STRING), tag_name(Token::TTAG_STRING));
-						return SOLVE_ERROR;
-					}
-					*static_cast<char*>(ref) = right.val_string->string_get()[0];
-				}
-				else {
-					*static_cast<Token*>(ref) = right;
-				}
-				//left = std::move(right);
-			}
-			break;
-
 			case Token::TTAG_ARRAY_INIT:
 			{
 				if (state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::TTAG_SEQUENCE) {
@@ -1777,9 +1137,507 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			case Token::TTAG_RETURN:
 				goto execution_return;
 
+			/* Binary Operation.
+			* BINARY_ Operators.
+			* Impossible tag (remaining keywords and punctuation).
+			*/
 			default:
-				interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[13], tag_name(token.tag));
-				return SOLVE_ERROR;
+			{
+				std::vector<int_tL> indices;
+				indices.reserve((!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) ? state.solution.size() / 2 : 0);
+				while (!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) {
+					Token& index = state.solution.back();
+					indices.push_back(index.val_int);
+					state.solution.pop_back();
+				}
+
+				if (state.solution.size() < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+					return SOLVE_ERROR;
+				}
+
+				Token last = std::move(state.solution.back());
+				state.solution.pop_back();
+
+				Token* left, * right;
+				tok_tag left_type;
+
+				if (Parser::tag_assignment(token.tag))
+				{
+					if (last.tag != Token::TTAG_REFERENCE) {
+						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_REFERENCE), tag_name(last.tag));
+						return SOLVE_ERROR;
+					}
+
+					left = (token.tag == Token::TTAG_BINARY_EQUAL && indices.empty()) ? &last : state.GET_VARIABLE_VALUE_(last, state);
+					if (!left) return SOLVE_ERROR;
+					left_type = left->tag;
+					for (int i = indices.size() - 1; i >= 0; i--) {
+						if (left_type == Token::TTAG_ARRAY) {
+							if (indices[i] < 0 || left->val_array->array.size() <= indices[i]) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(left_type));
+								return SOLVE_ERROR;
+							}
+							left = &left->val_array->array[indices[i]];
+							left_type = left->tag;
+						}
+						else if (left_type == Token::TTAG_STRING) {
+							if (indices[i] < 0 || strlen(left->val_string->string_get()) <= indices[i]) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(left_type));
+								return SOLVE_ERROR;
+							}
+							if (!left->val_string->owned) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[14], tag_name(Token::TTAG_STRING));
+								return SOLVE_ERROR;
+							}
+							left = (Token*)&left->val_string->string_get()[indices[i]];
+							left_type = Token::TTAG_CHAR;
+						}
+						else if (left_type == Token::TTAG_CHAR) {
+							if (indices[i] != 0) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(Token::TTAG_STRING));
+								return SOLVE_ERROR;
+							}
+						}
+						else {
+							interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(left_type));
+							return SOLVE_ERROR;
+						}
+					}
+
+					right = &state.solution.back();
+				}
+				else
+				{
+					left = &state.solution.back();
+					left_type = left->tag;
+					right = &last;
+				}
+
+				Token& result = state.solution.back();
+
+				switch (token.tag)
+				{
+				case Token::TTAG_BINARY_ADD:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = left->val_int + right->val_int;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_float = (float_tL)left->val_int + right->val_float;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_float = left->val_float + (float_tL)right->val_int;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_float = left->val_float + right->val_float;
+						break;
+					/* String Addition (concatenation).
+					* Constructor: In-place Token object (rvalue) String allocation and 'owner' count increment.
+					* Move assignment: value swap transferring ownership to 'result' and setting STRING tag.
+					* Destructor: handles any necessary deallocation of the original 'result' data remaining in the rvalue.
+					*/
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_STRING):
+					{
+						const size_t l0 = intlen(left->val_int);
+						const size_t l1 = strlen(right->val_string->string_get());
+						result = Token(result.line, result.column, String_tL_init(left->val_int, l0, right->val_string->string_get(), l1));
+					}
+					break;
+					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_INT):
+					{
+						const size_t l0 = strlen(left->val_string->string_get());
+						const size_t l1 = intlen(right->val_int);
+						result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_int, l1));
+					}
+					break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_STRING):
+					{
+						const size_t l0 = snprintf(NULL, 0, "%f", left->val_float);
+						const size_t l1 = strlen(right->val_string->string_get());
+						result = Token(result.line, result.column, String_tL_init(left->val_float, l0, right->val_string->string_get(), l1));
+					}
+					break;
+					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_FLOAT):
+					{
+						const size_t l0 = strlen(left->val_string->string_get());
+						const size_t l1 = snprintf(NULL, 0, "%f", right->val_float);
+						result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_float, l1));
+					}
+					break;
+					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+					{
+						const size_t l0 = strlen(left->val_string->string_get());
+						const size_t l1 = strlen(right->val_string->string_get());
+						result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_string->string_get(), l1));
+					}
+					break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_SUBTRACT:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = left->val_int - right->val_int;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_float = (float_tL)left->val_int - right->val_float;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_float = left->val_float - (float_tL)right->val_int;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_float = left->val_float - right->val_float;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_MULTIPLY:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = left->val_int * right->val_int;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_float = (float_tL)left->val_int * right->val_float;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_float = left->val_float * (float_tL)right->val_int;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_float = left->val_float * right->val_float;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_DIVIDE:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						if (right->val_int == LANGUAGE_ZERO_INT) {
+							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+							return SOLVE_ERROR;
+						}
+						result.val_int = left->val_int / right->val_int;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						if (right->val_float == LANGUAGE_ZERO_FLOAT) {
+							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+							return SOLVE_ERROR;
+						}
+						result.val_float = (float_tL)left->val_int / right->val_float;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						if (right->val_int == LANGUAGE_ZERO_INT) {
+							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+							return SOLVE_ERROR;
+						}
+						result.val_float = left->val_float / (float_tL)right->val_int;
+						result.tag = Token::TTAG_FLOAT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						if (right->val_float == LANGUAGE_ZERO_FLOAT) {
+							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+							return SOLVE_ERROR;
+						}
+						result.val_float = left->val_float / right->val_float;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_MODULUS:
+				{
+					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+						if (right->val_int == LANGUAGE_ZERO_INT) {
+							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+							return SOLVE_ERROR;
+						}
+						result.val_int = left->val_int % right->val_int;
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_SHIFT_LEFT:
+				{
+					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+						result.val_int = left->val_int << right->val_int;
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_SHIFT_RIGHT:
+				{
+					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+						result.val_int = left->val_int >> right->val_int;
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_AND_BITWISE:
+				{
+					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+						result.val_int = left->val_int & right->val_int;
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_OR_BITWISE:
+				{
+					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+						result.val_int = left->val_int | right->val_int;
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_OR_EXCLUSIVE:
+				{
+					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+						result.val_int = left->val_int ^ right->val_int;
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+				}
+				break;
+
+				case Token::TTAG_BINARY_AND:
+				{
+					if (!Parser::tag_value(left_type) || !Parser::tag_value(right->tag)) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.val_int = (left->as_bool() && right->as_bool()) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_OR:
+				{
+					if (!Parser::tag_value(left_type) || !Parser::tag_value(right->tag)) {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.val_int = (left->as_bool() || right->as_bool()) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_LESSER:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = (left->val_int < right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_int = ((float_tL)left->val_int < right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_int = (left->val_float < (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_int = (left->val_float < right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_GREATER:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = (left->val_int > right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_int = ((float_tL)left->val_int > right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_int = (left->val_float > (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_int = (left->val_float > right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_LESSER_EQUAL:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = (left->val_int <= right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_int = ((float_tL)left->val_int <= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_int = (left->val_float <= (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_int = (left->val_float <= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_GREATER_EQUAL:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = (left->val_int >= right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_int = ((float_tL)left->val_int >= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_int = (left->val_float >= (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_int = (left->val_float >= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_EQUAL_DOUBLE:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = (left->val_int == right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_int = ((float_tL)left->val_int == right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_int = (left->val_float == (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_int = (left->val_float == right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_BINARY_EQUAL_NOT:
+				{
+					switch (tagCOUPLE(left_type, right->tag))
+					{
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+						result.val_int = (left->val_int != right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+						result.val_int = ((float_tL)left->val_int != right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+						result.val_int = (left->val_float != (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+						result.val_int = (left->val_float != right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						break;
+					default:
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+						return SOLVE_ERROR;
+					}
+					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				default:
+					break;
+				}
+
+				if (!Parser::tag_assignment(token.tag)) break; // Non assignment binary operation ended.
+
+				if (left_type == Token::TTAG_REFERENCE) {
+					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left->val_int, result); // There can never be a TTAG_REFERENCE inside an TTAG_ARRAY.
+				}
+				else if (left_type == Token::TTAG_CHAR) {
+					if (right->tag != Token::TTAG_STRING || strlen(right->val_string->string_get()) != 1) {
+						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[9], tag_name(Token::TTAG_STRING), tag_name(Token::TTAG_STRING));
+						return SOLVE_ERROR;
+					}
+					*(char*)left = right->val_string->string_get()[0];
+				}
+				else {
+					*left = result;
+				}
+			}
+			break;
+
 			}
 		}
 	execution_return:
