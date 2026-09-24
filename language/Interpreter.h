@@ -126,6 +126,7 @@ namespace Language
 							TTAG_INDEX,								// Array indexing.
 							TTAG_ARRAY_INIT,						// Array initialization.
 							TTAG_CALL,								// Function call.
+							TTAG_CHAR,								// Pointer to a char inside a STRING.
 					TTAG_SPECIAL_END_,
 
 					// Program counter controllers.
@@ -491,6 +492,7 @@ namespace Language
 		{ LANGUAGE_TTAG_NAME(INDEX) },
 		{ LANGUAGE_TTAG_NAME(ARRAY_INIT) },
 		{ LANGUAGE_TTAG_NAME(CALL) },
+		{ LANGUAGE_TTAG_NAME(CHAR) },
 
 		{ LANGUAGE_TTAG_NAME(JUMP) },
 		{ LANGUAGE_TTAG_NAME(JUMP_ON_FALSE) },
