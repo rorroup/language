@@ -1144,59 +1144,71 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			*/
 			default:
 			{
-				std::vector<int_tL> indices;
-				indices.reserve((!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) ? state.solution.size() / 2 : 0);
-				while (!state.solution.empty() && state.solution.back().tag == Token::TTAG_INDEX) {
-					Token& index = state.solution.back();
-					indices.push_back(index.val_int);
-					state.solution.pop_back();
-				}
+				int indices = state.solution.size();
+				while (indices > 0 && state.solution[indices - 1].tag == Token::TTAG_INDEX) indices--; // Index of the last INDEX Token.
 
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+				if (indices < 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), indices);
 					return SOLVE_ERROR;
 				}
 
-				Token last = std::move(state.solution.back());
-				state.solution.pop_back();
+				Token last(std::move(state.solution[indices - 1])); // Operand Token previous to any INDEX.
 
 				Token* left, * right;
 				tok_tag left_type;
 
 				if (Parser::tag_assignment(token.tag))
 				{
+					/* Assignment operator solution stack state.
+					*                      *indices
+					*                          |
+					* ---------+-------+-------v----------+
+					* stack... | right | moved | INDEX... |
+					* ---------+-------+-- | --+----------+
+					*                      |
+					*     *left -> last <---
+					*/
+
 					if (last.tag != Token::TTAG_REFERENCE) {
 						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_REFERENCE), tag_name(last.tag));
 						return SOLVE_ERROR;
 					}
 
-					left = (token.tag == Token::TTAG_BINARY_EQUAL && indices.empty()) ? &last : state.GET_VARIABLE_VALUE_(last, state);
+					left = (token.tag == Token::TTAG_BINARY_EQUAL && (indices == state.solution.size())) ? &last : state.GET_VARIABLE_VALUE_(last, state); // No need to dereference if no operation nor indexing occurs (avoid variable not found error).
 					if (!left) return SOLVE_ERROR;
 					left_type = left->tag;
-					for (int i = indices.size() - 1; i >= 0; i--) {
+
+					/*
+					* Array indexing admits operations which could potentially alter or even delete it.
+					* For example:
+					*	a[0][array_clear(a)];
+					* Thus dereferencing and indexing a variable for assignment MUST be done last.
+					* This way the validity of the assigning variable and index can be guaranteed.
+					*/
+					for (int i = indices; i < state.solution.size(); i++) {
 						if (left_type == Token::TTAG_ARRAY) {
-							if (indices[i] < 0 || left->val_array->array.size() <= indices[i]) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(left_type));
+							if (state.solution[i].val_int < 0 || left->val_array->array.size() <= state.solution[i].val_int) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), state.solution[i].val_int, tag_name(left_type));
 								return SOLVE_ERROR;
 							}
-							left = &left->val_array->array[indices[i]];
+							left = &left->val_array->array[state.solution[i].val_int];
 							left_type = left->tag;
 						}
 						else if (left_type == Token::TTAG_STRING) {
-							if (indices[i] < 0 || strlen(left->val_string->string_get()) <= indices[i]) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(left_type));
+							if (state.solution[i].val_int < 0 || strlen(left->val_string->string_get()) <= state.solution[i].val_int) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), state.solution[i].val_int, tag_name(left_type));
 								return SOLVE_ERROR;
 							}
 							if (!left->val_string->owned) {
 								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[14], tag_name(Token::TTAG_STRING));
 								return SOLVE_ERROR;
 							}
-							left = (Token*)&left->val_string->string_get()[indices[i]];
+							left = (Token*)&left->val_string->string_get()[state.solution[i].val_int];
 							left_type = Token::TTAG_CHAR;
 						}
 						else if (left_type == Token::TTAG_CHAR) {
-							if (indices[i] != 0) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), indices[i], tag_name(Token::TTAG_STRING));
+							if (state.solution[i].val_int != 0) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), state.solution[i].val_int, tag_name(Token::TTAG_STRING));
 								return SOLVE_ERROR;
 							}
 						}
@@ -1206,10 +1218,29 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						}
 					}
 
+					state.solution.resize(indices - 1); // Remove the INDEX and moved Tokens.
+
 					right = &state.solution.back();
 				}
 				else
 				{
+					/* Non Assignment operator solution stack state.
+					*                     *indices
+					*                         |
+					* ---------+------+-------v
+					* stack... | left | moved |
+					* ---------+------+-- | --+
+					*                     |
+					*  *right -> last <----
+					*/
+
+					if (indices != state.solution.size()) {
+						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(Token::TTAG_INDEX));
+						return SOLVE_ERROR;
+					}
+
+					state.solution.pop_back(); // Remove the moved Token.
+
 					left = &state.solution.back();
 					left_type = left->tag;
 					right = &last;
