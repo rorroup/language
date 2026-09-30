@@ -305,8 +305,8 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 		return typeLast;
 
 	// Variable assignment operation.
-	if (tokenIndex < tokens.size() && tokens[tokenIndex].tag == Token::TTAG_BINARY_EQUAL && left[0].tag == Token::TTAG_VARIABLE) {
-		left[0].tag = Token::TTAG_REFERENCE;
+	if (tokenIndex < tokens.size() && tag_assignment(tokens[tokenIndex].tag) && left[0].tag == Token::TTAG_VARIABLE) {
+		left[0].tag = Token::TTAG_REFERENCE; // Assignment operations deferred dereferencing.
 	}
 
 	// Precedence analisis and branching.
@@ -329,7 +329,7 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 		}
 
 		// Combine operands and operator in RPN.
-		if (binary.tag == Token::TTAG_BINARY_EQUAL)	// Assignment operator.
+		if (tag_assignment(binary.tag))				// Assignment operator.
 			left.swap(right);						// Invert order.
 		left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));	// Stack together left and right hand operands.
 		if (binary.tag != Token::TTAG_BINARY_COMMA)																// Skip comma sequence operator.
