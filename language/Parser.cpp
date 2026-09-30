@@ -14,6 +14,7 @@ const char* Language::Parser::file_name()
 bool Language::Parser::tag_value(const tok_tag tag) { return Token::TTAG_VALUE_BEGIN_ < tag && tag < Token::TTAG_VALUE_END_; }
 bool Language::Parser::tag_unary(const tok_tag tag) { return Token::TTAG_UNARY_BEGIN_ <= tag && tag < Token::TTAG_UNARY_END_; }
 bool Language::Parser::tag_binary(const tok_tag tag) { return Token::TTAG_BINARY_BEGIN_ <= tag && tag < Token::TTAG_BINARY_END_; }
+bool Language::Parser::tag_assignment(const tok_tag tag) { return Token::TTAG_ASSIGN_BEGIN_ <= tag && tag < Token::TTAG_ASSIGN_END_; }
 
 namespace Language
 {
