@@ -1150,9 +1150,10 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			case Token::TTAG_RETURN:
 				goto execution_return;
 
-			/* Binary Operation.
+			/* Binary and Increment/Decrement Operation.
 			* BINARY_ Operators.
 			* ASSIGN_ Operators.
+			* INCREMENT and DECREMENT Operators.
 			* Impossible tag (remaining keywords and punctuation).
 			*/
 			default:
@@ -1160,8 +1161,12 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				int indices = state.solution.size();
 				while (indices > 0 && state.solution[indices - 1].tag == Token::TTAG_INDEX) indices--; // Index of the last INDEX Token.
 
-				if (indices < 2) {
+				if (Parser::tag_binary(token.tag) && indices < 2) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), indices);
+					return SOLVE_ERROR;
+				}
+				else if (Parser::tag_unary(token.tag) && indices < 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), indices);
 					return SOLVE_ERROR;
 				}
 
@@ -1170,7 +1175,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				Token* left, * right;
 				tok_tag left_type;
 
-				if (Parser::tag_assignment(token.tag))
+				if (Parser::tag_assignment(token.tag) || Parser::tag_incdec(token.tag))
 				{
 					/* Assignment operator solution stack state.
 					*                      *indices
@@ -1231,9 +1236,19 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						}
 					}
 
-					state.solution.resize(indices - 1); // Remove the INDEX and moved Tokens.
+					state.solution.resize(Parser::tag_incdec(token.tag) ? indices : indices - 1); // Remove the INDEX, and moved Token if not INCREMENT nor DECREMENT.
 
 					right = &state.solution.back();
+
+					/* INCREMENT/DECREMENT operator solution stack state.
+					*       *right  *indices
+					*          |       |
+					* ---------v-------v----------+
+					* stack... | moved | INDEX... |
+					* ---------+-- | --+----------+
+					*              |
+					*              --> last <- *left
+					*/
 				}
 				else
 				{
@@ -1668,6 +1683,38 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						return SOLVE_ERROR;
 					}
 					result.tag = Token::TTAG_INT;
+				}
+				break;
+
+				case Token::TTAG_UNARY_INCREMENT:
+				{
+					if (left_type == Token::TTAG_INT) {
+						result.val_int = (token.val_int == INCDEC_PRE_VAL) ? (++left->val_int) : (left->val_int++);
+					}
+					else if (left_type == Token::TTAG_FLOAT) {
+						result.val_float = (token.val_int == INCDEC_PRE_VAL) ? (++left->val_float) : (left->val_float++);
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(left_type));
+						return SOLVE_ERROR;
+					}
+					result.tag = left_type;
+				}
+				break;
+
+				case Token::TTAG_UNARY_DECREMENT:
+				{
+					if (left_type == Token::TTAG_INT) {
+						result.val_int = (token.val_int == INCDEC_PRE_VAL) ? (--left->val_int) : (left->val_int--);
+					}
+					else if (left_type == Token::TTAG_FLOAT) {
+						result.val_float = (token.val_int == INCDEC_PRE_VAL) ? (--left->val_float) : (left->val_float--);
+					}
+					else {
+						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(left_type));
+						return SOLVE_ERROR;
+					}
+					result.tag = left_type;
 				}
 				break;
 
