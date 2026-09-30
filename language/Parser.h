@@ -36,6 +36,7 @@ namespace Language
 		static bool tag_value(const tok_tag tag);		//	Whether a tag is a VALUE.
 		static bool tag_unary(const tok_tag tag);		//	Whether a tag is a UNARY operator.
 		static bool tag_binary(const tok_tag tag);		//	Whether a tag is a BINARY operator.
+		static bool tag_assignment(const tok_tag tag);	//	Whether a tag is an ASSIGNMENT operator.
 
 	private:
 		const char* file_name();

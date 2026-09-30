@@ -32,6 +32,14 @@ bool Language::Parser::tag_binary(const tok_tag tag)
 	return Token::TTAG_BINARY_BEGIN_ <= tag && tag < Token::TTAG_BINARY_END_;
 }
 
+/* tag_assignment.
+* Check if the tag is an ASSIGNMENT operator.
+*/
+bool Language::Parser::tag_assignment(const tok_tag tag)
+{
+	return Token::TTAG_ASSIGN_BEGIN_ <= tag && tag < Token::TTAG_ASSIGN_END_;
+}
+
 namespace Language
 {
 	typedef unsigned char ErrMesType;
