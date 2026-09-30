@@ -1139,6 +1139,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 
 			/* Binary Operation.
 			* BINARY_ Operators.
+			* ASSIGN_ Operators.
 			* Impossible tag (remaining keywords and punctuation).
 			*/
 			default:
@@ -1219,6 +1220,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				switch (token.tag)
 				{
 				case Token::TTAG_BINARY_ADD:
+				case Token::TTAG_ASSIGN_ADD:
 				{
 					switch (tagCOUPLE(left_type, right->tag))
 					{
@@ -1284,6 +1286,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_SUBTRACT:
+				case Token::TTAG_ASSIGN_SUBTRACT:
 				{
 					switch (tagCOUPLE(left_type, right->tag))
 					{
@@ -1309,6 +1312,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_MULTIPLY:
+				case Token::TTAG_ASSIGN_MULTIPLY:
 				{
 					switch (tagCOUPLE(left_type, right->tag))
 					{
@@ -1334,6 +1338,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_DIVIDE:
+				case Token::TTAG_ASSIGN_DIVIDE:
 				{
 					switch (tagCOUPLE(left_type, right->tag))
 					{
@@ -1375,6 +1380,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_MODULUS:
+				case Token::TTAG_ASSIGN_MODULUS:
 				{
 					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
 						if (right->val_int == LANGUAGE_ZERO_INT) {
@@ -1391,6 +1397,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_SHIFT_LEFT:
+				case Token::TTAG_ASSIGN_SHIFT_LEFT:
 				{
 					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
 						result.val_int = left->val_int << right->val_int;
@@ -1403,6 +1410,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_SHIFT_RIGHT:
+				case Token::TTAG_ASSIGN_SHIFT_RIGHT:
 				{
 					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
 						result.val_int = left->val_int >> right->val_int;
@@ -1415,6 +1423,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_AND_BITWISE:
+				case Token::TTAG_ASSIGN_AND_BITWISE:
 				{
 					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
 						result.val_int = left->val_int & right->val_int;
@@ -1427,6 +1436,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_OR_BITWISE:
+				case Token::TTAG_ASSIGN_OR_BITWISE:
 				{
 					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
 						result.val_int = left->val_int | right->val_int;
@@ -1439,6 +1449,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_OR_EXCLUSIVE:
+				case Token::TTAG_ASSIGN_OR_EXCLUSIVE:
 				{
 					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
 						result.val_int = left->val_int ^ right->val_int;
