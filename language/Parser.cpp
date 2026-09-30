@@ -8,6 +8,14 @@ const char* Language::Parser::file_name()
 	return loaded ? loaded->name.c_str() : nullptr;
 }
 
+/* tag_value.
+* Check if the tag is a VALUE type.
+*/
+bool Language::Parser::tag_value(const tok_tag tag)
+{
+	return Token::TTAG_VALUE_BEGIN_ < tag && tag < Token::TTAG_VALUE_END_;
+}
+
 /* tag_unary.
 * Check if the tag is a UNARY operator.
 */
