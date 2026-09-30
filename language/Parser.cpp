@@ -8,15 +8,11 @@ const char* Language::Parser::file_name()
 	return loaded ? loaded->name.c_str() : nullptr;
 }
 
-bool Language::Parser::tag_unary(tok_tag tag)
-{
-	return Token::TTAG_UNARY_BEGIN_ <= tag && tag < Token::TTAG_UNARY_END_;
-}
-
-bool Language::Parser::tag_binary(tok_tag tag)
-{
-	return Token::TTAG_BINARY_BEGIN_ <= tag && tag < Token::TTAG_BINARY_END_;
-}
+/* tag_* checking methods.
+* Check if a tag belongs to a particular behavior.
+*/
+bool Language::Parser::tag_unary(const tok_tag tag) { return Token::TTAG_UNARY_BEGIN_ <= tag && tag < Token::TTAG_UNARY_END_; }
+bool Language::Parser::tag_binary(const tok_tag tag) { return Token::TTAG_BINARY_BEGIN_ <= tag && tag < Token::TTAG_BINARY_END_; }
 
 namespace Language
 {
