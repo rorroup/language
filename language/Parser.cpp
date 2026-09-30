@@ -111,7 +111,7 @@ bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<
 * Operand contains:
 *	Any combination of Pre Unary operators.
 *	The operand structure: a simple Value, Array, Variable, or Parenthesised operation.
-*	Any combination of Post operations, such as Array Indexing (Brackets) or Function Call (Parenthesis).
+*	Any combination of Post operations, such as INCREMENT/DECREMENT, Array Indexing (Brackets) or Function Call (Parenthesis).
 * Returns the tag ID of the last parsed structure on success.
 */
 Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
@@ -122,12 +122,15 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	const auto unary_begin = tokens.rend() - tokenIndex;	// Reverse iterator up to the first Pre Unary operator.
 	auto unary_end = unary_begin;							// Reverse iterator up to the last Pre Unary operator.
 
+	bool unary_inc_dec = false; // Presence of UNARY INCREMENT or DECREMENT since they perform assignment.
+
 	// Parse Pre Unary operators.
 	while (tokenIndex < tokens.size())
 	{
 		Token& unary = tokens[tokenIndex];
-		if		(unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value); // ADD to POSITIVE.
-		else if	(unary.tag == Token::TTAG_BINARY_SUBTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
+		if (tag_incdec(unary.tag)) unary_inc_dec = true; // INC/DEC PRE Operator.
+		else if (unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value); // ADD to POSITIVE.
+		else if (unary.tag == Token::TTAG_BINARY_SUBTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
 		else if	(!tag_unary(unary.tag)) break; // Non Unary operator.
 		unary_end--;
 		tokenIndex++;
@@ -221,8 +224,15 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	// Post operators.
 	while (tokenIndex < tokens.size())
 	{
+		// Unary Increment/Decrement.
+		if (tag_incdec(tokens[tokenIndex].tag))																					// INC/DEC Operator.
+		{
+			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, tokens[tokenIndex].tag, INCDEC_POST_VAL);	// Register it as POST.
+			unary_inc_dec = true;
+			tokenIndex++;
+		}
 		// Function Call.
-		if (tokens[tokenIndex].tag == Token::TTAG_PARENTHESIS_OPEN)																	// Open parenthesis.
+		else if (tokens[tokenIndex].tag == Token::TTAG_PARENTHESIS_OPEN)															// Open parenthesis.
 		{
 			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_SEQUENCE, -1);						// Register Call sequence start.
 			tokenIndex++;
@@ -252,6 +262,11 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 	}
 
 	program.insert(program.end(), std::make_move_iterator(unary_end), std::make_move_iterator(unary_begin)); // Move Unary operators backwards.
+
+	// Unary INCREMENT/DECREMENT operation.
+	if (unary_inc_dec && !program.empty() && program[0].tag == Token::TTAG_VARIABLE) {
+		program[0].tag = Token::TTAG_REFERENCE; // Assignment operations deferred dereferencing.
+	}
 
 	return typeLast;
 }

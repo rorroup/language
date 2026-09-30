@@ -6,5 +6,5 @@ print(-(-2 + 1) * (3 * (1 - (max([true, -!2]) && false))));
 print(x = 0x40 ^ 1 << 2 | 8 & 0xFF || (y = 12 - 4 * 3) && -(-2 + 1) * (3 * (1 - (max([true, -!2]) && false))));
 print(x);
 print(y);
-print(y += 100 + 6 * 7);
+print(y += 100 + 6 * 7 + ++x * 1000);
 print("");
