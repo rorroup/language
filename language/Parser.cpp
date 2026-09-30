@@ -24,6 +24,14 @@ bool Language::Parser::tag_unary(const tok_tag tag)
 	return Token::TTAG_UNARY_BEGIN_ <= tag && tag < Token::TTAG_UNARY_END_;
 }
 
+/* tag_incdec.
+* Check if the tag is a UNARY INCREMENT or DECREMENT operator either PRE or POST.
+*/
+bool Language::Parser::tag_incdec(const tok_tag tag)
+{
+	return Token::TTAG_UNARY_INCDEC_BEGIN_ <= tag && tag < Token::TTAG_UNARY_INCDEC_END_;
+}
+
 /* tag_binary.
 * Check if the tag is a BINARY operator.
 */
