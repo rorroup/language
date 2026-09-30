@@ -33,10 +33,11 @@ namespace Language
 
 		Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags);
 
+		static bool tag_unary(const tok_tag tag);		//	Whether a tag is a UNARY operator.
+		static bool tag_binary(const tok_tag tag);		//	Whether a tag is a BINARY operator.
+
 	private:
 		const char* file_name();
-		static bool tag_unary(tok_tag tag);
-		static bool tag_binary(tok_tag tag);
 
 		static bool goto_label(Function_tL& _function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps); // Resolve 'goto' and 'label' JUMP indices.
 	};
