@@ -33,6 +33,7 @@ namespace Language
 
 		Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags);
 
+		static bool tag_value(const tok_tag tag);		// Whether a tag is a VALUE.
 		static bool tag_unary(const tok_tag tag);		// Whether a tag is a UNARY operator.
 		static bool tag_binary(const tok_tag tag);		// Whether a tag is a BINARY operator.
 
