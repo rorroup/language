@@ -315,6 +315,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 * Uses Precedence Climbing algorithm to build the branches following operator precedence.
 * The resulting abstract syntax tree is turned into the program stack in RPN.
 * https://eli.thegreenplace.net/2012/08/02/parsing-expressions-by-precedence-climbing
+* Ternary operations(?:) are exceptionally forced to form as outer QUESTION and inner COLON operators.
 * Returns the id of the last parsed structure.
 * 
 * Assignment special handling:
@@ -328,7 +329,7 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 *	To solve this problem the left hand side variable WILL ALWAYS be dereferenced last, just before the assignment.
 *	This way the subsequent assignment only occurs on a valid variable reference.
 */
-Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min)
+Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min, int* right_begin)
 {
 	std::vector<Token>& left = program;
 	tok_tag typeLast = parse_operand(left); // Parse left hand side operand.
@@ -343,13 +344,19 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 	// Precedence analisis and branching.
 #define OP_PRECEDENCE(val) ((val) & PRECEDENCE_MASK_)
 #define OP_ASSOCIATIVITY(val) ((val) & ASSOCIATIVITY_MASK_)
-	while (tokenIndex < tokens.size() && tag_binary(tokens[tokenIndex].tag) && OP_PRECEDENCE(tokens[tokenIndex].val_int) >= precedence_min)
+	while (tokenIndex < tokens.size() && (
+		((tag_binary(tokens[tokenIndex].tag) || (tokens[tokenIndex].tag == Token::TTAG_TERNARY_QUESTION)) && (OP_PRECEDENCE(tokens[tokenIndex].val_int) >= precedence_min))
+		|| ((tokens[tokenIndex].tag == Token::TTAG_TERNARY_COLON) && right_begin) // COLON operation MUST ALWAYS form if caller is QUESTION and NEVER otherwise.
+		))
 	{
 		Token& binary = tokens[tokenIndex]; // Binary operator.
 		tokenIndex++;
 
+		int inner_right = -1; // Inner right operand index.
 		std::vector<Token> right;
-		typeLast = parse_operation(right, OP_PRECEDENCE(binary.val_int) + (OP_ASSOCIATIVITY(binary.val_int) ? 1 : 0)); // Compute new min precedence to parse right hand side operation.
+		typeLast = parse_operation(right,
+			tag_ternary(binary.tag) ? PRECEDENCE_ASSIGNMENT : (OP_PRECEDENCE(binary.val_int) + (OP_ASSOCIATIVITY(binary.val_int) ? 1 : 0)), // Compute new min precedence to parse right hand side operation, or reset for ternary to accept ASSIGNMENT.
+			(binary.tag == Token::TTAG_TERNARY_QUESTION) ? &inner_right : nullptr); // Only QUESTION passes pointer looking for matching inner COLON operator.
 		if (typeLast == PARSE_ERROR)
 			return typeLast;
 		if (typeLast == OPERATION_EMPTY) {
@@ -362,8 +369,29 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 		// Combine operands and operator in RPN.
 		if (tag_assignment(binary.tag))				// Assignment operator.
 			left.swap(right);						// Invert order.
+		else if (binary.tag == Token::TTAG_TERNARY_QUESTION) {
+			if (inner_right < 0) {
+				parserError(file_name(), binary.line, binary.column, ERROR_MESSAGES[1], tag_name(Token::TTAG_TERNARY_COLON), " but none are left.");
+				return PARSE_ERROR;
+			}
+			left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE_ON_FALSE, (int_tL)inner_right); // Conditional ADVANCE to the right COLON side.
+		}
+		else if (binary.tag == Token::TTAG_TERNARY_COLON) {
+			/* Ternary Operation.
+			*                                              ----------------
+			*                             -----------------|-------,      |
+			* -----------+-----------+----|----+------+----|----+--v----+-v----------+
+			* program... | condition | ADVANCE | left | ADVANCE | right | program... |
+			* -----------+-----------+---------+------+---------+-------+------------+
+			*              condition      ?     left       :      right
+			*/
+			left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE, (int_tL)right.size()); // Left COLON side ADVANCE past the right one.
+			*right_begin = left.size(); // Allow QUESTION to ADVANCE directly to the right COLON side past the left one.
+		}
 		left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));	// Stack together left and right hand operands.
-		if (binary.tag != Token::TTAG_BINARY_COMMA)																// Skip comma sequence operator.
+		if (binary.tag == Token::TTAG_TERNARY_QUESTION) continue; // QUESTION operator already included (ADVANCE).
+		else if (binary.tag == Token::TTAG_TERNARY_COLON) break; // COLON is always the top level operator in its operation.
+		else if (binary.tag != Token::TTAG_BINARY_COMMA)														// Skip comma sequence operator.
 			left.push_back(std::move(binary));																	// Move operator to the end.
 	}
 
