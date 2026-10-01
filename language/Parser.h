@@ -38,6 +38,7 @@ namespace Language
 		static bool tag_incdec(const tok_tag tag);		// Whether a tag is a UNARY INCREMENT or DECREMENT operator.
 		static bool tag_binary(const tok_tag tag);		// Whether a tag is a BINARY operator.
 		static bool tag_assignment(const tok_tag tag);	// Whether a tag is a BINARY ASSIGNMENT operator.
+		static bool tag_ternary(const tok_tag tag);		// Whether a tag is a TERNARY operator.
 
 	private:
 		const char* file_name();

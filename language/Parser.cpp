@@ -16,6 +16,7 @@ bool Language::Parser::tag_unary(const tok_tag tag) { return Token::TTAG_UNARY_B
 bool Language::Parser::tag_incdec(const tok_tag tag) { return Token::TTAG_UNARY_INCDEC_BEGIN_ <= tag && tag < Token::TTAG_UNARY_INCDEC_END_; }
 bool Language::Parser::tag_binary(const tok_tag tag) { return Token::TTAG_BINARY_BEGIN_ <= tag && tag < Token::TTAG_BINARY_END_; }
 bool Language::Parser::tag_assignment(const tok_tag tag) { return Token::TTAG_ASSIGN_BEGIN_ <= tag && tag < Token::TTAG_ASSIGN_END_; }
+bool Language::Parser::tag_ternary(const tok_tag tag) { return Token::TTAG_TERNARY_BEGIN_ <= tag && tag < Token::TTAG_TERNARY_END_; }
 
 namespace Language
 {
