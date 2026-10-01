@@ -761,7 +761,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 			tokenIndex++;
 			REQUIRE_CURRENT_TAG(Token::TTAG_STRING);																			// "String" label name.
 			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_COLON);																				// COLON symbol.
+			REQUIRE_CURRENT_TAG(Token::TTAG_TERNARY_COLON);																		// COLON symbol.
 			const auto& insertion = _jumps.second.try_emplace(tokens[tokenIndex - 1].val_string->string_get(), program.size());	// Register label name and token index.
 			if (!insertion.second) { // Label name already existed.
 				parserError(file_name(), tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, ERROR_MESSAGES[9], tokens[tokenIndex - 1].val_string->string_get());
