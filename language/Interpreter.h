@@ -149,9 +149,10 @@ namespace Language
 							TTAG_DO,								// do
 							TTAG_BREAK,								// break
 							TTAG_CONTINUE,							// continue
-							//SWITCH,
-							//CASE,
-							//DEFAULT,
+							TTAG_SWITCH,							// switch
+							TTAG_ON,								// on
+							TTAG_DEFAULT,							// default
+							TTAG_OFF,								// off
 							TTAG_FUNCTION_DEF,						// function
 							TTAG_RETURN,							// return
 							TTAG_AWAIT,								// await
@@ -547,9 +548,10 @@ namespace Language
 		{ LANGUAGE_TTAG_NAME(DO),					"do" },
 		{ LANGUAGE_TTAG_NAME(BREAK),				"break" },
 		{ LANGUAGE_TTAG_NAME(CONTINUE),				"continue" },
-		//SWITCH,
-		//CASE,
-		//DEFAULT,
+		{ LANGUAGE_TTAG_NAME(SWITCH),				"switch" },
+		{ LANGUAGE_TTAG_NAME(ON),					"on" },
+		{ LANGUAGE_TTAG_NAME(DEFAULT),				"default" },
+		{ LANGUAGE_TTAG_NAME(OFF),					"off" },
 		{ LANGUAGE_TTAG_NAME(FUNCTION_DEF),			"function" },
 		{ LANGUAGE_TTAG_NAME(RETURN),				"return" },
 		{ LANGUAGE_TTAG_NAME(AWAIT),				"await" },
