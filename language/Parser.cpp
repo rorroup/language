@@ -48,6 +48,14 @@ bool Language::Parser::tag_assignment(const tok_tag tag)
 	return Token::TTAG_ASSIGN_BEGIN_ <= tag && tag < Token::TTAG_ASSIGN_END_;
 }
 
+/* tag_ternary.
+* Check if the tag is a TERNARY operator.
+*/
+bool Language::Parser::tag_ternary(const tok_tag tag)
+{
+	return Token::TTAG_TERNARY_BEGIN_ <= tag && tag < Token::TTAG_TERNARY_END_;
+}
+
 namespace Language
 {
 	typedef unsigned char ErrMesType;
