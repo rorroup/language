@@ -474,6 +474,15 @@ namespace Language
 		ASSOCIATIVITY_MASK_ = ASSOCIATIVITY_LEFT_TO_RIGHT
 	};
 
+	/* OPERATOR_FLAG.
+	* Special flags to customize operator behavior.
+	* Third least significant byte.
+	*/
+	enum OPERATOR_FLAG : int_tL
+	{
+		OPFLAG_MASK_				= 0xFF0000
+	};
+
 	/* INCDEC_*_VAL.
 	* Precedence and Associativity of INCREMENT/DECREMENT operators in Prefix and Postfix positions.
 	*/
