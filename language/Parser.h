@@ -25,11 +25,12 @@ namespace Language
 		tok_tag parse_operand(std::vector<Token>& program); // Parse a single operand.
 		tok_tag parse_operation(std::vector<Token>& program, int_tL precedence_min, int* right_begin = nullptr); // Parse operator joined operation.
 
-		short parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2]); // Conditional branching parser.
-		char parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2]); // Loop parser.
+		short parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs); // Conditional branching parser.
+		char parse_switch(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs); // Switch structure parser.
+		char parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs); // Loop parser.
 		Function_tL* parse_function();
 
-		char parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2] = nullptr); // Complete Language parser.
+		char parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2] = nullptr, std::vector<int>* _offs = nullptr); // Complete Language parser.
 
 		Function_tL* parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags);
 
