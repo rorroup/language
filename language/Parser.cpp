@@ -363,7 +363,7 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 /* parse_if.
 * Parse 'if' and 'else' branching inside the current function.
 */
-short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
+short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
 	std::vector<Token>& program = *function.program;
 	short branches = 0;
@@ -435,7 +435,7 @@ short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<st
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
 		tokenIndex++;
 
-		if (parse_instructions(function, _jumps, interrupts) == PARSE_ERROR)
+		if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
 			return PARSE_ERROR;
 
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
@@ -456,10 +456,104 @@ short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<st
 	return true;
 }
 
+/* parse_switch.
+* Parse 'switch' structure including 'on' and 'default' cases.
+* Provide 'offs' vector to register 'off' terminations.
+* ALL conditions, except for the first, are JUMPed.
+* If the first condition fails, it ADVANCEs into the next, and so on.
+* That way once a condition is met the program skips the ones remaining.
+* 
+* switch (<CONTROL>) {
+*	on <CONDITION>:
+*	default:
+*		off;
+* }
+*/
+char Language::Parser::parse_switch(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
+{
+	static const TokenTagInfo* OPERATOR_EQUALITY = tag_id(Token::TTAG_BINARY_EQUAL_DOUBLE);
+
+	std::vector<Token>& program = *function.program;
+
+	REQUIRE_CURRENT_TAG(Token::TTAG_SWITCH);				// switch
+	tokenIndex++;
+	REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);		// (
+	tokenIndex++;
+
+	Program_tL Control;										// <Control>.
+	tok_tag _control = parse_operation(Control, PRECEDENCE_ASSIGNMENT);
+	if (_control == PARSE_ERROR)
+		return PARSE_ERROR;
+	if (_control == OPERATION_EMPTY) {
+		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'switch' control value");
+		return PARSE_ERROR;
+	}
+	program.insert(program.end(), std::make_move_iterator(Control.begin()), std::make_move_iterator(Control.end()));
+
+	REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);		// )
+	tokenIndex++;
+	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);			// {
+	tokenIndex++;
+
+	std::vector<int> offs;		// Switch 'off' indices.
+	int case_start = -1;		// Case start JUMP index.
+	int last_advance = -1;		// Last case ADVANCE index.
+	while (tokenIndex < tokens.size()) {
+		const Token& keyword = tokens[tokenIndex];
+		if (keyword.tag == Token::TTAG_ON) {				// on
+			tokenIndex++;
+			if (case_start >= 0) { // Not first case.
+				case_start = program.size();															// JUMP index.
+				program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// JUMP Token to skip condition.
+			}
+			if (last_advance >= 0) program[last_advance].val_int = program.size() - last_advance - 1; // Last condition ADVANCE into this one.
+
+			Program_tL Condition;							// <Condition>.
+			tok_tag _condition = parse_operation(Condition, PRECEDENCE_ASSIGNMENT);
+			if (_condition == PARSE_ERROR)
+				return PARSE_ERROR;
+			if (_condition == OPERATION_EMPTY) {
+				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Switch 'on' condition");
+				return PARSE_ERROR;
+			}
+			program.insert(program.end(), std::make_move_iterator(Condition.begin()), std::make_move_iterator(Condition.end()));
+
+			program.emplace_back(keyword.line, keyword.column, OPERATOR_EQUALITY->tag, OPERATOR_EQUALITY->value | OPFLAG_BINARY_NO_POP);	// Compare condition without popping control.
+			last_advance = program.size();																									// ADVANCE Token index.
+			program.emplace_back(keyword.line, keyword.column, Token::TTAG_ADVANCE_ON_FALSE, LANGUAGE_INT(1));								// ADVANCE to next condition if not equal.
+			program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, (int_tL)(program.size() + 1));								// Clear control from the solution stack.
+
+			if (case_start >= 0) program[case_start].val_int = program.size(); // Condition skipped.
+			else case_start = 0;
+		}
+		else {
+			if (last_advance >= 0) program[last_advance].val_int = program.size() - last_advance - 1; // Last condition ADVANCE into this one.
+			program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, (int_tL)(program.size() + 1)); // Clear control from the solution stack.
+			if (keyword.tag != Token::TTAG_DEFAULT) break;	// default
+			tokenIndex++;
+		}
+
+		REQUIRE_CURRENT_TAG(Token::TTAG_TERNARY_COLON);		// :
+		tokenIndex++;
+
+		if (parse_instructions(function, _jumps, interrupts, &offs) == PARSE_ERROR)
+			return PARSE_ERROR;
+
+		if (keyword.tag == Token::TTAG_DEFAULT) break;
+	}
+
+	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);			// }
+	tokenIndex++;
+
+	for (const int& off_jump_index : offs) program[off_jump_index].val_int = program.size(); // 'off' JUMP after 'switch' structure.
+
+	return true;
+}
+
 /* parse_loop.
 * Parse 'for' and 'do'/'while' loops inside the current function.
 */
-char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
+char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
 	std::vector<Token>& program = *function.program;
 	if (tokenIndex >= tokens.size()) {
@@ -544,7 +638,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<s
 	tokenIndex++;
 
 	std::vector<int> interruptions[2] = { std::vector<int>{}, std::vector<int>{} };
-	if (parse_instructions(function, _jumps, interruptions) == PARSE_ERROR)
+	if (parse_instructions(function, _jumps, interruptions, _offs) == PARSE_ERROR)
 		return PARSE_ERROR;
 
 	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
@@ -593,7 +687,7 @@ char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<s
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
 		tokenIndex++;
 
-		if (parse_instructions(function, _jumps, interrupts) == PARSE_ERROR)
+		if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
 			return PARSE_ERROR;
 
 		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
@@ -671,7 +765,7 @@ Language::Function_tL* Language::Parser::parse_function()
 
 	scopeLevel++;
 	std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current function 'goto' and 'label' declarations.
-	if (parse_instructions(function, jumps, nullptr) == PARSE_ERROR)
+	if (parse_instructions(function, jumps, nullptr, nullptr) == PARSE_ERROR)
 		return nullptr;
 	if (!goto_label(function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
 		return nullptr;
@@ -687,7 +781,7 @@ Language::Function_tL* Language::Parser::parse_function()
 /* parse_instructions.
 * Parse complete source code in the current block by calling every other parser respectively.
 */
-char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2])
+char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
 	std::vector<Token>& program = *function.program;
 	while (tokenIndex < tokens.size())
@@ -707,7 +801,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 		/* if/else structure.
 		*/
 		case Token::TTAG_IF: // if
-			if (parse_if(function, _jumps, interrupts) == PARSE_ERROR)
+			if (parse_if(function, _jumps, interrupts, _offs) == PARSE_ERROR)
 				return PARSE_ERROR;
 			break;
 
@@ -715,12 +809,19 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
 			return PARSE_ERROR;
 
+		/* switch structure.
+		*/
+		case Token::TTAG_SWITCH: // switch
+			if (parse_switch(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+				return PARSE_ERROR;
+			break;
+
 		/* Loop structure.
 		*/
 		case Token::TTAG_FOR:	// for
 		case Token::TTAG_WHILE:	// while
 		case Token::TTAG_DO:	// do
-			if (parse_loop(function, _jumps, interrupts) == PARSE_ERROR)
+			if (parse_loop(function, _jumps, interrupts, _offs) == PARSE_ERROR)
 				return PARSE_ERROR;
 			break;
 
@@ -737,6 +838,26 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
 			tokenIndex++;
 			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
 			interrupts[token.tag - Token::TTAG_BREAK].push_back(program.size());				// Register JUMP index.
+			program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Register JUMP Token.
+			tokenIndex++;
+			break;
+
+		/* Switch cases and interruption instructions.
+		* on <OPERATION>:
+		* default:
+		* off;
+		*/
+		case Token::TTAG_ON:							// on
+		case Token::TTAG_DEFAULT:						// default
+		case Token::TTAG_OFF:							// off
+			if (_offs == nullptr) { // Not inside a switch.
+				parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
+				return PARSE_ERROR;
+			}
+			if (token.tag != Token::TTAG_OFF) return true; // Handled in 'parse_switch'.
+			tokenIndex++;
+			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
+			_offs->push_back(program.size());													// Register JUMP index.
 			program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Register JUMP Token.
 			tokenIndex++;
 			break;
