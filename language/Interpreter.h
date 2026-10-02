@@ -480,6 +480,8 @@ namespace Language
 	*/
 	enum OPERATOR_FLAG : int_tL
 	{
+		OPFLAG_BINARY_NO_POP		= 0x010000,
+
 		OPFLAG_MASK_				= 0xFF0000
 	};
 
@@ -1310,9 +1312,13 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						return SOLVE_ERROR;
 					}
 
-					state.solution.pop_back(); // Remove the moved Token.
-
-					left = &state.solution.back();
+					if (token.val_int & OPFLAG_BINARY_NO_POP) { // Not pop the last moved Token.
+						left = &(state.solution[state.solution.size() - 2]);
+					}
+					else {
+						state.solution.pop_back(); // Remove the moved Token.
+						left = &state.solution.back();
+					}
 					left_type = left->tag;
 					right = &last;
 				}
