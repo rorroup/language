@@ -7,7 +7,14 @@ goto "position_0";
 label "position_2":
 
 target = 1;
-print("target = " + target);
+switch(target){
+	on 1:
+		print("target = " + target);
+		off;
+	default:
+		print("All end up here!");
+		off;
+}
 
 goto "position_1";
 
