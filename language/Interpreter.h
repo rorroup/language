@@ -1597,21 +1597,27 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				}
 				break;
 
+#define RESULT_SOLVE_CONDITION_AS_TAG(condition, tag) result.val_int = ((condition) == (token.tag == (tag))) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT
 				case Token::TTAG_BINARY_LESSER:
+				case Token::TTAG_BINARY_GREATER_EQUAL:
 				{
+#define RESULT_SOLVE_LESSER(condition) RESULT_SOLVE_CONDITION_AS_TAG(condition, Token::TTAG_BINARY_LESSER)
 					switch (tagCOUPLE(left_type, right->tag))
 					{
 					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = (left->val_int < right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_LESSER(left->val_int < right->val_int);
 						break;
 					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_int = ((float_tL)left->val_int < right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_LESSER((float_tL)left->val_int < right->val_float);
 						break;
 					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_int = (left->val_float < (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_LESSER(left->val_float < (float_tL)right->val_int);
 						break;
 					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_int = (left->val_float < right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_LESSER(left->val_float < right->val_float);
+						break;
+					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+						RESULT_SOLVE_LESSER(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) < 0);
 						break;
 					default:
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
@@ -1622,68 +1628,25 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_GREATER:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = (left->val_int > right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_int = ((float_tL)left->val_int > right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_int = (left->val_float > (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_int = (left->val_float > right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.tag = Token::TTAG_INT;
-				}
-				break;
-
 				case Token::TTAG_BINARY_LESSER_EQUAL:
 				{
+#define RESULT_SOLVE_GREATER(condition) RESULT_SOLVE_CONDITION_AS_TAG(condition, Token::TTAG_BINARY_GREATER)
 					switch (tagCOUPLE(left_type, right->tag))
 					{
 					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = (left->val_int <= right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_GREATER(left->val_int > right->val_int);
 						break;
 					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_int = ((float_tL)left->val_int <= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_GREATER((float_tL)left->val_int > right->val_float);
 						break;
 					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_int = (left->val_float <= (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_GREATER(left->val_float > (float_tL)right->val_int);
 						break;
 					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_int = (left->val_float <= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_GREATER(left->val_float > right->val_float);
 						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.tag = Token::TTAG_INT;
-				}
-				break;
-
-				case Token::TTAG_BINARY_GREATER_EQUAL:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = (left->val_int >= right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_int = ((float_tL)left->val_int >= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_int = (left->val_float >= (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_int = (left->val_float >= right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+						RESULT_SOLVE_LESSER(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) > 0);
 						break;
 					default:
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
@@ -1694,44 +1657,34 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				break;
 
 				case Token::TTAG_BINARY_EQUAL_DOUBLE:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = (left->val_int == right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_int = ((float_tL)left->val_int == right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_int = (left->val_float == (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_int = (left->val_float == right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.tag = Token::TTAG_INT;
-				}
-				break;
-
 				case Token::TTAG_BINARY_EQUAL_NOT:
 				{
+#define RESULT_SOLVE_EQUAL(condition) RESULT_SOLVE_CONDITION_AS_TAG(condition, Token::TTAG_BINARY_EQUAL_DOUBLE)
 					switch (tagCOUPLE(left_type, right->tag))
 					{
 					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = (left->val_int != right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_EQUAL(left->val_int == right->val_int);
 						break;
 					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_int = ((float_tL)left->val_int != right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_EQUAL((float_tL)left->val_int == right->val_float);
 						break;
 					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_int = (left->val_float != (float_tL)right->val_int) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_EQUAL(left->val_float == (float_tL)right->val_int);
 						break;
 					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_int = (left->val_float != right->val_float) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+						RESULT_SOLVE_EQUAL(left->val_float == right->val_float);
+						break;
+					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+						RESULT_SOLVE_EQUAL(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) == 0 && std::strlen(left->val_string->string_get()) == std::strlen(right->val_string->string_get()));
+						break;
+					case tagCOUPLE(Token::TTAG_ARRAY, Token::TTAG_ARRAY):
+						RESULT_SOLVE_EQUAL(left->val_array && left->val_array == right->val_array);
+						break;
+					case tagCOUPLE(Token::TTAG_FUNCTION, Token::TTAG_FUNCTION):
+						RESULT_SOLVE_EQUAL(left->val_function && left->val_function == right->val_function && left->val_function->loaded);
+						break;
+					case tagCOUPLE(Token::TTAG_BUILTIN, Token::TTAG_BUILTIN):
+						RESULT_SOLVE_EQUAL(left->val_builtin && left->val_builtin == right->val_builtin);
 						break;
 					default:
 						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
