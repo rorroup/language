@@ -356,7 +356,6 @@ namespace Language
 	{
 	public:
 		VALUE_TABLE_TYPE LOCALS;
-		std::vector<Token> solution;
 		std::shared_ptr<Program_tL> program{ nullptr };
 		std::string name_file;
 		std::string name_function;
@@ -364,9 +363,10 @@ namespace Language
 		Token* (*GET_VARIABLE_VALUE_)(Token& variable, Execution_tL& state);
 		VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution_tL& state);
 		size_t program_counter;
-		size_t lastSequence;
+		const size_t begin{ 0 };												// Stack index to start solving the own program.
 
-		Execution_tL(Function_tL* _function)
+		Execution_tL(Function_tL* _function, const size_t _begin = 0)
+			: begin(_begin)
 		{
 			program = _function->program;
 			name_file = _function->source->name;
@@ -381,13 +381,14 @@ namespace Language
 				GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE;
 			}
 			program_counter = 0;
-			lastSequence = -1;
 		}
 		Execution_tL(const Execution_tL& other)
+			: begin(other.begin)
 		{
 			*this = other;
 		}
 		Execution_tL(Execution_tL&& other) noexcept
+			: begin(other.begin)
 		{
 			*this = std::move(other);
 		}
@@ -399,11 +400,9 @@ namespace Language
 				name_function = other.name_function;
 				global = other.global;
 				if (!global) LOCALS = other.LOCALS;
-				solution = other.solution;
 				GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
 				GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
 				program_counter = other.program_counter;
-				lastSequence = other.lastSequence;
 			}
 			return *this;
 		}
@@ -414,11 +413,9 @@ namespace Language
 			name_function.swap(other.name_function);
 			global = other.global;
 			if (!global) LOCALS = std::move(other.LOCALS);
-			solution = std::move(other.solution);
 			GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
 			GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
 			program_counter = other.program_counter;
-			lastSequence = other.lastSequence;
 			return *this;
 		}
 	};
@@ -426,6 +423,8 @@ namespace Language
 	struct Thread_tL
 	{
 		std::vector<Execution_tL> executing;
+		std::vector<Token> solution;
+		size_t lastSequence{ SIZE_MAX };		// Stack index of the Last SEQUENCE Token.
 #ifdef LANGUAGE_THREAD_PARAMETERS
 		LANGUAGE_THREAD_PARAMETERS
 #endif // LANGUAGE_THREAD_PARAMETERS
@@ -694,6 +693,7 @@ namespace Language
 		{ LABEL_ERROR, "'%s %s' is not registered." },
 		{ TYPE_ERROR, "Invalid token '%s' received." },
 		{ ARGUMENTS_MISMATCH, "External '%s' is immutable." },
+		{ FUNCTION_ERROR, "Stack contained '%zu' elements but corrupted into '%zu' instead." },
 	};
 
 	static void interpreterError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
@@ -922,7 +922,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			case Token::TTAG_STRING:
 			case Token::TTAG_ARRAY:
 			case Token::TTAG_REFERENCE:
-				state.solution.push_back(std::move(token));
+				thread.solution.push_back(std::move(token));
 				break;
 
 			case Token::TTAG_FUNCTION:
@@ -937,25 +937,29 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 				//state.solution.push_back(std::move(token));
 				//break;
 
+			/* INDEX.
+			* Use the last Token in the solution stack to index into the penultimate one.
+			* If it is a REFERENCE then save the number to index later.
+			*/
 			case Token::TTAG_INDEX:
-				if (state.solution.size() < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), state.solution.size());
+				if (thread.solution.size() < state.begin + 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
 
-				if (state.solution.back().tag != Token::TTAG_INT) {
-					interpreterError(file_name(), state.solution.back().line, state.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::TTAG_INDEX), tag_name(Token::TTAG_INT), tag_name(state.solution.back().tag));
+				if (thread.solution.back().tag != Token::TTAG_INT) {
+					interpreterError(file_name(), thread.solution.back().line, thread.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::TTAG_INDEX), tag_name(Token::TTAG_INT), tag_name(thread.solution.back().tag));
 					return SOLVE_ERROR;
 				}
 
-				if (state.solution[state.solution.size() - 2].tag == Token::TTAG_REFERENCE || state.solution[state.solution.size() - 2].tag == Token::TTAG_INDEX) {
-					state.solution.back().tag = Token::TTAG_INDEX; // Merge the TTAG_INDEX tag into the val_int index value.
+				if (thread.solution[thread.solution.size() - 2].tag == Token::TTAG_REFERENCE || thread.solution[thread.solution.size() - 2].tag == Token::TTAG_INDEX) {
+					thread.solution.back().tag = Token::TTAG_INDEX; // Merge the TTAG_INDEX tag into the val_int index value.
 				}
 				else {
-					Token index = std::move(state.solution.back());
-					state.solution.pop_back();
+					Token index = std::move(thread.solution.back());
+					thread.solution.pop_back();
 
-					Token& arg = state.solution.back();
+					Token& arg = thread.solution.back();
 					if (arg.tag == Token::TTAG_ARRAY) {
 						if (index.val_int < 0 || arg.val_array->array.size() <= index.val_int) {
 							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
@@ -978,23 +982,29 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						return SOLVE_ERROR;
 					}
 				}
-
 				break;
 
+			/* TTAG_SEQUENCE.
+			* Mark the start of the next sequence (function CALL, ARRAY_INIT).
+			* Every SEQUENCE Token remembers the index of the previous one.
+			* The Thread remembers the newest one.
+			*/
 			case Token::TTAG_SEQUENCE:
-				token.val_int = state.lastSequence;
-				state.lastSequence = state.solution.size();
-				state.solution.push_back(std::move(token));
+				token.val_int = thread.lastSequence;
+				thread.lastSequence = thread.solution.size();
+				thread.solution.push_back(std::move(token));
 				break;
 
+			/* TTAG_UNARY_FLIP.
+			*/
 			case Token::TTAG_UNARY_FLIP:
 			{
-				if (state.solution.size() < 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+				if (thread.solution.size() < state.begin + 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
 
-				Token& arg = state.solution.back();
+				Token& arg = thread.solution.back();
 				if (arg.tag == Token::TTAG_INT) {
 					arg.val_int = ~arg.val_int;
 				}
@@ -1005,14 +1015,16 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
+			/* TTAG_UNARY_NEGATION.
+			*/
 			case Token::TTAG_UNARY_NEGATION:
 			{
-				if (state.solution.size() < 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+				if (thread.solution.size() < state.begin + 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
 
-				Token& arg = state.solution.back();
+				Token& arg = thread.solution.back();
 				if (arg.tag == Token::TTAG_INT) {
 					arg.val_int = !arg.val_int;
 				}
@@ -1026,14 +1038,16 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
+			/* TTAG_UNARY_POSITIVE.
+			*/
 			case Token::TTAG_UNARY_POSITIVE:
 			{
-				if (state.solution.size() < 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+				if (thread.solution.size() < state.begin + 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
 
-				const Token& arg = state.solution.back();
+				const Token& arg = thread.solution.back();
 				if (arg.tag != Token::TTAG_INT && arg.tag != Token::TTAG_FLOAT) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
 					return SOLVE_ERROR;
@@ -1041,14 +1055,16 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
+			/* TTAG_UNARY_NEGATIVE.
+			*/
 			case Token::TTAG_UNARY_NEGATIVE:
 			{
-				if (state.solution.size() < 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+				if (thread.solution.size() < state.begin + 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
 
-				Token& arg = state.solution.back();
+				Token& arg = thread.solution.back();
 				if (arg.tag == Token::TTAG_INT) {
 					arg.val_int = -arg.val_int;
 				}
@@ -1062,80 +1078,81 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
+			/* ARRAY_INIT.
+			* Construct an ARRAY filled with the contents of the solution stack starting from the last SEQUENCE.
+			* Push the ARRAY Token onto the stack.
+			*/
 			case Token::TTAG_ARRAY_INIT:
 			{
-				if (state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::TTAG_SEQUENCE) {
+				if (thread.lastSequence < state.begin || thread.solution.size() <= thread.lastSequence || thread.solution[thread.lastSequence].tag != Token::TTAG_SEQUENCE) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
 					return SOLVE_ERROR;
 				}
 
-				Token arr = Token(token.line, token.column, new Array_tL{}); // Build Array.
-				Array_tL* v = arr.val_array;
-				v->array.insert(v->array.end(), std::make_move_iterator(state.solution.begin() + state.lastSequence + 1), std::make_move_iterator(state.solution.end()));
-
-				size_t lastSequence = state.lastSequence;
-				state.lastSequence = state.solution[state.lastSequence].val_int;
-				state.solution.erase(state.solution.begin() + lastSequence, state.solution.end());
-
-				state.solution.push_back(std::move(arr));
+				size_t lastSequence = thread.lastSequence;							// Remember the starting SEQUENCE index.
+				thread.lastSequence = thread.solution[thread.lastSequence].val_int;	// Update last sequence index.
+				thread.solution[lastSequence] = Token(token.line, token.column, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())))); // Build Array.
+				thread.solution.resize(lastSequence + 1);							// Delete everything after the ARRAY.
 			}
 			break;
 
+			/* CALL.
+			* Attempt to CALL the preceding Token with arguments starting from the last SEQUENCE.
+			*/
 			case Token::TTAG_CALL:
 			{
-				if (state.lastSequence < 1 || state.solution.size() <= state.lastSequence || state.solution[state.lastSequence].tag != Token::TTAG_SEQUENCE) {
+				if (thread.lastSequence <= state.begin || thread.solution.size() <= thread.lastSequence || thread.solution[thread.lastSequence].tag != Token::TTAG_SEQUENCE) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
 					return SOLVE_ERROR;
 				}
 
-				const size_t nArgs = state.solution.size() - state.lastSequence - 1;
-				const size_t sArgs = state.lastSequence;
+				const size_t lastSequence = thread.lastSequence;					// Remember the starting SEQUENCE index.
+				thread.lastSequence = thread.solution[thread.lastSequence].val_int;	// Update last sequence index.
 
-				Token calling = std::move(state.solution[state.lastSequence - 1]);
-
+				Token calling = std::move(thread.solution[lastSequence - 1]);		// CALL target Token previous to SEQUENCE.
 				if (calling.tag == Token::TTAG_BUILTIN) {
-					std::vector<Token> arguments;
-					arguments.reserve(nArgs);
-					arguments.insert(arguments.end(), std::make_move_iterator(state.solution.begin() + state.lastSequence + 1), std::make_move_iterator(state.solution.end()));
+					Builtin_tL* builtin = calling.val_builtin; // Built-in C++ function.
+					std::vector<Token> arguments(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())); // Arguments.
+					thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
 
-					Builtin_tL* builtin = calling.val_builtin;
-					state.lastSequence = state.solution[state.lastSequence].val_int;
-					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
-#ifdef FUNCTION_RETURN_SINGLE
-					size_t stack_size = state.solution.size();
+#ifdef FUNCTION_RETURN_SINGLE // Force SINGLE Token return.
+					size_t stack_size = thread.solution.size();		// Register previous stack size.
 #endif // FUNCTION_RETURN_SINGLE
-					SOLVE_RESULT answer = builtin(arguments, state.solution, &thread LANGUAGE_SOLVER_ARGUMENTS);
+
+					SOLVE_RESULT answer = builtin(arguments, thread.solution, &thread LANGUAGE_SOLVER_ARGUMENTS); // Call Built-in function.
+
 #ifdef FUNCTION_RETURN_SINGLE
 					if (answer == SOLVE_ERROR) return answer;
-					if (state.solution.size() == stack_size) {
-						state.solution.emplace_back(token.line, token.column, LANGUAGE_TRUE_INT);
+					if (thread.solution.size() == stack_size) {
+						thread.solution.emplace_back(token.line, token.column, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
 					}
-					else if (state.solution.size() != stack_size + 1) {
-						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), LANGUAGE_INT(1), state.solution.size() - stack_size);
-						return SOLVE_ERROR;
+					else if (thread.solution.size() > stack_size + 1) {
+						thread.solution[stack_size] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + stack_size), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
+						thread.solution.resize(stack_size + 1); // Delete everything after the return ARRAY.
 					}
 #endif // FUNCTION_RETURN_SINGLE
+
 					if (answer != SOLVE_OK) {
 						return answer;
 					}
 				}
 				else if (calling.tag == Token::TTAG_FUNCTION) {
-					Function_tL* func = calling.val_function;
+					Function_tL* func = calling.val_function; // Language user-defined function.
 					if (!func->loaded) {
 						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[11]);
 						return SOLVE_ERROR;
 					}
-					if (func->arg_id.size() != nArgs) {
-						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), (int_tL)func->arg_id.size(), (size_t)nArgs);
+					if (func->arg_id.size() != (thread.solution.size() - lastSequence - 1)) {
+						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), (int_tL)func->arg_id.size(), (size_t)(thread.solution.size() - lastSequence - 1));
 						return SOLVE_ERROR;
 					}
-					Execution_tL exe(func);
-					for (size_t i = 0, j = state.lastSequence + 1; i < nArgs; i++, j++) {
-						state.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[i], std::move(state.solution[j]));
+
+					thread.executing.emplace_back(func, lastSequence - 1); // Register function and starting solving index at the back of the Thread Execution.
+					Execution_tL& exe = thread.executing.back();
+					for (size_t i = 0, j = lastSequence + 1; j < thread.solution.size(); i++, j++) {
+						exe.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[i], std::move(thread.solution[j])); // Register arguments in the Execution VALUE TABLE.
 					}
-					state.lastSequence = state.solution[state.lastSequence].val_int;
-					state.solution.erase(state.solution.begin() + sArgs - 1, state.solution.end()); // Take the function, sequence and its arguments out of the solution stack.
-					thread.executing.emplace_back(std::move(exe)); // Modifying the thread as the last step since it invalidates references.
+					thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
 					goto execution_end; // https://en.cppreference.com/w/cpp/language/goto
 				}
 				else {
@@ -1145,24 +1162,38 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			}
 			break;
 
+			/* JUMP.
+			* Jump to a position on the program.
+			* Reset the solving state.
+			*/
 			case Token::TTAG_JUMP:
-				state.program_counter = token.val_int;
-				state.solution.clear();
-				state.lastSequence = -1;
+				if (thread.solution.size() < state.begin || (thread.lastSequence < thread.solution.size() && thread.lastSequence >= state.begin)) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[15], state.begin, thread.solution.size());
+					return SOLVE_ERROR;
+				}
+				state.program_counter = token.val_int;	// Set the program counter.
+				thread.solution.resize(state.begin);	// Clear current solving stack.
 				break;
 
+			/* JUMP_ON_* conditional.
+			* Jump to a position on the program under certain conditions.
+			* Reset the solving state.
+			*/
 			case Token::TTAG_JUMP_ON_FALSE:
 			case Token::TTAG_JUMP_ON_NOT_FALSE:
 			{
-				if (state.solution.size() != 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+				if (thread.solution.size() != state.begin + 1 || (thread.lastSequence < thread.solution.size() && thread.lastSequence >= state.begin)) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
-				Token& condition = state.solution.back();
+				Token& condition = thread.solution.back();
+				if (!Parser::tag_value(condition.tag)) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
+					return SOLVE_ERROR;
+				}
 				if (condition.as_bool() == (token.tag == Token::TTAG_JUMP_ON_NOT_FALSE))
-					state.program_counter = token.val_int;
-				state.solution.clear();
-				state.lastSequence = -1;
+					state.program_counter = token.val_int;	// Set the program counter.
+				thread.solution.resize(state.begin);		// Clear current solving stack.
 			}
 			break;
 
@@ -1180,24 +1211,28 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			*/
 			case Token::TTAG_ADVANCE_ON_FALSE:
 			{
-				if (state.solution.size() < 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), state.solution.size());
+				if (thread.solution.size() < state.begin + 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
 					return SOLVE_ERROR;
 				}
-				Token& condition = state.solution.back();
+				Token& condition = thread.solution.back();
 				if (!Parser::tag_value(condition.tag)) {
 					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
 					return SOLVE_ERROR;
 				}
 				if (!condition.as_bool())
 					state.program_counter += token.val_int;
-				state.solution.pop_back();
+				thread.solution.pop_back();
 			}
 			break;
 
+			/* AWAIT.
+			*/
 			case Token::TTAG_AWAIT:
 				return SOLVE_AWAIT;
 
+			/* RETURN.
+			*/
 			case Token::TTAG_RETURN:
 				goto execution_return;
 
@@ -1209,19 +1244,19 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 			*/
 			default:
 			{
-				int indices = state.solution.size();
-				while (indices > 0 && state.solution[indices - 1].tag == Token::TTAG_INDEX) indices--; // Index of the last INDEX Token.
+				int indices = thread.solution.size();
+				while (indices > state.begin && thread.solution[indices - 1].tag == Token::TTAG_INDEX) indices--; // Index of the last INDEX Token.
 
-				if (Parser::tag_binary(token.tag) && indices < 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), indices);
+				if (Parser::tag_binary(token.tag) && indices < state.begin + 2) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), indices - state.begin);
 					return SOLVE_ERROR;
 				}
-				else if (Parser::tag_unary(token.tag) && indices < 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), indices);
+				else if (Parser::tag_unary(token.tag) && indices < state.begin + 1) {
+					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), indices - state.begin);
 					return SOLVE_ERROR;
 				}
 
-				Token last(std::move(state.solution[indices - 1])); // Operand Token previous to any INDEX.
+				Token last(std::move(thread.solution[indices - 1])); // Operand Token previous to any INDEX.
 
 				Token* left, * right;
 				tok_tag left_type;
@@ -1243,7 +1278,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						return SOLVE_ERROR;
 					}
 
-					left = (token.tag == Token::TTAG_BINARY_EQUAL && (indices == state.solution.size())) ? &last : state.GET_VARIABLE_VALUE_(last, state); // No need to dereference if no operation nor indexing occurs (avoid variable not found error).
+					left = (token.tag == Token::TTAG_BINARY_EQUAL && (indices == thread.solution.size())) ? &last : state.GET_VARIABLE_VALUE_(last, state); // No need to dereference if no operation nor indexing occurs (avoid variable not found error).
 					if (!left) return SOLVE_ERROR;
 					left_type = left->tag;
 
@@ -1254,30 +1289,30 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 					* Thus dereferencing and indexing a variable for assignment MUST be done last.
 					* This way the validity of the assigning variable and index can be guaranteed.
 					*/
-					for (int i = indices; i < state.solution.size(); i++) {
+					for (int i = indices; i < thread.solution.size(); i++) {
 						if (left_type == Token::TTAG_ARRAY) {
-							if (state.solution[i].val_int < 0 || left->val_array->array.size() <= state.solution[i].val_int) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), state.solution[i].val_int, tag_name(left_type));
+							if (thread.solution[i].val_int < 0 || left->val_array->array.size() <= thread.solution[i].val_int) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(left_type));
 								return SOLVE_ERROR;
 							}
-							left = &left->val_array->array[state.solution[i].val_int];
+							left = &left->val_array->array[thread.solution[i].val_int];
 							left_type = left->tag;
 						}
 						else if (left_type == Token::TTAG_STRING) {
-							if (state.solution[i].val_int < 0 || strlen(left->val_string->string_get()) <= state.solution[i].val_int) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), state.solution[i].val_int, tag_name(left_type));
+							if (thread.solution[i].val_int < 0 || strlen(left->val_string->string_get()) <= thread.solution[i].val_int) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(left_type));
 								return SOLVE_ERROR;
 							}
 							if (!left->val_string->owned) {
 								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[14], tag_name(Token::TTAG_STRING));
 								return SOLVE_ERROR;
 							}
-							left = (Token*)&left->val_string->string_get()[state.solution[i].val_int];
+							left = (Token*)&left->val_string->string_get()[thread.solution[i].val_int];
 							left_type = Token::TTAG_CHAR;
 						}
 						else if (left_type == Token::TTAG_CHAR) {
-							if (state.solution[i].val_int != 0) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), state.solution[i].val_int, tag_name(Token::TTAG_STRING));
+							if (thread.solution[i].val_int != 0) {
+								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(Token::TTAG_STRING));
 								return SOLVE_ERROR;
 							}
 						}
@@ -1287,9 +1322,9 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 						}
 					}
 
-					state.solution.resize(Parser::tag_incdec(token.tag) ? indices : indices - 1); // Remove the INDEX, and moved Token if not INCREMENT nor DECREMENT.
+					thread.solution.resize(Parser::tag_incdec(token.tag) ? indices : indices - 1); // Remove the INDEX, and moved Token if not INCREMENT nor DECREMENT.
 
-					right = &state.solution.back();
+					right = &thread.solution.back();
 
 					/* INCREMENT/DECREMENT operator solution stack state.
 					*       *right  *indices
@@ -1313,23 +1348,23 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 					*  *right -> last <----
 					*/
 
-					if (indices != state.solution.size()) {
+					if (indices != thread.solution.size()) {
 						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(Token::TTAG_INDEX));
 						return SOLVE_ERROR;
 					}
 
 					if (token.val_int & OPFLAG_BINARY_NO_POP) { // Not pop the last moved Token.
-						left = &(state.solution[state.solution.size() - 2]);
+						left = &(thread.solution[thread.solution.size() - 2]);
 					}
 					else {
-						state.solution.pop_back(); // Remove the moved Token.
-						left = &state.solution.back();
+						thread.solution.pop_back(); // Remove the moved Token.
+						left = &thread.solution.back();
 					}
 					left_type = left->tag;
 					right = &last;
 				}
 
-				Token& result = state.solution.back();
+				Token& result = thread.solution.back();
 
 				switch (token.tag)
 				{
@@ -1752,17 +1787,20 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
 		}
 	execution_return:
 		{
-			std::vector<Token> solution = std::move(state.solution);
-			thread.executing.pop_back();
-			if (!thread.executing.empty()) {
-#ifdef FUNCTION_RETURN_SINGLE
-				if (solution.empty())			thread.executing.back().solution.emplace_back(0, 0, LANGUAGE_TRUE_INT);
-				else if (solution.size() == 1)	thread.executing.back().solution.push_back(std::move(solution.back()));
-				else							thread.executing.back().solution.emplace_back(0, 0, new Array_tL{ std::move(solution) });
-#else
-				thread.executing.back().solution.insert(thread.executing.back().solution.end(), std::make_move_iterator(solution.begin()), std::make_move_iterator(solution.end()));
-#endif // FUNCTION_RETURN_SINGLE
+			if (thread.solution.size() < state.begin) {
+				interpreterError(file_name(), 0, 0, ERROR_MESSAGES[15], state.begin, thread.solution.size());
+				return SOLVE_ERROR;
 			}
+#ifdef FUNCTION_RETURN_SINGLE // Force SINGLE Token return.
+			if (thread.executing.size() > 1) {
+				if (thread.solution.size() == state.begin) thread.solution.emplace_back(0, 0, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
+				else if (thread.solution.size() > state.begin + 1) {
+					thread.solution[state.begin] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + state.begin), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
+					thread.solution.resize(state.begin + 1); // Delete everything after the return ARRAY.
+				}
+			}
+#endif // FUNCTION_RETURN_SINGLE
+			thread.executing.pop_back(); // Remove the current terminated function.
 		}
 	execution_end:
 		; // Empty statement to allow compilation.
