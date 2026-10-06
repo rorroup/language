@@ -1919,22 +1919,50 @@ namespace Language
 		printf("\n");
 	}
 
+/* Built-in naming helpers.
+* Prefix built-in function names to avoid macros and names collisions.
+*/
+#define BIN_PREFIX BIN_														// Prefix.
+#define BIN_PREFIX_STR STRINGIZING(BIN_PREFIX)								// Prefix string representation.
+	constexpr unsigned char BIN_PREFIX_LEN = sizeof(BIN_PREFIX_STR) - 1;	// Prefix string representation length.
+#define BIN_NAME(name) CONCATENATION(BIN_PREFIX, name)						// Join function prefix and name.
+
+// Built-in function signature using name prefix and parenthesis to avoid collisions.
+#define BIN_DEF(name) static SOLVE_RESULT (BIN_NAME(name))(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread LANGUAGE_SOLVER_SIGNATURE)
+// Built-in name and respective prefixed function registration in the global VALUE TABLE.
+#define BIN_REG(name) VALUE_TABLE.insert({ NAME_TABLE_get_name_id(#name), Token((BIN_NAME(name))) })
+
+// Name of the file calling the built-in function.
 #ifdef file_name
 #undef file_name
 #endif // file_name
 #define file_name() thread->executing.back().name_file.c_str()
 
-	// https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
-#define builtinError(builtin_name, format, ...) builtinError_(file_name(), builtin_name, format, __VA_ARGS__)
+/* builtinError.
+* Macro to call the built-in functions error logging function.
+* Passes in the file name and the function name skipping its prefix.
+* https://gcc.gnu.org/onlinedocs/cpp/Standard-Predefined-Macros.html
+* https://gcc.gnu.org/onlinedocs/cpp/Variadic-Macros.html
+*/
+#define builtinError(format, ...) builtinError_(file_name(), (__func__ + BIN_PREFIX_LEN), format, __VA_ARGS__)
 
-#define BUILTIN_DEFINE(name) SOLVE_RESULT name(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread LANGUAGE_SOLVER_SIGNATURE)
-#define BUILTIN_REGISTER(name) VALUE_TABLE.insert({ NAME_TABLE_get_name_id(#name), Token(name) })
+	BIN_DEF(version)
+	{
+		if (!arguments.empty())
+		{
+			builtinError("This function takes no arguments.");
+			return SOLVE_ERROR;
+		}
 
-	BUILTIN_DEFINE(import)
+		solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
+		return SOLVE_OK;
+	}
+
+	BIN_DEF(import)
 	{
 		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
 		{
-			builtinError("import", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
+			builtinError("Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
 			return SOLVE_ERROR;
 		}
 
@@ -1947,18 +1975,18 @@ namespace Language
 		SOLVE_RESULT solve = script_import(file_path.string().c_str() LANGUAGE_SOLVER_ARGUMENTS);
 
 		if (solve == SOLVE_ERROR)
-			builtinError("import", "Failed to import file '%s'.", file_path.string().c_str());
+			builtinError("Failed to import file '%s'.", file_path.string().c_str());
 
 		solution.emplace_back(0, 0, (int_tL)solve);
 
 		return solve;
 	}
 
-	BUILTIN_DEFINE(load)
+	BIN_DEF(load)
 	{
 		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
 		{
-			builtinError("load", "Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
+			builtinError("Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
 			return SOLVE_ERROR;
 		}
 
@@ -1972,7 +2000,7 @@ namespace Language
 
 		if (!func)
 		{
-			builtinError("load", "Failed to load file '%s'.", file_path.string().c_str());
+			builtinError("Failed to load file '%s'.", file_path.string().c_str());
 			return SOLVE_ERROR;
 		}
 
@@ -1981,23 +2009,11 @@ namespace Language
 		return SOLVE_OK;
 	}
 
-	BUILTIN_DEFINE(version)
-	{
-		if (!arguments.empty())
-		{
-			builtinError("version", "This function takes no arguments.");
-			return SOLVE_ERROR;
-		}
-
-		solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
-		return SOLVE_OK;
-	}
-
-	BUILTIN_DEFINE(print)
+	BIN_DEF(print)
 	{
 		if (arguments.size() != 1)
 		{
-			builtinError("print", "This function takes a single argument.");
+			builtinError("This function takes a single argument.");
 			return SOLVE_ERROR;
 		}
 
@@ -2007,11 +2023,11 @@ namespace Language
 		return SOLVE_OK;
 	}
 
-	BUILTIN_DEFINE(max)
+	BIN_DEF(max)
 	{
 		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_ARRAY || arguments[0].val_array->array.empty())
 		{
-			builtinError("max", "Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
+			builtinError("Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
 			return SOLVE_ERROR;
 		}
 
@@ -2036,17 +2052,17 @@ namespace Language
 			return SOLVE_OK;
 		}
 
-		builtinError("max", "'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
+		builtinError("'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
 		return SOLVE_ERROR;
 	}
 
-	int register_function()
+	static int register_function()
 	{
-		BUILTIN_REGISTER(import);
-		BUILTIN_REGISTER(load);
-		BUILTIN_REGISTER(version);
-		BUILTIN_REGISTER(print);
-		BUILTIN_REGISTER(max);
+		BIN_REG(version);
+		BIN_REG(import);
+		BIN_REG(load);
+		BIN_REG(print);
+		BIN_REG(max);
 
 		return 0;
 	}
