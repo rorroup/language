@@ -21,8 +21,16 @@ namespace Language
 // https://scaryreasoner.wordpress.com/2009/02/28/checking-sizeof-at-compile-time/
 #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
 
-// https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
-#define STRINGIZING(s) #s
+/* Basic macros.
+*/
+#define STRINGIZING_(name) #name						// https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
+#define CONCATENATION_(left, right) left ## right		// https://gcc.gnu.org/onlinedocs/cpp/Concatenation.html
+
+/* Double layer macros.
+* https://stackoverflow.com/a/32801489
+*/
+#define STRINGIZING(name) STRINGIZING_(name)
+#define CONCATENATION(left, right) CONCATENATION_(left, right)
 
 // https://stackoverflow.com/a/3219471
 #define ANSI_RED     "\x1b[31m"
