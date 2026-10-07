@@ -19,6 +19,7 @@ Finally the **Interpreter** can execute it in order using a stack.
 4. Global scope and function local variables scopes.
 5. Easy to use and customize.
 6. Code execution can be interrupted arbitrarily invoking the AWAIT Token, then be resumed later from the same point.
+7. Language namespace to minimize name conflicts.
 
 <details>
 <summary>Grammar</summary>
@@ -41,12 +42,17 @@ Finally the **Interpreter** can execute it in order using a stack.
 <conditional>           ::= if (<operation>) { <expression>* }
                             <else if (<operation>) { <expression>* }>*
                             <else { <expression>* }>?
+<switch>				::= switch (<operation>) {
+								<on <operation> : <expression>* <off ;>? >*
+								<default : <expression>* <off ;>? >?
+							}
 <loop>                  ::= < <for (<operation>? ; <operation>? ; <operation>?) { <expression>* }> |
                               <while (<operation>) { <expression>* }> |
                               <do { <expression>* } while (<operation>) ;>
                             > <else { <expression>* }>?
 <expression>            ::= <<operation> ;> |
                             <conditional> |
+							<switch> |
                             <loop> |
                             <return <<operation>, >* ;> |                       // Note 1.
                             <await ;> |
@@ -93,15 +99,15 @@ Then create a `Language.cpp` file to provide the necessary implementations
 to complete the embedding.
 This way you can include this header into your project with your own additional definitions so that everything remains consistent.
 My advice is to disable `LANGUAGE_EXAMPLE_LOADING` and manually paste its contents to use as the starting point for development.
-To test everything works you can uncomment the `LANGUAGE_TEST_PROGRAM` macro to run the [example program](language/Interpreter.h#L2024) with the [example srcipts](language/example), beware it will enable the library's internal `int main()` function though.
+To test everything works you can uncomment the `LANGUAGE_TEST_PROGRAM` macro to run the [example program](language/Interpreter.h#L2101) with the [example srcipts](language/example), beware it will enable the library's internal `int main()` function though.
 
 To utilize the language in your program call `LANGUAGE_initialize();` and `LANGUAGE_terminate();` before and after respectively to perform the necesary configurations.
 
-Scripts may use all currently supported [types and operations](language/Interpreter.h#L116). Pre-defined functions must comply with their [signature](language/Interpreter.h#L1858).
+Scripts may use all currently supported [value types](language/Interpreter.h#L105), [keywords](language/Interpreter.h#L541) and [symbols](language/Interpreter.h#L563). Pre-defined functions must comply with their [signature](language/Interpreter.h#L1931).
 
 ## Development plan
 
-Current Version: beta 1.1.2
+Current Version: beta 2.0.1
 
 > [!CAUTION]
 > Backwards compatibility is not guaranteed yet.
@@ -112,9 +118,10 @@ I made it lightweight, fast and easy to use to the best of my ability. No bugs w
 
 ### TODO
 
-1. Deprecate the 'function' argument from the Parser methods while keeping the 'labels' structure.
-2. Implement increment/decrement operators (++, --).
-3. Implement compound assignment operators (+=, -=, *=, etc).
+1. Make Execution struct non copyable. This will have a knock on effect on a variety of classes and functions which should also be updated.
+2. Review macros and update them to modern C++ features where possible.
+3. General cleaning of Token constrcutors and methods.
+4. Review of error messages. Some are no longer used. Some still crash the Parser by accessing out of range Token.
 
 ### Known issues
 
@@ -131,11 +138,9 @@ The following currently pose no real problem so will likely stay as they are.
 
 I require further using the language to decide.
 
-1. May make labels identifier instead of string to simplify the parsing at the cost of their flexibility.
+1. Thread safety.
 2. Check the possibility to return intermediate results upon awaiting a function.
-3. Implement ternary operator (?:).
-4. Check if there is a better implementation for the language ARRAY other than a std::vector wrapper.
-5. Revisit the function unloading mechanism regarding its safety.
+3. Check if there is a better implementation for the language ARRAY other than a std::vector wrapper.
 
 ## References[^1]
 
