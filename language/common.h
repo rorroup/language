@@ -9,7 +9,7 @@
 
 namespace Language
 {
-#define LANGUAGE_VERSION "b.1.1.4"
+#define LANGUAGE_VERSION "b.2.0.1"
 
 // https://stackoverflow.com/questions/51616057/how-to-determine-pointer-size-preprocessor-c
 #if UINTPTR_MAX >= ULLONG_MAX
