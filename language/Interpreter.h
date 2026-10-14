@@ -13,72 +13,72 @@
 
 namespace Language
 {
-	typedef char tok_tag;
-	struct Token;
-	enum SOLVE_RESULT : char
-	{
-		SOLVE_AWAIT = -1,
-		SOLVE_ERROR = 0,
-		SOLVE_OK = 1,
-	};
+    typedef char tok_tag;
+    struct Token;
+    enum SOLVE_RESULT : char
+    {
+        SOLVE_AWAIT = -1,
+        SOLVE_ERROR = 0,
+        SOLVE_OK = 1,
+    };
 
-	typedef intptr_t int_tL;
+    typedef intptr_t int_tL;
 #ifdef PTR64
 #define LANGUAGE_INT(x) INT64_C(x)
 #define fINT_TL PRId64
-	typedef double float_tL;
+    typedef double float_tL;
 #define LANGUAGE_FLOAT(x) (x)
 #else
 #define LANGUAGE_INT(x) INT32_C(x)
 #define fINT_TL PRId32
-	typedef float float_tL;
+    typedef float float_tL;
 #define LANGUAGE_FLOAT(x) (x ##f)
 #endif // PTR64
 
 #define LANGUAGE_ZERO_INT LANGUAGE_INT(0)
 #define LANGUAGE_FALSE_INT LANGUAGE_ZERO_INT
-	constexpr int_tL LANGUAGE_TRUE_INT = (int_tL)(!LANGUAGE_FALSE_INT);
+    constexpr int_tL LANGUAGE_TRUE_INT = (int_tL)(!LANGUAGE_FALSE_INT);
 
-	constexpr float_tL LANGUAGE_ZERO_FLOAT = (float_tL)(LANGUAGE_ZERO_INT);
+    constexpr float_tL LANGUAGE_ZERO_FLOAT = (float_tL)(LANGUAGE_ZERO_INT);
 #define LANGUAGE_FALSE_FLOAT LANGUAGE_ZERO_FLOAT
-	constexpr float_tL LANGUAGE_TRUE_FLOAT = (float_tL)(!LANGUAGE_FALSE_FLOAT);
+    constexpr float_tL LANGUAGE_TRUE_FLOAT = (float_tL)(!LANGUAGE_FALSE_FLOAT);
 
-	typedef unsigned short owners_t;
+    typedef unsigned short owners_t;
 
-	struct String_tL
-	{
-		/*
-		* Variable size struct to store a determined size char array.
-		* https://www.geeksforgeeks.org/cpp/overloading-new-delete-operator-c/
-		* WARNING: ALWAYS INITIALIZE OBJECTS INDIVIDUALLY.
-		*/
-	public:
-		owners_t owned : 1;
-		owners_t owners : 8 * sizeof(owners_t) - 1;
-		char string[sizeof(char*)];
+    struct String_tL
+    {
+        /*
+        * Variable size struct to store a determined size char array.
+        * https://www.geeksforgeeks.org/cpp/overloading-new-delete-operator-c/
+        * WARNING: ALWAYS INITIALIZE OBJECTS INDIVIDUALLY.
+        */
+    public:
+        owners_t owned : 1;
+        owners_t owners : 8 * sizeof(owners_t) - 1;
+        char string[sizeof(char*)];
 
-		char* string_get() { return owned ? string : *(char**)string; }
+        char* string_get() { return owned ? string : *(char**)string; }
 
-		String_tL(const char* source) { owned = 0; owners = 0; *(const char**)string = source; }
-		String_tL(const char* source, size_t length) { owned = 1; owners = 0; std::memcpy(string, source, length + 1); }
-		String_tL(const char* left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%s", left, right); }
-		String_tL(const char* left, size_t lengthL, int_tL right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%" fINT_TL, left, right); }
-		String_tL(int_tL left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%" fINT_TL "%s", left, right); }
-		String_tL(const char* left, size_t lengthL, float_tL right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%f", left, right); }
-		String_tL(float_tL left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%f%s", left, right); }
+        String_tL(const char* source) { owned = 0; owners = 0; *(const char**)string = source; }
+        String_tL(const char* source, size_t length) { owned = 1; owners = 0; std::memcpy(string, source, length + 1); }
+        String_tL(const char* left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%s", left, right); }
+        String_tL(const char* left, size_t lengthL, int_tL right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%" fINT_TL, left, right); }
+        String_tL(int_tL left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%" fINT_TL "%s", left, right); }
+        String_tL(const char* left, size_t lengthL, float_tL right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%s%f", left, right); }
+        String_tL(float_tL left, size_t lengthL, const char* right, size_t lengthR) { owned = 1; owners = 0; snprintf(string, lengthL + lengthR + 1, "%f%s", left, right); }
 
-		void* operator new(size_t size, size_t length) { return ::operator new(sizeof(owners_t) + length + 1); }
-		void operator delete(void* p, size_t length) { ::operator delete(p); }
-		void operator delete(void* p) { ::operator delete(p); }
+        void* operator new(size_t size, size_t length) { return ::operator new(sizeof(owners_t) + length + 1); }
+        void operator delete(void* p, size_t length) { ::operator delete(p); }
+        void operator delete(void* p) { ::operator delete(p); }
 
 #define String_tL_external(source) ::new String_tL(source)
-		static String_tL* init(const char* source, size_t length) { return new(length) String_tL(source, length); }
+        static String_tL* init(const char* source, size_t length) { return new(length) String_tL(source, length); }
 #define String_tL_init(argL, lenL, argR, lenR) (new((lenL) + (lenR)) String_tL((argL), (lenL), (argR), (lenR)))
-	};
+    };
 
-	struct Array_tL;
-	struct Function_tL;
-	struct Thread_tL;
+    struct Array_tL;
+    struct Function_tL;
+    struct Thread_tL;
 
 #ifndef LANGUAGE_SOLVER_SIGNATURE
 #define LANGUAGE_SOLVER_SIGNATURE
@@ -86,557 +86,557 @@ namespace Language
 #ifndef LANGUAGE_SOLVER_ARGUMENTS
 #define LANGUAGE_SOLVER_ARGUMENTS
 #endif // !LANGUAGE_SOLVER_ARGUMENTS
-	typedef SOLVE_RESULT Builtin_tL(std::vector<Token>&, std::vector<Token>&, Thread_tL* LANGUAGE_SOLVER_SIGNATURE);
+    typedef SOLVE_RESULT Builtin_tL(std::vector<Token>&, std::vector<Token>&, Thread_tL* LANGUAGE_SOLVER_SIGNATURE);
 
-	struct Token
-	{
-	public:
-		/* enum TTAG_*.
-		* Tags that qualify how a Token value is stored, read and processed.
-		* They are generally assigned upon construction when tokenizing or parsing.
-		*/
-		enum : tok_tag
-		{
-			TTAG_BEGIN_ = 0,
+    struct Token
+    {
+    public:
+        /* enum TTAG_*.
+        * Tags that qualify how a Token value is stored, read and processed.
+        * They are generally assigned upon construction when tokenizing or parsing.
+        */
+        enum : tok_tag
+        {
+            TTAG_BEGIN_ = 0,
 
-				// Tags used during program execution.
-				TTAG_INNER_BEGIN_ = TTAG_BEGIN_,
+                // Tags used during program execution.
+                TTAG_INNER_BEGIN_ = TTAG_BEGIN_,
 
-					// Language value types.
-					TTAG_VALUE_BEGIN_ = TTAG_INNER_BEGIN_,
-							TTAG_NONE = TTAG_VALUE_BEGIN_,			// Not used.
-							TTAG_INT,								// Integer number.
-							TTAG_FLOAT,								// Floating point number.
-							TTAG_STRING,							// String.
-							TTAG_ARRAY,								// Array.
-							TTAG_FUNCTION,							// Language defined function.
-							TTAG_BUILTIN,							// C++ function.
-					TTAG_VALUE_END_,
+                    // Language value types.
+                    TTAG_VALUE_BEGIN_ = TTAG_INNER_BEGIN_,
+                            TTAG_NONE = TTAG_VALUE_BEGIN_,          // Not used.
+                            TTAG_INT,                               // Integer number.
+                            TTAG_FLOAT,                             // Floating point number.
+                            TTAG_STRING,                            // String.
+                            TTAG_ARRAY,                             // Array.
+                            TTAG_FUNCTION,                          // Language defined function.
+                            TTAG_BUILTIN,                           // C++ function.
+                    TTAG_VALUE_END_,
 
-					// Language reference types.
-					TTAG_VARIABLE_BEGIN_ = TTAG_VALUE_END_,
-							TTAG_IDENTIFIER = TTAG_VARIABLE_BEGIN_,	// Name of a variable.
-							TTAG_VARIABLE,							// Reference to a variable.
-							TTAG_REFERENCE,							// Reference to a variable.
-					TTAG_VARIABLE_END_,
+                    // Language reference types.
+                    TTAG_VARIABLE_BEGIN_ = TTAG_VALUE_END_,
+                            TTAG_IDENTIFIER = TTAG_VARIABLE_BEGIN_, // Name of a variable.
+                            TTAG_VARIABLE,                          // Reference to a variable.
+                            TTAG_REFERENCE,                         // Reference to a variable.
+                    TTAG_VARIABLE_END_,
 
-					// Special operations.
-					TTAG_SPECIAL_BEGIN_ = TTAG_VARIABLE_END_,
-							TTAG_SEQUENCE = TTAG_SPECIAL_BEGIN_,	// Sequence delimitation.
-							TTAG_INDEX,								// Array indexing.
-							TTAG_ARRAY_INIT,						// Array initialization.
-							TTAG_CALL,								// Function call.
-							TTAG_CHAR,								// Pointer to a char inside a STRING.
-					TTAG_SPECIAL_END_,
+                    // Special operations.
+                    TTAG_SPECIAL_BEGIN_ = TTAG_VARIABLE_END_,
+                            TTAG_SEQUENCE = TTAG_SPECIAL_BEGIN_,    // Sequence delimitation.
+                            TTAG_INDEX,                             // Array indexing.
+                            TTAG_ARRAY_INIT,                        // Array initialization.
+                            TTAG_CALL,                              // Function call.
+                            TTAG_CHAR,                              // Pointer to a char inside a STRING.
+                    TTAG_SPECIAL_END_,
 
-					// Program counter controllers.
-					TTAG_PCOUNTER_BEGIN_ = TTAG_SPECIAL_END_,
-							TTAG_JUMP = TTAG_PCOUNTER_BEGIN_,		// Jump to a position in the program.
-							TTAG_JUMP_ON_FALSE,						// Jump when result evaluates to false.
-							TTAG_JUMP_ON_NOT_FALSE,					// Jump when result not evaluates to false.
-							TTAG_ADVANCE,							// Advance the position in the program.
-							TTAG_ADVANCE_ON_FALSE,					// Advance the position when result evaluates to false.
-					TTAG_PCOUNTER_END_,
+                    // Program counter controllers.
+                    TTAG_PCOUNTER_BEGIN_ = TTAG_SPECIAL_END_,
+                            TTAG_JUMP = TTAG_PCOUNTER_BEGIN_,       // Jump to a position in the program.
+                            TTAG_JUMP_ON_FALSE,                     // Jump when result evaluates to false.
+                            TTAG_JUMP_ON_NOT_FALSE,                 // Jump when result not evaluates to false.
+                            TTAG_ADVANCE,                           // Advance the position in the program.
+                            TTAG_ADVANCE_ON_FALSE,                  // Advance the position when result evaluates to false.
+                    TTAG_PCOUNTER_END_,
 
-				TTAG_INNER_END_ = TTAG_PCOUNTER_END_,
+                TTAG_INNER_END_ = TTAG_PCOUNTER_END_,
 
-				// Language reserved words.
-				TTAG_KEYWORD_BEGIN_ = TTAG_INNER_END_,
-							TTAG_IF = TTAG_KEYWORD_BEGIN_,			// if
-							TTAG_ELSE,								// else
-							TTAG_FOR,								// for
-							TTAG_WHILE,								// while
-							TTAG_DO,								// do
-							TTAG_BREAK,								// break
-							TTAG_CONTINUE,							// continue
-							TTAG_SWITCH,							// switch
-							TTAG_ON,								// on
-							TTAG_DEFAULT,							// default
-							TTAG_OFF,								// off
-							TTAG_FUNCTION_DEF,						// function
-							TTAG_RETURN,							// return
-							TTAG_AWAIT,								// await
-							TTAG_LABEL,								// label
-							TTAG_GOTO,								// goto
-							TTAG_FALSE,								// false
-							TTAG_TRUE,								// true
-				TTAG_KEYWORD_END_,
+                // Language reserved words.
+                TTAG_KEYWORD_BEGIN_ = TTAG_INNER_END_,
+                            TTAG_IF = TTAG_KEYWORD_BEGIN_,          // if
+                            TTAG_ELSE,                              // else
+                            TTAG_FOR,                               // for
+                            TTAG_WHILE,                             // while
+                            TTAG_DO,                                // do
+                            TTAG_BREAK,                             // break
+                            TTAG_CONTINUE,                          // continue
+                            TTAG_SWITCH,                            // switch
+                            TTAG_ON,                                // on
+                            TTAG_DEFAULT,                           // default
+                            TTAG_OFF,                               // off
+                            TTAG_FUNCTION_DEF,                      // function
+                            TTAG_RETURN,                            // return
+                            TTAG_AWAIT,                             // await
+                            TTAG_LABEL,                             // label
+                            TTAG_GOTO,                              // goto
+                            TTAG_FALSE,                             // false
+                            TTAG_TRUE,                              // true
+                TTAG_KEYWORD_END_,
 
-				// Language supported symbols.
-				TTAG_SYMBOL_BEGIN_ = TTAG_KEYWORD_END_,
+                // Language supported symbols.
+                TTAG_SYMBOL_BEGIN_ = TTAG_KEYWORD_END_,
 
-					// Symbols that delimit scopes or special operations.
-					TTAG_DELIMITER_BEGIN_ = TTAG_SYMBOL_BEGIN_,
-							TTAG_SEMICOLON = TTAG_DELIMITER_BEGIN_,	// ;
-							TTAG_PARENTHESIS_OPEN,					// (
-							TTAG_PARENTHESIS_CLOSE,					// )
-							TTAG_BRACKET_OPEN,						// [
-							TTAG_BRACKET_CLOSE,						// ]
-							TTAG_BRACE_OPEN,						// {
-							TTAG_BRACE_CLOSE,						// }
-					TTAG_DELIMITER_END_,
+                    // Symbols that delimit scopes or special operations.
+                    TTAG_DELIMITER_BEGIN_ = TTAG_SYMBOL_BEGIN_,
+                            TTAG_SEMICOLON = TTAG_DELIMITER_BEGIN_, // ;
+                            TTAG_PARENTHESIS_OPEN,                  // (
+                            TTAG_PARENTHESIS_CLOSE,                 // )
+                            TTAG_BRACKET_OPEN,                      // [
+                            TTAG_BRACKET_CLOSE,                     // ]
+                            TTAG_BRACE_OPEN,                        // {
+                            TTAG_BRACE_CLOSE,                       // }
+                    TTAG_DELIMITER_END_,
 
-					// Symbols that resolve to operations.
-					TTAG_OPERATOR_BEGIN_ = TTAG_DELIMITER_END_,
+                    // Symbols that resolve to operations.
+                    TTAG_OPERATOR_BEGIN_ = TTAG_DELIMITER_END_,
 
-						// Unary operators.
-						TTAG_UNARY_BEGIN_ = TTAG_OPERATOR_BEGIN_,
-							TTAG_UNARY_FLIP = TTAG_UNARY_BEGIN_,	// ~ (bitwise not)
-							TTAG_UNARY_NEGATION,					// ! (logic not)
-							TTAG_UNARY_POSITIVE,					// +
-							TTAG_UNARY_NEGATIVE,					// -
-							TTAG_UNARY_INCDEC_BEGIN_ = TTAG_UNARY_NEGATIVE,
-							TTAG_UNARY_INCREMENT,					// ++
-							TTAG_UNARY_DECREMENT,					// --
-							TTAG_UNARY_INCDEC_END_,
-						TTAG_UNARY_END_ = TTAG_UNARY_INCDEC_END_,
+                        // Unary operators.
+                        TTAG_UNARY_BEGIN_ = TTAG_OPERATOR_BEGIN_,
+                            TTAG_UNARY_FLIP = TTAG_UNARY_BEGIN_,    // ~ (bitwise not)
+                            TTAG_UNARY_NEGATION,                    // ! (logic not)
+                            TTAG_UNARY_POSITIVE,                    // +
+                            TTAG_UNARY_NEGATIVE,                    // -
+                            TTAG_UNARY_INCDEC_BEGIN_ = TTAG_UNARY_NEGATIVE,
+                            TTAG_UNARY_INCREMENT,                   // ++
+                            TTAG_UNARY_DECREMENT,                   // --
+                            TTAG_UNARY_INCDEC_END_,
+                        TTAG_UNARY_END_ = TTAG_UNARY_INCDEC_END_,
 
-						// Binary operators.
-						TTAG_BINARY_BEGIN_ = TTAG_UNARY_END_,
-							// Arithmetic.
-							TTAG_BINARY_ADD = TTAG_BINARY_BEGIN_,	// +
-							TTAG_BINARY_SUBTRACT,					// -
-							TTAG_BINARY_MULTIPLY,					// *
-							TTAG_BINARY_DIVIDE,						// /
-							TTAG_BINARY_MODULUS,					// %
-							// Bit shift.
-							TTAG_BINARY_SHIFT_LEFT,					// <<
-							TTAG_BINARY_SHIFT_RIGHT,				// >>
-							// Bitwise logic.
-							TTAG_BINARY_AND_BITWISE,				// &
-							TTAG_BINARY_OR_BITWISE,					// |
-							TTAG_BINARY_OR_EXCLUSIVE,				// ^
-							// Boolean logic.
-							TTAG_BINARY_AND,						// &&
-							TTAG_BINARY_OR,							// ||
-							// Comparison.
-							TTAG_BINARY_LESSER,						// <
-							TTAG_BINARY_GREATER,					// >
-							TTAG_BINARY_LESSER_EQUAL,				// <=
-							TTAG_BINARY_GREATER_EQUAL,				// >=
-							TTAG_BINARY_EQUAL_DOUBLE,				// ==
-							TTAG_BINARY_EQUAL_NOT,					// !=
-							// Assignment.
-							TTAG_ASSIGN_BEGIN_,
-							TTAG_BINARY_EQUAL = TTAG_ASSIGN_BEGIN_,	// =
-							// Compound Assignment.
-							TTAG_ASSIGN_ADD,						// +=
-							TTAG_ASSIGN_SUBTRACT,					// -=
-							TTAG_ASSIGN_MULTIPLY,					// *=
-							TTAG_ASSIGN_DIVIDE,						// /=
-							TTAG_ASSIGN_MODULUS,					// %=
-							TTAG_ASSIGN_SHIFT_LEFT,					// <<=
-							TTAG_ASSIGN_SHIFT_RIGHT,				// >>=
-							TTAG_ASSIGN_AND_BITWISE,				// &=
-							TTAG_ASSIGN_OR_BITWISE,					// |=
-							TTAG_ASSIGN_OR_EXCLUSIVE,				// ^=
-							TTAG_ASSIGN_END_,
-							// Sequence.
-							TTAG_BINARY_COMMA = TTAG_ASSIGN_END_,	// ,
-						TTAG_BINARY_END_,
+                        // Binary operators.
+                        TTAG_BINARY_BEGIN_ = TTAG_UNARY_END_,
+                            // Arithmetic.
+                            TTAG_BINARY_ADD = TTAG_BINARY_BEGIN_,   // +
+                            TTAG_BINARY_SUBTRACT,                   // -
+                            TTAG_BINARY_MULTIPLY,                   // *
+                            TTAG_BINARY_DIVIDE,                     // /
+                            TTAG_BINARY_MODULUS,                    // %
+                            // Bit shift.
+                            TTAG_BINARY_SHIFT_LEFT,                 // <<
+                            TTAG_BINARY_SHIFT_RIGHT,                // >>
+                            // Bitwise logic.
+                            TTAG_BINARY_AND_BITWISE,                // &
+                            TTAG_BINARY_OR_BITWISE,                 // |
+                            TTAG_BINARY_OR_EXCLUSIVE,               // ^
+                            // Boolean logic.
+                            TTAG_BINARY_AND,                        // &&
+                            TTAG_BINARY_OR,                         // ||
+                            // Comparison.
+                            TTAG_BINARY_LESSER,                     // <
+                            TTAG_BINARY_GREATER,                    // >
+                            TTAG_BINARY_LESSER_EQUAL,               // <=
+                            TTAG_BINARY_GREATER_EQUAL,              // >=
+                            TTAG_BINARY_EQUAL_DOUBLE,               // ==
+                            TTAG_BINARY_EQUAL_NOT,                  // !=
+                            // Assignment.
+                            TTAG_ASSIGN_BEGIN_,
+                            TTAG_BINARY_EQUAL = TTAG_ASSIGN_BEGIN_, // =
+                            // Compound Assignment.
+                            TTAG_ASSIGN_ADD,                        // +=
+                            TTAG_ASSIGN_SUBTRACT,                   // -=
+                            TTAG_ASSIGN_MULTIPLY,                   // *=
+                            TTAG_ASSIGN_DIVIDE,                     // /=
+                            TTAG_ASSIGN_MODULUS,                    // %=
+                            TTAG_ASSIGN_SHIFT_LEFT,                 // <<=
+                            TTAG_ASSIGN_SHIFT_RIGHT,                // >>=
+                            TTAG_ASSIGN_AND_BITWISE,                // &=
+                            TTAG_ASSIGN_OR_BITWISE,                 // |=
+                            TTAG_ASSIGN_OR_EXCLUSIVE,               // ^=
+                            TTAG_ASSIGN_END_,
+                            // Sequence.
+                            TTAG_BINARY_COMMA = TTAG_ASSIGN_END_,   // ,
+                        TTAG_BINARY_END_,
 
-						// Ternary operators.
-						TTAG_TERNARY_BEGIN_ = TTAG_BINARY_END_,
-							TTAG_TERNARY_QUESTION = TTAG_TERNARY_BEGIN_,	// ?
-							TTAG_TERNARY_COLON,								// :
-						TTAG_TERNARY_END_,
+                        // Ternary operators.
+                        TTAG_TERNARY_BEGIN_ = TTAG_BINARY_END_,
+                            TTAG_TERNARY_QUESTION = TTAG_TERNARY_BEGIN_,    // ?
+                            TTAG_TERNARY_COLON,                             // :
+                        TTAG_TERNARY_END_,
 
-					TTAG_OPERATOR_END_ = TTAG_TERNARY_END_,
-				TTAG_SYMBOL_END_ = TTAG_OPERATOR_END_,
-			TTAG_END_ = TTAG_SYMBOL_END_
-		};
+                    TTAG_OPERATOR_END_ = TTAG_TERNARY_END_,
+                TTAG_SYMBOL_END_ = TTAG_OPERATOR_END_,
+            TTAG_END_ = TTAG_SYMBOL_END_
+        };
 
-	public:
-		union // https://en.cppreference.com/w/cpp/language/union
-		{
-			int_tL			val_int;
-			float_tL		val_float;
-			String_tL* val_string;
-			Array_tL* val_array;
-			Function_tL* val_function;
-			Builtin_tL* val_builtin;
-			char* val_identifier;
-		};
-		lin_num line;
-		col_num column;
-		tok_tag tag;
+    public:
+        union // https://en.cppreference.com/w/cpp/language/union
+        {
+            int_tL			val_int;
+            float_tL		val_float;
+            String_tL* val_string;
+            Array_tL* val_array;
+            Function_tL* val_function;
+            Builtin_tL* val_builtin;
+            char* val_identifier;
+        };
+        lin_num line;
+        col_num column;
+        tok_tag tag;
 
-		// Constructors.
-		Token();
-		Token(lin_num l, col_num c, int_tL			val);
-		Token(lin_num l, col_num c, float_tL		val);
-		Token(lin_num l, col_num c, String_tL* val);
-		Token(lin_num l, col_num c, Array_tL* val);
-		Token(lin_num l, col_num c, Function_tL* val);
-		Token(Builtin_tL* val);
-		Token(lin_num l, col_num c, char* val);
-		Token(lin_num l, col_num c, tok_tag t, int_tL			val);
+        // Constructors.
+        Token();
+        Token(lin_num l, col_num c, int_tL			val);
+        Token(lin_num l, col_num c, float_tL		val);
+        Token(lin_num l, col_num c, String_tL* val);
+        Token(lin_num l, col_num c, Array_tL* val);
+        Token(lin_num l, col_num c, Function_tL* val);
+        Token(Builtin_tL* val);
+        Token(lin_num l, col_num c, char* val);
+        Token(lin_num l, col_num c, tok_tag t, int_tL			val);
 
-		// https://en.cppreference.com/w/cpp/language/rule_of_three.html
-		Token(const Token& token);					// Copy constructor.
-		Token(Token&& token) noexcept;				// Move constructor.
-		Token& operator=(const Token& token);		// Copy Assignment.
-		Token& operator=(Token&& token) noexcept;	// Move Assignment.
+        // https://en.cppreference.com/w/cpp/language/rule_of_three.html
+        Token(const Token& token);                  // Copy constructor.
+        Token(Token&& token) noexcept;              // Move constructor.
+        Token& operator=(const Token& token);       // Copy Assignment.
+        Token& operator=(Token&& token) noexcept;   // Move Assignment.
 
-		// Destructor.
-		~Token();
+        // Destructor.
+        ~Token();
 
-	public:
-		bool as_bool() const;
-		void print() const;
+    public:
+        bool as_bool() const;
+        void print() const;
 
-		void info() const;
-	};
+        void info() const;
+    };
 
-	struct Array_tL
-	{
-	public:
-		std::vector<Token> array;
-		unsigned short owners{ 0 };
-	};
+    struct Array_tL
+    {
+    public:
+        std::vector<Token> array;
+        unsigned short owners{ 0 };
+    };
 
-	typedef std::unordered_map<std::string, const int_tL> NAME_TABLE_TYPE;
-	typedef std::unordered_map<int_tL, Token> VALUE_TABLE_TYPE;
+    typedef std::unordered_map<std::string, const int_tL> NAME_TABLE_TYPE;
+    typedef std::unordered_map<int_tL, Token> VALUE_TABLE_TYPE;
 
-	extern NAME_TABLE_TYPE NAME_TABLE;
-	extern VALUE_TABLE_TYPE VALUE_TABLE;
+    extern NAME_TABLE_TYPE NAME_TABLE;
+    extern VALUE_TABLE_TYPE VALUE_TABLE;
 
-	struct SourceFile;
+    struct SourceFile;
 
-	typedef std::vector<Token> Program_tL; // Token stack of parsed instructions for solving.
+    typedef std::vector<Token> Program_tL; // Token stack of parsed instructions for solving.
 
-	struct Function_tL
-	{
-		SourceFile* source{ nullptr };
-		char* name{ nullptr };
-		std::vector<int_tL> arg_id;
-		std::shared_ptr<Program_tL> program{ nullptr };
-		int_tL variable_id{ 0 };
-		bool loaded{ true };
-		bool global{ false };
+    struct Function_tL
+    {
+        SourceFile* source{ nullptr };
+        char* name{ nullptr };
+        std::vector<int_tL> arg_id;
+        std::shared_ptr<Program_tL> program{ nullptr };
+        int_tL variable_id{ 0 };
+        bool loaded{ true };
+        bool global{ false };
 
-		void unload()
-		{
-			if (!loaded) return;
+        void unload()
+        {
+            if (!loaded) return;
 
-			loaded = false;
-			arg_id.clear();
-			program = nullptr;
-		}
+            loaded = false;
+            arg_id.clear();
+            program = nullptr;
+        }
 
-		~Function_tL()
-		{
-			unload();
-			if (name) delete[] name;
-			arg_id.~vector();
-		}
-	};
+        ~Function_tL()
+        {
+            unload();
+            if (name) delete[] name;
+            arg_id.~vector();
+        }
+    };
 
-	struct SourceFile
-	{
-	public:
-		std::string name;
-		std::unordered_map<std::string, Function_tL> functions;
+    struct SourceFile
+    {
+    public:
+        std::string name;
+        std::unordered_map<std::string, Function_tL> functions;
 
-		void unload()
-		{
-			for (auto& function : functions)
-				function.second.unload();
-		}
-	};
+        void unload()
+        {
+            for (auto& function : functions)
+                function.second.unload();
+        }
+    };
 
-	struct Execution_tL;
+    struct Execution_tL;
 
-	Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state);
-	Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state);
-	VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution_tL& state);
-	VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state);
+    Token* GET_VARIABLE_VALUE(Token& variable, Execution_tL& state);
+    Token* GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state);
+    VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE(Execution_tL& state);
+    VALUE_TABLE_TYPE& GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state);
 
-	struct Execution_tL
-	{
-	public:
-		VALUE_TABLE_TYPE LOCALS;
-		std::shared_ptr<Program_tL> program{ nullptr };
-		std::string name_file;
-		std::string name_function;
-		bool global{ false };
-		Token* (*GET_VARIABLE_VALUE_)(Token& variable, Execution_tL& state);
-		VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution_tL& state);
-		size_t program_counter;
-		const size_t begin{ 0 };												// Stack index to start solving the own program.
+    struct Execution_tL
+    {
+    public:
+        VALUE_TABLE_TYPE LOCALS;
+        std::shared_ptr<Program_tL> program{ nullptr };
+        std::string name_file;
+        std::string name_function;
+        bool global{ false };
+        Token* (*GET_VARIABLE_VALUE_)(Token& variable, Execution_tL& state);
+        VALUE_TABLE_TYPE& (*GET_ASSIGNMENT_TABLE_)(Execution_tL& state);
+        size_t program_counter;
+        const size_t begin{ 0 };                                                // Stack index to start solving the own program.
 
-		Execution_tL(Function_tL* _function, const size_t _begin = 0)
-			: begin(_begin)
-		{
-			program = _function->program;
-			name_file = _function->source->name;
-			name_function = _function->name ? _function->name : "<anonymous>";
-			global = _function->global;
-			if (global) {
-				GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE_GLOBAL;
-				GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE_GLOBAL;
-			}
-			else {
-				GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE;
-				GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE;
-			}
-			program_counter = 0;
-		}
-		Execution_tL(const Execution_tL& other)
-			: begin(other.begin)
-		{
-			*this = other;
-		}
-		Execution_tL(Execution_tL&& other) noexcept
-			: begin(other.begin)
-		{
-			*this = std::move(other);
-		}
-		Execution_tL& operator=(const Execution_tL& other)
-		{
-			if (this != &other) {
-				program = other.program;
-				name_file = other.name_file;
-				name_function = other.name_function;
-				global = other.global;
-				if (!global) LOCALS = other.LOCALS;
-				GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
-				GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
-				program_counter = other.program_counter;
-			}
-			return *this;
-		}
-		Execution_tL& operator=(Execution_tL&& other) noexcept
-		{
-			program.swap(other.program);
-			name_file.swap(other.name_file);
-			name_function.swap(other.name_function);
-			global = other.global;
-			if (!global) LOCALS = std::move(other.LOCALS);
-			GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
-			GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
-			program_counter = other.program_counter;
-			return *this;
-		}
-	};
+        Execution_tL(Function_tL* _function, const size_t _begin = 0)
+            : begin(_begin)
+        {
+            program = _function->program;
+            name_file = _function->source->name;
+            name_function = _function->name ? _function->name : "<anonymous>";
+            global = _function->global;
+            if (global) {
+                GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE_GLOBAL;
+                GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE_GLOBAL;
+            }
+            else {
+                GET_VARIABLE_VALUE_ = GET_VARIABLE_VALUE;
+                GET_ASSIGNMENT_TABLE_ = GET_ASSIGNMENT_TABLE;
+            }
+            program_counter = 0;
+        }
+        Execution_tL(const Execution_tL& other)
+            : begin(other.begin)
+        {
+            *this = other;
+        }
+        Execution_tL(Execution_tL&& other) noexcept
+            : begin(other.begin)
+        {
+            *this = std::move(other);
+        }
+        Execution_tL& operator=(const Execution_tL& other)
+        {
+            if (this != &other) {
+                program = other.program;
+                name_file = other.name_file;
+                name_function = other.name_function;
+                global = other.global;
+                if (!global) LOCALS = other.LOCALS;
+                GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+                GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+                program_counter = other.program_counter;
+            }
+            return *this;
+        }
+        Execution_tL& operator=(Execution_tL&& other) noexcept
+        {
+            program.swap(other.program);
+            name_file.swap(other.name_file);
+            name_function.swap(other.name_function);
+            global = other.global;
+            if (!global) LOCALS = std::move(other.LOCALS);
+            GET_VARIABLE_VALUE_ = other.GET_VARIABLE_VALUE_;
+            GET_ASSIGNMENT_TABLE_ = other.GET_ASSIGNMENT_TABLE_;
+            program_counter = other.program_counter;
+            return *this;
+        }
+    };
 
-	struct Thread_tL
-	{
-		std::vector<Execution_tL> executing;
-		std::vector<Token> solution;
-		size_t lastSequence{ SIZE_MAX };		// Stack index of the Last SEQUENCE Token.
+    struct Thread_tL
+    {
+        std::vector<Execution_tL> executing;
+        std::vector<Token> solution;
+        size_t lastSequence{ SIZE_MAX };        // Stack index of the Last SEQUENCE Token.
 #ifdef LANGUAGE_THREAD_PARAMETERS
-		LANGUAGE_THREAD_PARAMETERS
+        LANGUAGE_THREAD_PARAMETERS
 #endif // LANGUAGE_THREAD_PARAMETERS
-	};
+    };
 
-	typedef std::unordered_map<std::string, SourceFile> LOADED_SOURCEFILE_TYPE;
+    typedef std::unordered_map<std::string, SourceFile> LOADED_SOURCEFILE_TYPE;
 
-	extern LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
+    extern LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
 
-	/* OPERATOR_PRECEDENCE.
-	* Precedence of operators to resolve order of operations.
-	* First least significant byte.
-	* https://learn.microsoft.com/en-us/cpp/c-language/precedence-and-order-of-evaluation?view=msvc-170
-	*/
-	enum OPERATOR_PRECEDENCE : int_tL
-	{
-		PRECEDENCE_SEQUENCE = 0,
-		PRECEDENCE_ASSIGNMENT,
-		PRECEDENCE_TERNARY,
-		PRECEDENCE_OR,
-		PRECEDENCE_AND,
-		PRECEDENCE_BITWISE_OR,
-		PRECEDENCE_BITWISE_XOR,
-		PRECEDENCE_BITWISE_AND,
-		PRECEDENCE_EQUALITY,
-		PRECEDENCE_RELATIONAL,
-		PRECEDENCE_SHIFT,
-		PRECEDENCE_ADDITIVE,
-		PRECEDENCE_MULTIPLICATIVE,
-		//PRECEDENCE_TYPECAST,
-		PRECEDENCE_UNARY,
-		PRECEDENCE_EXPRESSION,
+    /* OPERATOR_PRECEDENCE.
+    * Precedence of operators to resolve order of operations.
+    * First least significant byte.
+    * https://learn.microsoft.com/en-us/cpp/c-language/precedence-and-order-of-evaluation?view=msvc-170
+    */
+    enum OPERATOR_PRECEDENCE : int_tL
+    {
+        PRECEDENCE_SEQUENCE = 0,
+        PRECEDENCE_ASSIGNMENT,
+        PRECEDENCE_TERNARY,
+        PRECEDENCE_OR,
+        PRECEDENCE_AND,
+        PRECEDENCE_BITWISE_OR,
+        PRECEDENCE_BITWISE_XOR,
+        PRECEDENCE_BITWISE_AND,
+        PRECEDENCE_EQUALITY,
+        PRECEDENCE_RELATIONAL,
+        PRECEDENCE_SHIFT,
+        PRECEDENCE_ADDITIVE,
+        PRECEDENCE_MULTIPLICATIVE,
+        //PRECEDENCE_TYPECAST,
+        PRECEDENCE_UNARY,
+        PRECEDENCE_EXPRESSION,
 
-		PRECEDENCE_MASK_ = 0xFF
-	};
+        PRECEDENCE_MASK_ = 0xFF
+    };
 
-	/* OPERATOR_ASSOCIATIVITY.
-	* Associativity of operators to resolve order of operations.
-	* Second least significant byte.
-	* See OPERATOR_PRECEDENCE for more information.
-	*/
-	enum OPERATOR_ASSOCIATIVITY : int_tL
-	{
-		ASSOCIATIVITY_RIGHT_TO_LEFT = 0x000,
-		ASSOCIATIVITY_LEFT_TO_RIGHT = 0x100,
+    /* OPERATOR_ASSOCIATIVITY.
+    * Associativity of operators to resolve order of operations.
+    * Second least significant byte.
+    * See OPERATOR_PRECEDENCE for more information.
+    */
+    enum OPERATOR_ASSOCIATIVITY : int_tL
+    {
+        ASSOCIATIVITY_RIGHT_TO_LEFT = 0x000,
+        ASSOCIATIVITY_LEFT_TO_RIGHT = 0x100,
 
-		ASSOCIATIVITY_MASK_ = ASSOCIATIVITY_LEFT_TO_RIGHT
-	};
+        ASSOCIATIVITY_MASK_ = ASSOCIATIVITY_LEFT_TO_RIGHT
+    };
 
-	/* OPERATOR_FLAG.
-	* Special flags to customize operator behavior.
-	* Third least significant byte.
-	*/
-	enum OPERATOR_FLAG : int_tL
-	{
-		OPFLAG_BINARY_NO_POP		= 0x010000, // Binary operator keep both operands on the solution stack.
+    /* OPERATOR_FLAG.
+    * Special flags to customize operator behavior.
+    * Third least significant byte.
+    */
+    enum OPERATOR_FLAG : int_tL
+    {
+        OPFLAG_BINARY_NO_POP        = 0x010000, // Binary operator keep both operands on the solution stack.
 
-		OPFLAG_MASK_				= 0xFF0000
-	};
+        OPFLAG_MASK_                = 0xFF0000
+    };
 
-	/* INCDEC_*_VAL.
-	* Precedence and Associativity of INCREMENT/DECREMENT operators in Prefix and Postfix positions.
-	*/
-	constexpr int_tL INCDEC_PRE_VAL		= PRECEDENCE_UNARY		| ASSOCIATIVITY_RIGHT_TO_LEFT;
-	constexpr int_tL INCDEC_POST_VAL	= PRECEDENCE_EXPRESSION	| ASSOCIATIVITY_LEFT_TO_RIGHT;
+    /* INCDEC_*_VAL.
+    * Precedence and Associativity of INCREMENT/DECREMENT operators in Prefix and Postfix positions.
+    */
+    constexpr int_tL INCDEC_PRE_VAL     = PRECEDENCE_UNARY      | ASSOCIATIVITY_RIGHT_TO_LEFT;
+    constexpr int_tL INCDEC_POST_VAL    = PRECEDENCE_EXPRESSION | ASSOCIATIVITY_LEFT_TO_RIGHT;
 
-	/* TokenTagInfo.
-	* Token tag numeric ID alongside its respective information.
-	*/
-	struct TokenTagInfo
-	{
-	public:
-		const char* name;	// Tag name.
-		const tok_tag tag;	// TTAG_ enum ID.
-		const char* text;	// Associated source text, if applicable.
-		const int_tL value;	// Tag numeric value, if applicable.
-	};
+    /* TokenTagInfo.
+    * Token tag numeric ID alongside its respective information.
+    */
+    struct TokenTagInfo
+    {
+    public:
+        const char* name;   // Tag name.
+        const tok_tag tag;  // TTAG_ enum ID.
+        const char* text;   // Associated source text, if applicable.
+        const int_tL value; // Tag numeric value, if applicable.
+    };
 
-	/* LANGUAGE_TOKEN_TAG.
-	* Register ALL valid Language Token tags with their associated data.
-	* https://stackoverflow.com/a/22676401
-	* https://cplusplus.com/reference/algorithm/find_if/
-	* https://stackoverflow.com/a/14595314
-	*/
-	inline const TokenTagInfo LANGUAGE_TOKEN_TAG[]
-	{
+    /* LANGUAGE_TOKEN_TAG.
+    * Register ALL valid Language Token tags with their associated data.
+    * https://stackoverflow.com/a/22676401
+    * https://cplusplus.com/reference/algorithm/find_if/
+    * https://stackoverflow.com/a/14595314
+    */
+    inline const TokenTagInfo LANGUAGE_TOKEN_TAG[]
+    {
 #define LANGUAGE_TTAG_NAME(s) STRINGIZING(s), Token::TTAG_ ## s
-		// Inner tags, in tag ascending order.
+        // Inner tags, in tag ascending order.
 
-		{ LANGUAGE_TTAG_NAME(NONE) },
-		{ LANGUAGE_TTAG_NAME(INT) },
-		{ LANGUAGE_TTAG_NAME(FLOAT) },
-		{ LANGUAGE_TTAG_NAME(STRING) },
-		{ LANGUAGE_TTAG_NAME(ARRAY) },
-		{ LANGUAGE_TTAG_NAME(FUNCTION) },
-		{ LANGUAGE_TTAG_NAME(BUILTIN) },
+        { LANGUAGE_TTAG_NAME(NONE) },
+        { LANGUAGE_TTAG_NAME(INT) },
+        { LANGUAGE_TTAG_NAME(FLOAT) },
+        { LANGUAGE_TTAG_NAME(STRING) },
+        { LANGUAGE_TTAG_NAME(ARRAY) },
+        { LANGUAGE_TTAG_NAME(FUNCTION) },
+        { LANGUAGE_TTAG_NAME(BUILTIN) },
 
-		{ LANGUAGE_TTAG_NAME(IDENTIFIER) },
-		{ LANGUAGE_TTAG_NAME(VARIABLE) },
-		{ LANGUAGE_TTAG_NAME(REFERENCE) },
+        { LANGUAGE_TTAG_NAME(IDENTIFIER) },
+        { LANGUAGE_TTAG_NAME(VARIABLE) },
+        { LANGUAGE_TTAG_NAME(REFERENCE) },
 
-		{ LANGUAGE_TTAG_NAME(SEQUENCE) },
-		{ LANGUAGE_TTAG_NAME(INDEX) },
-		{ LANGUAGE_TTAG_NAME(ARRAY_INIT) },
-		{ LANGUAGE_TTAG_NAME(CALL) },
-		{ LANGUAGE_TTAG_NAME(CHAR) },
+        { LANGUAGE_TTAG_NAME(SEQUENCE) },
+        { LANGUAGE_TTAG_NAME(INDEX) },
+        { LANGUAGE_TTAG_NAME(ARRAY_INIT) },
+        { LANGUAGE_TTAG_NAME(CALL) },
+        { LANGUAGE_TTAG_NAME(CHAR) },
 
-		{ LANGUAGE_TTAG_NAME(JUMP) },
-		{ LANGUAGE_TTAG_NAME(JUMP_ON_FALSE) },
-		{ LANGUAGE_TTAG_NAME(JUMP_ON_NOT_FALSE) },
-		{ LANGUAGE_TTAG_NAME(ADVANCE) },
-		{ LANGUAGE_TTAG_NAME(ADVANCE_ON_FALSE) },
+        { LANGUAGE_TTAG_NAME(JUMP) },
+        { LANGUAGE_TTAG_NAME(JUMP_ON_FALSE) },
+        { LANGUAGE_TTAG_NAME(JUMP_ON_NOT_FALSE) },
+        { LANGUAGE_TTAG_NAME(ADVANCE) },
+        { LANGUAGE_TTAG_NAME(ADVANCE_ON_FALSE) },
 
-		// Keyword tags, in tag ascending order.
+        // Keyword tags, in tag ascending order.
 
-		{ LANGUAGE_TTAG_NAME(IF),					"if" },
-		{ LANGUAGE_TTAG_NAME(ELSE),					"else" },
-		{ LANGUAGE_TTAG_NAME(FOR),					"for" },
-		{ LANGUAGE_TTAG_NAME(WHILE),				"while" },
-		{ LANGUAGE_TTAG_NAME(DO),					"do" },
-		{ LANGUAGE_TTAG_NAME(BREAK),				"break" },
-		{ LANGUAGE_TTAG_NAME(CONTINUE),				"continue" },
-		{ LANGUAGE_TTAG_NAME(SWITCH),				"switch" },
-		{ LANGUAGE_TTAG_NAME(ON),					"on" },
-		{ LANGUAGE_TTAG_NAME(DEFAULT),				"default" },
-		{ LANGUAGE_TTAG_NAME(OFF),					"off" },
-		{ LANGUAGE_TTAG_NAME(FUNCTION_DEF),			"function" },
-		{ LANGUAGE_TTAG_NAME(RETURN),				"return" },
-		{ LANGUAGE_TTAG_NAME(AWAIT),				"await" },
-		{ LANGUAGE_TTAG_NAME(LABEL),				"label" },
-		{ LANGUAGE_TTAG_NAME(GOTO),					"goto" },
+        { LANGUAGE_TTAG_NAME(IF),                   "if" },
+        { LANGUAGE_TTAG_NAME(ELSE),                 "else" },
+        { LANGUAGE_TTAG_NAME(FOR),                  "for" },
+        { LANGUAGE_TTAG_NAME(WHILE),                "while" },
+        { LANGUAGE_TTAG_NAME(DO),                   "do" },
+        { LANGUAGE_TTAG_NAME(BREAK),                "break" },
+        { LANGUAGE_TTAG_NAME(CONTINUE),             "continue" },
+        { LANGUAGE_TTAG_NAME(SWITCH),               "switch" },
+        { LANGUAGE_TTAG_NAME(ON),                   "on" },
+        { LANGUAGE_TTAG_NAME(DEFAULT),              "default" },
+        { LANGUAGE_TTAG_NAME(OFF),                  "off" },
+        { LANGUAGE_TTAG_NAME(FUNCTION_DEF),         "function" },
+        { LANGUAGE_TTAG_NAME(RETURN),               "return" },
+        { LANGUAGE_TTAG_NAME(AWAIT),                "await" },
+        { LANGUAGE_TTAG_NAME(LABEL),                "label" },
+        { LANGUAGE_TTAG_NAME(GOTO),                 "goto" },
 
-		{ "FALSE",	Token::TTAG_INT,				"false",	LANGUAGE_FALSE_INT },	// Tag of the parsed Token instead of its ID.
-		{ "TRUE",	Token::TTAG_INT,				"true",		LANGUAGE_TRUE_INT },	// Tag of the parsed Token instead of its ID.
+        { "FALSE",  Token::TTAG_INT,                "false",    LANGUAGE_FALSE_INT },   // Tag of the parsed Token instead of its ID.
+        { "TRUE",   Token::TTAG_INT,                "true",     LANGUAGE_TRUE_INT },    // Tag of the parsed Token instead of its ID.
 
-		// Symbol tags, in text length descending order.
+        // Symbol tags, in text length descending order.
 
-		{ LANGUAGE_TTAG_NAME(ASSIGN_SHIFT_LEFT),	"<<=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_SHIFT_RIGHT),	">>=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_ADD),			"+=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_SUBTRACT),		"-=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_MULTIPLY),		"*=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_DIVIDE),		"/=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_MODULUS),		"%=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_AND_BITWISE),	"&=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_OR_BITWISE),	"|=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(ASSIGN_OR_EXCLUSIVE),	"^=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_SHIFT_LEFT),    "<<=",      PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_SHIFT_RIGHT),   ">>=",      PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_ADD),           "+=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_SUBTRACT),      "-=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_MULTIPLY),      "*=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_DIVIDE),        "/=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_MODULUS),       "%=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_AND_BITWISE),   "&=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_OR_BITWISE),    "|=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(ASSIGN_OR_EXCLUSIVE),  "^=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
 
-		{ LANGUAGE_TTAG_NAME(UNARY_INCREMENT),		"++",		INCDEC_PRE_VAL },	// Prefix position by default.
-		{ LANGUAGE_TTAG_NAME(UNARY_DECREMENT),		"--",		INCDEC_PRE_VAL },	// Prefix position by default.
+        { LANGUAGE_TTAG_NAME(UNARY_INCREMENT),      "++",       INCDEC_PRE_VAL },   // Prefix position by default.
+        { LANGUAGE_TTAG_NAME(UNARY_DECREMENT),      "--",       INCDEC_PRE_VAL },   // Prefix position by default.
 
-		{ LANGUAGE_TTAG_NAME(BINARY_EQUAL_DOUBLE),	"==",		PRECEDENCE_EQUALITY			| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_EQUAL_NOT),		"!=",		PRECEDENCE_EQUALITY			| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_LESSER_EQUAL),	"<=",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_GREATER_EQUAL),	">=",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_SHIFT_LEFT),	"<<",		PRECEDENCE_SHIFT			| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_SHIFT_RIGHT),	">>",		PRECEDENCE_SHIFT			| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_AND),			"&&",		PRECEDENCE_AND				| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_OR),			"||",		PRECEDENCE_OR				| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_AND_BITWISE),	"&",		PRECEDENCE_BITWISE_AND		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_OR_BITWISE),	"|",		PRECEDENCE_BITWISE_OR		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_OR_EXCLUSIVE),	"^",		PRECEDENCE_BITWISE_XOR		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_ADD),			"+",		PRECEDENCE_ADDITIVE			| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_SUBTRACT),		"-",		PRECEDENCE_ADDITIVE			| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_MULTIPLY),		"*",		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_DIVIDE),		"/",		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_MODULUS),		"%",		PRECEDENCE_MULTIPLICATIVE	| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_LESSER),		"<",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_GREATER),		">",		PRECEDENCE_RELATIONAL		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BINARY_EQUAL),			"=",		PRECEDENCE_ASSIGNMENT		| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(BINARY_COMMA),			",",		PRECEDENCE_SEQUENCE			| ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_EQUAL_DOUBLE),  "==",       PRECEDENCE_EQUALITY         | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_EQUAL_NOT),     "!=",       PRECEDENCE_EQUALITY         | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_LESSER_EQUAL),  "<=",       PRECEDENCE_RELATIONAL       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_GREATER_EQUAL), ">=",       PRECEDENCE_RELATIONAL       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_SHIFT_LEFT),    "<<",       PRECEDENCE_SHIFT            | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_SHIFT_RIGHT),   ">>",       PRECEDENCE_SHIFT            | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_AND),           "&&",       PRECEDENCE_AND              | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_OR),            "||",       PRECEDENCE_OR               | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_AND_BITWISE),   "&",        PRECEDENCE_BITWISE_AND      | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_OR_BITWISE),    "|",        PRECEDENCE_BITWISE_OR       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_OR_EXCLUSIVE),  "^",        PRECEDENCE_BITWISE_XOR      | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_ADD),           "+",        PRECEDENCE_ADDITIVE         | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_SUBTRACT),      "-",        PRECEDENCE_ADDITIVE         | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_MULTIPLY),      "*",        PRECEDENCE_MULTIPLICATIVE   | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_DIVIDE),        "/",        PRECEDENCE_MULTIPLICATIVE   | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_MODULUS),       "%",        PRECEDENCE_MULTIPLICATIVE   | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_LESSER),        "<",        PRECEDENCE_RELATIONAL       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_GREATER),       ">",        PRECEDENCE_RELATIONAL       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BINARY_EQUAL),         "=",        PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(BINARY_COMMA),         ",",        PRECEDENCE_SEQUENCE         | ASSOCIATIVITY_LEFT_TO_RIGHT },
 
-		{ LANGUAGE_TTAG_NAME(UNARY_FLIP),			"~",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(UNARY_NEGATION),		"!",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(UNARY_POSITIVE),		"+",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(UNARY_NEGATIVE),		"-",		PRECEDENCE_UNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(UNARY_FLIP),           "~",        PRECEDENCE_UNARY            | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(UNARY_NEGATION),       "!",        PRECEDENCE_UNARY            | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(UNARY_POSITIVE),       "+",        PRECEDENCE_UNARY            | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(UNARY_NEGATIVE),       "-",        PRECEDENCE_UNARY            | ASSOCIATIVITY_RIGHT_TO_LEFT },
 
-		{ LANGUAGE_TTAG_NAME(TERNARY_QUESTION),		"?",		PRECEDENCE_TERNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
-		{ LANGUAGE_TTAG_NAME(TERNARY_COLON),		":",		PRECEDENCE_TERNARY			| ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(TERNARY_QUESTION),     "?",        PRECEDENCE_TERNARY          | ASSOCIATIVITY_RIGHT_TO_LEFT },
+        { LANGUAGE_TTAG_NAME(TERNARY_COLON),        ":",        PRECEDENCE_TERNARY          | ASSOCIATIVITY_RIGHT_TO_LEFT },
 
-		{ LANGUAGE_TTAG_NAME(SEMICOLON),			";" },
-		{ LANGUAGE_TTAG_NAME(PARENTHESIS_OPEN),		"(",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(PARENTHESIS_CLOSE),	")",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BRACKET_OPEN),			"[",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BRACKET_CLOSE),		"]",		PRECEDENCE_EXPRESSION		| ASSOCIATIVITY_LEFT_TO_RIGHT },
-		{ LANGUAGE_TTAG_NAME(BRACE_OPEN),			"{" },
-		{ LANGUAGE_TTAG_NAME(BRACE_CLOSE),			"}" },
+        { LANGUAGE_TTAG_NAME(SEMICOLON),            ";" },
+        { LANGUAGE_TTAG_NAME(PARENTHESIS_OPEN),     "(",        PRECEDENCE_EXPRESSION       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(PARENTHESIS_CLOSE),    ")",        PRECEDENCE_EXPRESSION       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BRACKET_OPEN),         "[",        PRECEDENCE_EXPRESSION       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BRACKET_CLOSE),        "]",        PRECEDENCE_EXPRESSION       | ASSOCIATIVITY_LEFT_TO_RIGHT },
+        { LANGUAGE_TTAG_NAME(BRACE_OPEN),           "{" },
+        { LANGUAGE_TTAG_NAME(BRACE_CLOSE),          "}" },
 #undef LANGUAGE_TTAG_NAME
-	};
+    };
 
-	enum PARSE_FLAG : unsigned short
-	{
-		GLOBAL_FIRST = 0x0001,
-		GLOBAL_ALL = 0x0002,
-		ALLOW_FUNCTION_DEF = 0x0004,
-	};
+    enum PARSE_FLAG : unsigned short
+    {
+        GLOBAL_FIRST = 0x0001,
+        GLOBAL_ALL = 0x0002,
+        ALLOW_FUNCTION_DEF = 0x0004,
+    };
 
 #define intlen(n) ((n) == 0 ? 1 : ((n) > 0 ? log10(n) + 1 : log10(-(n)) + 2))
-	int_tL NAME_TABLE_get_name_id(const char* name); // Get ID for the provided name.
-	int_tL NAME_TABLE_get_name_id(const std::string& name); // Get ID for the provided name.
-	const TokenTagInfo* tag_id(const tok_tag tag);
-	const char* tag_name(tok_tag tag);
-	const char* variable_name(int_tL id);
-	SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE);
-	Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-	Function_tL* script_load(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-	SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
-	void script_unload(const char* filename);
+    int_tL NAME_TABLE_get_name_id(const char* name); // Get ID for the provided name.
+    int_tL NAME_TABLE_get_name_id(const std::string& name); // Get ID for the provided name.
+    const TokenTagInfo* tag_id(const tok_tag tag);
+    const char* tag_name(tok_tag tag);
+    const char* variable_name(int_tL id);
+    SOLVE_RESULT script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE);
+    Function_tL* script_load(const char* filename, const char* funcname, const char* source, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+    Function_tL* script_load(const char* filename, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+    SOLVE_RESULT script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags = PARSE_FLAG::ALLOW_FUNCTION_DEF | PARSE_FLAG::GLOBAL_FIRST);
+    void script_unload(const char* filename);
 
-	int_tL LANGUAGE_initialize();
-	int_tL LANGUAGE_terminate();
-	int_tL LANGUAGE_reload();
+    int_tL LANGUAGE_initialize();
+    int_tL LANGUAGE_terminate();
+    int_tL LANGUAGE_reload();
 }
 
 #ifdef LANGUAGE_IMPLEMENTATION
@@ -647,62 +647,62 @@ namespace Language
 
 namespace Language
 {
-	LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
-	NAME_TABLE_TYPE NAME_TABLE;
-	VALUE_TABLE_TYPE VALUE_TABLE;
+    LOADED_SOURCEFILE_TYPE LOADED_SOURCEFILE;
+    NAME_TABLE_TYPE NAME_TABLE;
+    VALUE_TABLE_TYPE VALUE_TABLE;
 
-	typedef unsigned char ErrMesType;
-	enum : ErrMesType
-	{
-		Interpreter = 0,
-		MATH_ERROR,
-		VARIABLE_UNINITIALIZED,
-		ARGUMENTS_MISMATCH,
-		TYPE_ERROR,
-		INDEX_ERROR,
-		FUNCTION_ERROR,
-		LABEL_ERROR,
-	};
+    typedef unsigned char ErrMesType;
+    enum : ErrMesType
+    {
+        Interpreter = 0,
+        MATH_ERROR,
+        VARIABLE_UNINITIALIZED,
+        ARGUMENTS_MISMATCH,
+        TYPE_ERROR,
+        INDEX_ERROR,
+        FUNCTION_ERROR,
+        LABEL_ERROR,
+    };
 
-	static const char* ERROR_MESSAGE_TYPES[]
-	{
-		STRINGIZING(Interpreter),
-		STRINGIZING(MATH_ERROR),
-		STRINGIZING(VARIABLE_UNINITIALIZED),
-		STRINGIZING(ARGUMENTS_MISMATCH),
-		STRINGIZING(TYPE_ERROR),
-		STRINGIZING(INDEX_ERROR),
-		STRINGIZING(FUNCTION_ERROR),
-		STRINGIZING(LABEL_ERROR),
-	};
+    static const char* ERROR_MESSAGE_TYPES[]
+    {
+        STRINGIZING(Interpreter),
+        STRINGIZING(MATH_ERROR),
+        STRINGIZING(VARIABLE_UNINITIALIZED),
+        STRINGIZING(ARGUMENTS_MISMATCH),
+        STRINGIZING(TYPE_ERROR),
+        STRINGIZING(INDEX_ERROR),
+        STRINGIZING(FUNCTION_ERROR),
+        STRINGIZING(LABEL_ERROR),
+    };
 
-	static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
-	{
-		{ Interpreter, nullptr },
-		{ MATH_ERROR, "Unable to divide by 'Zero'." },
-		{ VARIABLE_UNINITIALIZED, "Variable '%s' not initialized." },
-		{ ARGUMENTS_MISMATCH, "Operator '%s' expected '%" fINT_TL "' arguments but received '%zu' instead." },
-		{ ARGUMENTS_MISMATCH, "Operator '%s' has no valid matching '%s'." },
-		{ TYPE_ERROR, "Operator '%s' may not operate on '%s' token." },
-		{ TYPE_ERROR, "Operator '%s' may not operate on '%s' and '%s' tokens." },
-		{ TYPE_ERROR, "Operator '%s' expected '%s' token but received '%s' instead." },
-		{ INDEX_ERROR, "Operator '%s' position '%" fINT_TL "' of '%s' is out of bounds." },
-		{ TYPE_ERROR, "An indexed '%s' token may only be assigned a single character '%s'." },
-		{ TYPE_ERROR, "'%s' token is not callable." },
-		{ FUNCTION_ERROR, "Function unloaded." },
-		{ LABEL_ERROR, "'%s %s' is not registered." },
-		{ TYPE_ERROR, "Invalid token '%s' received." },
-		{ ARGUMENTS_MISMATCH, "External '%s' is immutable." },
-		{ FUNCTION_ERROR, "Stack contained '%zu' elements but corrupted into '%zu' instead." },
-	};
+    static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+    {
+        { Interpreter, nullptr },
+        { MATH_ERROR, "Unable to divide by 'Zero'." },
+        { VARIABLE_UNINITIALIZED, "Variable '%s' not initialized." },
+        { ARGUMENTS_MISMATCH, "Operator '%s' expected '%" fINT_TL "' arguments but received '%zu' instead." },
+        { ARGUMENTS_MISMATCH, "Operator '%s' has no valid matching '%s'." },
+        { TYPE_ERROR, "Operator '%s' may not operate on '%s' token." },
+        { TYPE_ERROR, "Operator '%s' may not operate on '%s' and '%s' tokens." },
+        { TYPE_ERROR, "Operator '%s' expected '%s' token but received '%s' instead." },
+        { INDEX_ERROR, "Operator '%s' position '%" fINT_TL "' of '%s' is out of bounds." },
+        { TYPE_ERROR, "An indexed '%s' token may only be assigned a single character '%s'." },
+        { TYPE_ERROR, "'%s' token is not callable." },
+        { FUNCTION_ERROR, "Function unloaded." },
+        { LABEL_ERROR, "'%s %s' is not registered." },
+        { TYPE_ERROR, "Invalid token '%s' received." },
+        { ARGUMENTS_MISMATCH, "External '%s' is immutable." },
+        { FUNCTION_ERROR, "Stack contained '%zu' elements but corrupted into '%zu' instead." },
+    };
 
-	static void interpreterError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
-	{
-		va_list argp;
-		va_start(argp, f);
-		printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
-		va_end(argp);
-	}
+    static void interpreterError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+    {
+        va_list argp;
+        va_start(argp, f);
+        printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+        va_end(argp);
+    }
 }
 
 /* NAME_TABLE_get_name_id.
@@ -725,133 +725,133 @@ Language::Token::Token(lin_num l, col_num c, tok_tag t, int_tL			val) : line(l),
 
 Language::Token::Token(const Token& token)
 {
-	tag = token.tag;
-	switch (tag) {
-	case Token::TTAG_FLOAT:		val_float = token.val_float;																											break;
-	case Token::TTAG_STRING:		val_string = token.val_string;							val_string->owners++;																break;
-	case Token::TTAG_ARRAY:		val_array = token.val_array;							val_array->owners++;																break;
-	case Token::TTAG_FUNCTION:	val_function = token.val_function;																											break;
-	case Token::TTAG_BUILTIN:	val_builtin = token.val_builtin;																											break;
-	case Token::TTAG_IDENTIFIER:	val_identifier = new char[strlen(token.val_identifier) + 1];	std::memcpy(val_identifier, token.val_identifier, strlen(token.val_identifier) + 1);	break;
-	default:				val_int = token.val_int;																												break;
-	}
-	line = token.line;
-	column = token.column;
+    tag = token.tag;
+    switch (tag) {
+    case Token::TTAG_FLOAT:		val_float = token.val_float;																											break;
+    case Token::TTAG_STRING:		val_string = token.val_string;							val_string->owners++;																break;
+    case Token::TTAG_ARRAY:		val_array = token.val_array;							val_array->owners++;																break;
+    case Token::TTAG_FUNCTION:	val_function = token.val_function;																											break;
+    case Token::TTAG_BUILTIN:	val_builtin = token.val_builtin;																											break;
+    case Token::TTAG_IDENTIFIER:	val_identifier = new char[strlen(token.val_identifier) + 1];	std::memcpy(val_identifier, token.val_identifier, strlen(token.val_identifier) + 1);	break;
+    default:				val_int = token.val_int;																												break;
+    }
+    line = token.line;
+    column = token.column;
 }
 
 Language::Token::Token(Token&& token) noexcept
 {
-	tag = token.tag;
-	val_int = token.val_int;
-	token.val_int = NULL;
-	line = token.line;
-	column = token.column;
+    tag = token.tag;
+    val_int = token.val_int;
+    token.val_int = NULL;
+    line = token.line;
+    column = token.column;
 }
 
 Language::Token& Language::Token::operator=(const Token& token)
 {
-	return (this == &token) ? *this : *this = Token(token);
+    return (this == &token) ? *this : *this = Token(token);
 }
 
 Language::Token& Language::Token::operator=(Token&& token) noexcept
 {
-	std::swap(tag, token.tag);
-	std::swap(val_int, token.val_int);
-	line = token.line;
-	column = token.column;
-	return *this;
+    std::swap(tag, token.tag);
+    std::swap(val_int, token.val_int);
+    line = token.line;
+    column = token.column;
+    return *this;
 }
 
 Language::Token::~Token()
 {
-	switch (tag) {
-	case Token::TTAG_STRING:		if (val_string != nullptr) { val_string->owners--;	if (val_string->owners == 0)	delete val_string; }		break;
-	case Token::TTAG_ARRAY:		if (val_array != nullptr) { val_array->owners--;	if (val_array->owners == 0)	delete val_array; }		break;
-	case Token::TTAG_IDENTIFIER:	if (val_identifier != nullptr)													delete[] val_identifier;	break;
-	default:																														break;
-	}
+    switch (tag) {
+    case Token::TTAG_STRING:		if (val_string != nullptr) { val_string->owners--;	if (val_string->owners == 0)	delete val_string; }		break;
+    case Token::TTAG_ARRAY:		if (val_array != nullptr) { val_array->owners--;	if (val_array->owners == 0)	delete val_array; }		break;
+    case Token::TTAG_IDENTIFIER:	if (val_identifier != nullptr)													delete[] val_identifier;	break;
+    default:																														break;
+    }
 }
 
 bool Language::Token::as_bool() const
 {
-	switch (tag) {
-	case Token::TTAG_INT:		return val_int != LANGUAGE_ZERO_INT;
-	case Token::TTAG_FLOAT:		return val_float != LANGUAGE_ZERO_FLOAT;
-	case Token::TTAG_STRING:		return strlen(val_string->string_get());
-	case Token::TTAG_ARRAY:		return val_array->array.size();
-	case Token::TTAG_FUNCTION:	return val_function->loaded;
-	case Token::TTAG_BUILTIN:	return true;
-	}
-	return false;
+    switch (tag) {
+    case Token::TTAG_INT:		return val_int != LANGUAGE_ZERO_INT;
+    case Token::TTAG_FLOAT:		return val_float != LANGUAGE_ZERO_FLOAT;
+    case Token::TTAG_STRING:		return strlen(val_string->string_get());
+    case Token::TTAG_ARRAY:		return val_array->array.size();
+    case Token::TTAG_FUNCTION:	return val_function->loaded;
+    case Token::TTAG_BUILTIN:	return true;
+    }
+    return false;
 }
 
 void Language::Token::print() const
 {
-	switch (tag) {
-	case Token::TTAG_NONE:		printf("TTAG_NONE");																										break;
-	case Token::TTAG_INT:		printf("%" fINT_TL, val_int);																							break;
-	case Token::TTAG_FLOAT:		printf("%f", val_float);																								break;
-	case Token::TTAG_STRING:		printf("\"%s\"", val_string->string_get());																			break;
-	case Token::TTAG_ARRAY:		printf("[ "); for (const auto& element : val_array->array) { element.print(); printf(", "); } printf(" ]");			break;
-	case Token::TTAG_FUNCTION:	printf("<TTAG_FUNCTION'%s'>", val_function->loaded ? (val_function->name ? val_function->name : "ANONYMOUS") : "UNLOADED");	break;
-	case Token::TTAG_BUILTIN:	printf("<TTAG_BUILTIN'%p'>", val_builtin);																					break;
-	default:				printf("<NOT_A_VALUE>");																							break;
-	}
+    switch (tag) {
+    case Token::TTAG_NONE:		printf("TTAG_NONE");																										break;
+    case Token::TTAG_INT:		printf("%" fINT_TL, val_int);																							break;
+    case Token::TTAG_FLOAT:		printf("%f", val_float);																								break;
+    case Token::TTAG_STRING:		printf("\"%s\"", val_string->string_get());																			break;
+    case Token::TTAG_ARRAY:		printf("[ "); for (const auto& element : val_array->array) { element.print(); printf(", "); } printf(" ]");			break;
+    case Token::TTAG_FUNCTION:	printf("<TTAG_FUNCTION'%s'>", val_function->loaded ? (val_function->name ? val_function->name : "ANONYMOUS") : "UNLOADED");	break;
+    case Token::TTAG_BUILTIN:	printf("<TTAG_BUILTIN'%p'>", val_builtin);																					break;
+    default:				printf("<NOT_A_VALUE>");																							break;
+    }
 }
 
 void Language::Token::info() const
 {
-	// https://stackoverflow.com/a/63689821
-	static const int tag_name_width = strlen(std::max_element(std::begin(LANGUAGE_TOKEN_TAG), std::end(LANGUAGE_TOKEN_TAG), [](const TokenTagInfo& left, const TokenTagInfo& right) { return strlen(left.name) < strlen(right.name); })->name);
+    // https://stackoverflow.com/a/63689821
+    static const int tag_name_width = strlen(std::max_element(std::begin(LANGUAGE_TOKEN_TAG), std::end(LANGUAGE_TOKEN_TAG), [](const TokenTagInfo& left, const TokenTagInfo& right) { return strlen(left.name) < strlen(right.name); })->name);
 
-	printf("%03" fLIN ", %03" fCOL " ", line, column);
+    printf("%03" fLIN ", %03" fCOL " ", line, column);
 
-	const TokenTagInfo* iter = tag_id(tag);
+    const TokenTagInfo* iter = tag_id(tag);
 
-	if (!iter) {
-		printf("INVALID_TAG(%hhd)", tag);
-	}
-	else if (tag < Token::TTAG_INNER_END_) {
-		printf("[ %-*s ] ", tag_name_width, iter->name);
+    if (!iter) {
+        printf("INVALID_TAG(%hhd)", tag);
+    }
+    else if (tag < Token::TTAG_INNER_END_) {
+        printf("[ %-*s ] ", tag_name_width, iter->name);
 
-		if (tag < Token::TTAG_VALUE_END_)			print();
-		else if (tag == Token::TTAG_VARIABLE
-			|| tag == Token::TTAG_REFERENCE)		printf("'%s'", variable_name(val_int));
-		else if (tag == Token::TTAG_IDENTIFIER)	printf("'%s'", val_identifier);
-		else								printf("%" fINT_TL, val_int);
-	}
-	else {
-		printf("[ %-*s ] %s", tag_name_width, iter->name, iter->text);
-	}
+        if (tag < Token::TTAG_VALUE_END_)			print();
+        else if (tag == Token::TTAG_VARIABLE
+            || tag == Token::TTAG_REFERENCE)		printf("'%s'", variable_name(val_int));
+        else if (tag == Token::TTAG_IDENTIFIER)	printf("'%s'", val_identifier);
+        else								printf("%" fINT_TL, val_int);
+    }
+    else {
+        printf("[ %-*s ] %s", tag_name_width, iter->name, iter->text);
+    }
 
-	printf("\n");
+    printf("\n");
 }
 
 const Language::TokenTagInfo* Language::tag_id(const tok_tag tag)
 {
-	return (tag < Token::TTAG_BEGIN_ || Token::TTAG_END_ <= tag) ?
-		nullptr :
-		(
-			(tag < Token::TTAG_KEYWORD_END_) ?
-			&LANGUAGE_TOKEN_TAG[tag] :
-			std::find_if(
-				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN_,
-				std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END_,
-				[tag](const TokenTagInfo& element) { return element.tag == tag; }
-			)
-			);
+    return (tag < Token::TTAG_BEGIN_ || Token::TTAG_END_ <= tag) ?
+        nullptr :
+        (
+            (tag < Token::TTAG_KEYWORD_END_) ?
+            &LANGUAGE_TOKEN_TAG[tag] :
+            std::find_if(
+                std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_BEGIN_,
+                std::begin(LANGUAGE_TOKEN_TAG) + Token::TTAG_SYMBOL_END_,
+                [tag](const TokenTagInfo& element) { return element.tag == tag; }
+            )
+            );
 }
 
 const char* Language::tag_name(tok_tag tag)
 {
-	const auto iter = tag_id(tag);
-	return iter ? iter->name : nullptr;
+    const auto iter = tag_id(tag);
+    return iter ? iter->name : nullptr;
 }
 
 const char* Language::variable_name(int_tL id)
 {
-	return (id <= 0 || NAME_TABLE.size() < id) ? nullptr :
-		std::find_if(NAME_TABLE.begin(), NAME_TABLE.end(), [id](const std::pair<std::string, const int_tL>& element) { return element.second == id; })->first.c_str(); // TODO: Probably have an adjacent std::vector<const char*> to reversely index the name from its index.
+    return (id <= 0 || NAME_TABLE.size() < id) ? nullptr :
+        std::find_if(NAME_TABLE.begin(), NAME_TABLE.end(), [id](const std::pair<std::string, const int_tL>& element) { return element.second == id; })->first.c_str(); // TODO: Probably have an adjacent std::vector<const char*> to reversely index the name from its index.
 }
 
 #ifdef file_name
@@ -861,1038 +861,1038 @@ const char* Language::variable_name(int_tL id)
 
 Language::Token* Language::GET_VARIABLE_VALUE(Token& variable, Execution_tL& state)
 {
-	const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.val_int);
-	if (local != state.LOCALS.end()) {
-		variable = local->second;
-		return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &local->second : nullptr;
-	}
+    const VALUE_TABLE_TYPE::iterator& local = state.LOCALS.find(variable.val_int);
+    if (local != state.LOCALS.end()) {
+        variable = local->second;
+        return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &local->second : nullptr;
+    }
 
-	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
-	if (global != VALUE_TABLE.end()) {
-		variable = global->second;
-		return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &global->second : nullptr;
-	}
+    const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
+    if (global != VALUE_TABLE.end()) {
+        variable = global->second;
+        return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &global->second : nullptr;
+    }
 
-	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.val_int));
-	return nullptr;
+    interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.val_int));
+    return nullptr;
 }
 
 Language::Token* Language::GET_VARIABLE_VALUE_GLOBAL(Token& variable, Execution_tL& state)
 {
-	// Global scope File Functions should ALWAYS operate only on the GLOBAL VALUE_TABLE.
-	const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
-	if (global != VALUE_TABLE.end()) {
-		variable = global->second;
-		return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &global->second : nullptr; // Check unloaded function.
-	}
+    // Global scope File Functions should ALWAYS operate only on the GLOBAL VALUE_TABLE.
+    const VALUE_TABLE_TYPE::iterator& global = VALUE_TABLE.find(variable.val_int);
+    if (global != VALUE_TABLE.end()) {
+        variable = global->second;
+        return (variable.tag != Token::TTAG_FUNCTION || variable.val_function->loaded) ? &global->second : nullptr; // Check unloaded function.
+    }
 
-	interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.val_int));
-	return nullptr;
+    interpreterError(file_name(), variable.line, variable.column, ERROR_MESSAGES[2], variable_name(variable.val_int));
+    return nullptr;
 }
 
 Language::VALUE_TABLE_TYPE& Language::GET_ASSIGNMENT_TABLE(Execution_tL& state)
 {
-	return state.LOCALS;
+    return state.LOCALS;
 }
 
 Language::VALUE_TABLE_TYPE& Language::GET_ASSIGNMENT_TABLE_GLOBAL(Execution_tL& state)
 {
-	return VALUE_TABLE;
+    return VALUE_TABLE;
 }
 
 #define tagCOUPLE(l, r) (((l) << 8) | (r))
 
 Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SIGNATURE)
 {
-	while (!thread.executing.empty()) {
-		Execution_tL& state = thread.executing.back();
+    while (!thread.executing.empty()) {
+        Execution_tL& state = thread.executing.back();
 
-		while (state.program_counter < state.program->size())
-		{
-			Token token = (*state.program)[state.program_counter];
-			state.program_counter++;
+        while (state.program_counter < state.program->size())
+        {
+            Token token = (*state.program)[state.program_counter];
+            state.program_counter++;
 
-			switch (token.tag)
-			{
-			case Token::TTAG_VARIABLE:
-				if (!state.GET_VARIABLE_VALUE_(token, state)) return SOLVE_ERROR;
-				//case Token::TTAG_NONE:
-			case Token::TTAG_INT:
-			case Token::TTAG_FLOAT:
-			case Token::TTAG_STRING:
-			case Token::TTAG_ARRAY:
-			case Token::TTAG_REFERENCE:
-				thread.solution.push_back(std::move(token));
-				break;
+            switch (token.tag)
+            {
+            case Token::TTAG_VARIABLE:
+                if (!state.GET_VARIABLE_VALUE_(token, state)) return SOLVE_ERROR;
+                //case Token::TTAG_NONE:
+            case Token::TTAG_INT:
+            case Token::TTAG_FLOAT:
+            case Token::TTAG_STRING:
+            case Token::TTAG_ARRAY:
+            case Token::TTAG_REFERENCE:
+                thread.solution.push_back(std::move(token));
+                break;
 
-			case Token::TTAG_FUNCTION:
-				if (!token.val_function->loaded) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[11]);
-					return SOLVE_ERROR;
-				}
-				//if (token.val_function->name != nullptr) { // Global function.
-					VALUE_TABLE.insert_or_assign(token.val_function->variable_id, token);
-					break;
-				//}
-				//state.solution.push_back(std::move(token));
-				//break;
+            case Token::TTAG_FUNCTION:
+                if (!token.val_function->loaded) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[11]);
+                    return SOLVE_ERROR;
+                }
+                //if (token.val_function->name != nullptr) { // Global function.
+                    VALUE_TABLE.insert_or_assign(token.val_function->variable_id, token);
+                    break;
+                //}
+                //state.solution.push_back(std::move(token));
+                //break;
 
-			/* INDEX.
-			* Use the last Token in the solution stack to index into the penultimate one.
-			* If it is a REFERENCE then save the number to index later.
-			*/
-			case Token::TTAG_INDEX:
-				if (thread.solution.size() < state.begin + 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
+            /* INDEX.
+            * Use the last Token in the solution stack to index into the penultimate one.
+            * If it is a REFERENCE then save the number to index later.
+            */
+            case Token::TTAG_INDEX:
+                if (thread.solution.size() < state.begin + 2) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
 
-				if (thread.solution.back().tag != Token::TTAG_INT) {
-					interpreterError(file_name(), thread.solution.back().line, thread.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::TTAG_INDEX), tag_name(Token::TTAG_INT), tag_name(thread.solution.back().tag));
-					return SOLVE_ERROR;
-				}
+                if (thread.solution.back().tag != Token::TTAG_INT) {
+                    interpreterError(file_name(), thread.solution.back().line, thread.solution.back().column, ERROR_MESSAGES[7], tag_name(Token::TTAG_INDEX), tag_name(Token::TTAG_INT), tag_name(thread.solution.back().tag));
+                    return SOLVE_ERROR;
+                }
 
-				if (thread.solution[thread.solution.size() - 2].tag == Token::TTAG_REFERENCE || thread.solution[thread.solution.size() - 2].tag == Token::TTAG_INDEX) {
-					thread.solution.back().tag = Token::TTAG_INDEX; // Merge the TTAG_INDEX tag into the val_int index value.
-				}
-				else {
-					Token index = std::move(thread.solution.back());
-					thread.solution.pop_back();
+                if (thread.solution[thread.solution.size() - 2].tag == Token::TTAG_REFERENCE || thread.solution[thread.solution.size() - 2].tag == Token::TTAG_INDEX) {
+                    thread.solution.back().tag = Token::TTAG_INDEX; // Merge the TTAG_INDEX tag into the val_int index value.
+                }
+                else {
+                    Token index = std::move(thread.solution.back());
+                    thread.solution.pop_back();
 
-					Token& arg = thread.solution.back();
-					if (arg.tag == Token::TTAG_ARRAY) {
-						if (index.val_int < 0 || arg.val_array->array.size() <= index.val_int) {
-							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
-							return SOLVE_ERROR;
-						}
-						arg = arg.val_array->array[index.val_int];
-					}
-					else if (arg.tag == Token::TTAG_STRING) {
-						if (index.val_int < 0 || strlen(arg.val_string->string_get()) <= index.val_int) {
-							interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
-							return SOLVE_ERROR;
-						}
-						if (strlen(arg.val_string->string_get()) != 1) {
-							char cc[2]{ arg.val_string->string_get()[index.val_int], '\0' };
-							arg = Token(arg.line, arg.column, String_tL::init(cc, 1));
-						}
-					}
-					else {
-						interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(arg.tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                    Token& arg = thread.solution.back();
+                    if (arg.tag == Token::TTAG_ARRAY) {
+                        if (index.val_int < 0 || arg.val_array->array.size() <= index.val_int) {
+                            interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
+                            return SOLVE_ERROR;
+                        }
+                        arg = arg.val_array->array[index.val_int];
+                    }
+                    else if (arg.tag == Token::TTAG_STRING) {
+                        if (index.val_int < 0 || strlen(arg.val_string->string_get()) <= index.val_int) {
+                            interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), index.val_int, tag_name(arg.tag));
+                            return SOLVE_ERROR;
+                        }
+                        if (strlen(arg.val_string->string_get()) != 1) {
+                            char cc[2]{ arg.val_string->string_get()[index.val_int], '\0' };
+                            arg = Token(arg.line, arg.column, String_tL::init(cc, 1));
+                        }
+                    }
+                    else {
+                        interpreterError(file_name(), arg.line, arg.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(arg.tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-			/* TTAG_SEQUENCE.
-			* Mark the start of the next sequence (function CALL, ARRAY_INIT).
-			* Every SEQUENCE Token remembers the index of the previous one.
-			* The Thread remembers the newest one.
-			*/
-			case Token::TTAG_SEQUENCE:
-				token.val_int = thread.lastSequence;
-				thread.lastSequence = thread.solution.size();
-				thread.solution.push_back(std::move(token));
-				break;
+            /* TTAG_SEQUENCE.
+            * Mark the start of the next sequence (function CALL, ARRAY_INIT).
+            * Every SEQUENCE Token remembers the index of the previous one.
+            * The Thread remembers the newest one.
+            */
+            case Token::TTAG_SEQUENCE:
+                token.val_int = thread.lastSequence;
+                thread.lastSequence = thread.solution.size();
+                thread.solution.push_back(std::move(token));
+                break;
 
-			/* TTAG_UNARY_FLIP.
-			*/
-			case Token::TTAG_UNARY_FLIP:
-			{
-				if (thread.solution.size() < state.begin + 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
+            /* TTAG_UNARY_FLIP.
+            */
+            case Token::TTAG_UNARY_FLIP:
+            {
+                if (thread.solution.size() < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
 
-				Token& arg = thread.solution.back();
-				if (arg.tag == Token::TTAG_INT) {
-					arg.val_int = ~arg.val_int;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
+                Token& arg = thread.solution.back();
+                if (arg.tag == Token::TTAG_INT) {
+                    arg.val_int = ~arg.val_int;
+                }
+                else {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+                    return SOLVE_ERROR;
+                }
+            }
+            break;
 
-			/* TTAG_UNARY_NEGATION.
-			*/
-			case Token::TTAG_UNARY_NEGATION:
-			{
-				if (thread.solution.size() < state.begin + 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
+            /* TTAG_UNARY_NEGATION.
+            */
+            case Token::TTAG_UNARY_NEGATION:
+            {
+                if (thread.solution.size() < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
 
-				Token& arg = thread.solution.back();
-				if (arg.tag == Token::TTAG_INT) {
-					arg.val_int = !arg.val_int;
-				}
-				else if (arg.tag == Token::TTAG_FLOAT) {
-					arg.val_float = !arg.val_float;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
+                Token& arg = thread.solution.back();
+                if (arg.tag == Token::TTAG_INT) {
+                    arg.val_int = !arg.val_int;
+                }
+                else if (arg.tag == Token::TTAG_FLOAT) {
+                    arg.val_float = !arg.val_float;
+                }
+                else {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+                    return SOLVE_ERROR;
+                }
+            }
+            break;
 
-			/* TTAG_UNARY_POSITIVE.
-			*/
-			case Token::TTAG_UNARY_POSITIVE:
-			{
-				if (thread.solution.size() < state.begin + 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
+            /* TTAG_UNARY_POSITIVE.
+            */
+            case Token::TTAG_UNARY_POSITIVE:
+            {
+                if (thread.solution.size() < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
 
-				const Token& arg = thread.solution.back();
-				if (arg.tag != Token::TTAG_INT && arg.tag != Token::TTAG_FLOAT) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
+                const Token& arg = thread.solution.back();
+                if (arg.tag != Token::TTAG_INT && arg.tag != Token::TTAG_FLOAT) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+                    return SOLVE_ERROR;
+                }
+            }
+            break;
 
-			/* TTAG_UNARY_NEGATIVE.
-			*/
-			case Token::TTAG_UNARY_NEGATIVE:
-			{
-				if (thread.solution.size() < state.begin + 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
+            /* TTAG_UNARY_NEGATIVE.
+            */
+            case Token::TTAG_UNARY_NEGATIVE:
+            {
+                if (thread.solution.size() < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
 
-				Token& arg = thread.solution.back();
-				if (arg.tag == Token::TTAG_INT) {
-					arg.val_int = -arg.val_int;
-				}
-				else if (arg.tag == Token::TTAG_FLOAT) {
-					arg.val_float = -arg.val_float;
-				}
-				else {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
+                Token& arg = thread.solution.back();
+                if (arg.tag == Token::TTAG_INT) {
+                    arg.val_int = -arg.val_int;
+                }
+                else if (arg.tag == Token::TTAG_FLOAT) {
+                    arg.val_float = -arg.val_float;
+                }
+                else {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+                    return SOLVE_ERROR;
+                }
+            }
+            break;
 
-			/* ARRAY_INIT.
-			* Construct an ARRAY filled with the contents of the solution stack starting from the last SEQUENCE.
-			* Push the ARRAY Token onto the stack.
-			*/
-			case Token::TTAG_ARRAY_INIT:
-			{
-				if (thread.lastSequence < state.begin || thread.solution.size() <= thread.lastSequence || thread.solution[thread.lastSequence].tag != Token::TTAG_SEQUENCE) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
-					return SOLVE_ERROR;
-				}
+            /* ARRAY_INIT.
+            * Construct an ARRAY filled with the contents of the solution stack starting from the last SEQUENCE.
+            * Push the ARRAY Token onto the stack.
+            */
+            case Token::TTAG_ARRAY_INIT:
+            {
+                if (thread.lastSequence < state.begin || thread.solution.size() <= thread.lastSequence || thread.solution[thread.lastSequence].tag != Token::TTAG_SEQUENCE) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
+                    return SOLVE_ERROR;
+                }
 
-				size_t lastSequence = thread.lastSequence;							// Remember the starting SEQUENCE index.
-				thread.lastSequence = thread.solution[thread.lastSequence].val_int;	// Update last sequence index.
-				thread.solution[lastSequence] = Token(token.line, token.column, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())))); // Build Array.
-				thread.solution.resize(lastSequence + 1);							// Delete everything after the ARRAY.
-			}
-			break;
+                size_t lastSequence = thread.lastSequence;                          // Remember the starting SEQUENCE index.
+                thread.lastSequence = thread.solution[thread.lastSequence].val_int; // Update last sequence index.
+                thread.solution[lastSequence] = Token(token.line, token.column, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())))); // Build Array.
+                thread.solution.resize(lastSequence + 1);                           // Delete everything after the ARRAY.
+            }
+            break;
 
-			/* CALL.
-			* Attempt to CALL the preceding Token with arguments starting from the last SEQUENCE.
-			*/
-			case Token::TTAG_CALL:
-			{
-				if (thread.lastSequence <= state.begin || thread.solution.size() <= thread.lastSequence || thread.solution[thread.lastSequence].tag != Token::TTAG_SEQUENCE) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
-					return SOLVE_ERROR;
-				}
+            /* CALL.
+            * Attempt to CALL the preceding Token with arguments starting from the last SEQUENCE.
+            */
+            case Token::TTAG_CALL:
+            {
+                if (thread.lastSequence <= state.begin || thread.solution.size() <= thread.lastSequence || thread.solution[thread.lastSequence].tag != Token::TTAG_SEQUENCE) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[4], tag_name(token.tag), tag_name(Token::TTAG_SEQUENCE));
+                    return SOLVE_ERROR;
+                }
 
-				const size_t lastSequence = thread.lastSequence;					// Remember the starting SEQUENCE index.
-				thread.lastSequence = thread.solution[thread.lastSequence].val_int;	// Update last sequence index.
+                const size_t lastSequence = thread.lastSequence;                    // Remember the starting SEQUENCE index.
+                thread.lastSequence = thread.solution[thread.lastSequence].val_int; // Update last sequence index.
 
-				Token calling = std::move(thread.solution[lastSequence - 1]);		// CALL target Token previous to SEQUENCE.
-				if (calling.tag == Token::TTAG_BUILTIN) {
-					Builtin_tL* builtin = calling.val_builtin; // Built-in C++ function.
-					std::vector<Token> arguments(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())); // Arguments.
-					thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
+                Token calling = std::move(thread.solution[lastSequence - 1]);       // CALL target Token previous to SEQUENCE.
+                if (calling.tag == Token::TTAG_BUILTIN) {
+                    Builtin_tL* builtin = calling.val_builtin; // Built-in C++ function.
+                    std::vector<Token> arguments(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())); // Arguments.
+                    thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
 
 #ifdef FUNCTION_RETURN_SINGLE // Force SINGLE Token return.
-					size_t stack_size = thread.solution.size();		// Register previous stack size.
+                    size_t stack_size = thread.solution.size(); // Register previous stack size.
 #endif // FUNCTION_RETURN_SINGLE
 
-					SOLVE_RESULT answer = builtin(arguments, thread.solution, &thread LANGUAGE_SOLVER_ARGUMENTS); // Call Built-in function.
+                    SOLVE_RESULT answer = builtin(arguments, thread.solution, &thread LANGUAGE_SOLVER_ARGUMENTS); // Call Built-in function.
 
 #ifdef FUNCTION_RETURN_SINGLE
-					if (answer == SOLVE_ERROR) return answer;
-					if (thread.solution.size() == stack_size) {
-						thread.solution.emplace_back(token.line, token.column, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
-					}
-					else if (thread.solution.size() > stack_size + 1) {
-						thread.solution[stack_size] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + stack_size), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
-						thread.solution.resize(stack_size + 1); // Delete everything after the return ARRAY.
-					}
+                    if (answer == SOLVE_ERROR) return answer;
+                    if (thread.solution.size() == stack_size) {
+                        thread.solution.emplace_back(token.line, token.column, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
+                    }
+                    else if (thread.solution.size() > stack_size + 1) {
+                        thread.solution[stack_size] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + stack_size), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
+                        thread.solution.resize(stack_size + 1); // Delete everything after the return ARRAY.
+                    }
 #endif // FUNCTION_RETURN_SINGLE
 
-					if (answer != SOLVE_OK) {
-						return answer;
-					}
-				}
-				else if (calling.tag == Token::TTAG_FUNCTION) {
-					Function_tL* func = calling.val_function; // Language user-defined function.
-					if (!func->loaded) {
-						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[11]);
-						return SOLVE_ERROR;
-					}
-					if (func->arg_id.size() != (thread.solution.size() - lastSequence - 1)) {
-						interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), (int_tL)func->arg_id.size(), (size_t)(thread.solution.size() - lastSequence - 1));
-						return SOLVE_ERROR;
-					}
+                    if (answer != SOLVE_OK) {
+                        return answer;
+                    }
+                }
+                else if (calling.tag == Token::TTAG_FUNCTION) {
+                    Function_tL* func = calling.val_function; // Language user-defined function.
+                    if (!func->loaded) {
+                        interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[11]);
+                        return SOLVE_ERROR;
+                    }
+                    if (func->arg_id.size() != (thread.solution.size() - lastSequence - 1)) {
+                        interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[3], tag_name(calling.tag), (int_tL)func->arg_id.size(), (size_t)(thread.solution.size() - lastSequence - 1));
+                        return SOLVE_ERROR;
+                    }
 
-					thread.executing.emplace_back(func, lastSequence - 1); // Register function and starting solving index at the back of the Thread Execution.
-					Execution_tL& exe = thread.executing.back();
-					for (size_t i = 0, j = lastSequence + 1; j < thread.solution.size(); i++, j++) {
-						exe.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[i], std::move(thread.solution[j])); // Register arguments in the Execution VALUE TABLE.
-					}
-					thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
-					goto execution_end; // https://en.cppreference.com/w/cpp/language/goto
-				}
-				else {
-					interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[10], tag_name(calling.tag));
-					return SOLVE_ERROR;
-				}
-			}
-			break;
+                    thread.executing.emplace_back(func, lastSequence - 1); // Register function and starting solving index at the back of the Thread Execution.
+                    Execution_tL& exe = thread.executing.back();
+                    for (size_t i = 0, j = lastSequence + 1; j < thread.solution.size(); i++, j++) {
+                        exe.GET_ASSIGNMENT_TABLE_(exe).insert_or_assign(func->arg_id[i], std::move(thread.solution[j])); // Register arguments in the Execution VALUE TABLE.
+                    }
+                    thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
+                    goto execution_end; // https://en.cppreference.com/w/cpp/language/goto
+                }
+                else {
+                    interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[10], tag_name(calling.tag));
+                    return SOLVE_ERROR;
+                }
+            }
+            break;
 
-			/* JUMP.
-			* Jump to a position on the program.
-			* Reset the solving state.
-			*/
-			case Token::TTAG_JUMP:
-				if (thread.solution.size() < state.begin || (thread.lastSequence < thread.solution.size() && thread.lastSequence >= state.begin)) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[15], state.begin, thread.solution.size());
-					return SOLVE_ERROR;
-				}
-				state.program_counter = token.val_int;	// Set the program counter.
-				thread.solution.resize(state.begin);	// Clear current solving stack.
-				break;
+            /* JUMP.
+            * Jump to a position on the program.
+            * Reset the solving state.
+            */
+            case Token::TTAG_JUMP:
+                if (thread.solution.size() < state.begin || (thread.lastSequence < thread.solution.size() && thread.lastSequence >= state.begin)) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[15], state.begin, thread.solution.size());
+                    return SOLVE_ERROR;
+                }
+                state.program_counter = token.val_int;  // Set the program counter.
+                thread.solution.resize(state.begin);    // Clear current solving stack.
+                break;
 
-			/* JUMP_ON_* conditional.
-			* Jump to a position on the program under certain conditions.
-			* Reset the solving state.
-			*/
-			case Token::TTAG_JUMP_ON_FALSE:
-			case Token::TTAG_JUMP_ON_NOT_FALSE:
-			{
-				if (thread.solution.size() != state.begin + 1 || (thread.lastSequence < thread.solution.size() && thread.lastSequence >= state.begin)) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
-				Token& condition = thread.solution.back();
-				if (!Parser::tag_value(condition.tag)) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
-					return SOLVE_ERROR;
-				}
-				if (condition.as_bool() == (token.tag == Token::TTAG_JUMP_ON_NOT_FALSE))
-					state.program_counter = token.val_int;	// Set the program counter.
-				thread.solution.resize(state.begin);		// Clear current solving stack.
-			}
-			break;
+            /* JUMP_ON_* conditional.
+            * Jump to a position on the program under certain conditions.
+            * Reset the solving state.
+            */
+            case Token::TTAG_JUMP_ON_FALSE:
+            case Token::TTAG_JUMP_ON_NOT_FALSE:
+            {
+                if (thread.solution.size() != state.begin + 1 || (thread.lastSequence < thread.solution.size() && thread.lastSequence >= state.begin)) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
+                Token& condition = thread.solution.back();
+                if (!Parser::tag_value(condition.tag)) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
+                    return SOLVE_ERROR;
+                }
+                if (condition.as_bool() == (token.tag == Token::TTAG_JUMP_ON_NOT_FALSE))
+                    state.program_counter = token.val_int;  // Set the program counter.
+                thread.solution.resize(state.begin);        // Clear current solving stack.
+            }
+            break;
 
-			/* ADVANCE.
-			* Skip instructions.
-			* Preserve the state.
-			*/
-			case Token::TTAG_ADVANCE:
-				state.program_counter += token.val_int;
-				break;
+            /* ADVANCE.
+            * Skip instructions.
+            * Preserve the state.
+            */
+            case Token::TTAG_ADVANCE:
+                state.program_counter += token.val_int;
+                break;
 
-			/* ADVANCE_ON_* Conditional.
-			* Skip instructions depending on the condition.
-			* Remove ONLY the condition form the solution stack.
-			*/
-			case Token::TTAG_ADVANCE_ON_FALSE:
-			{
-				if (thread.solution.size() < state.begin + 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
-					return SOLVE_ERROR;
-				}
-				Token& condition = thread.solution.back();
-				if (!Parser::tag_value(condition.tag)) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
-					return SOLVE_ERROR;
-				}
-				if (!condition.as_bool())
-					state.program_counter += token.val_int;
-				thread.solution.pop_back();
-			}
-			break;
+            /* ADVANCE_ON_* Conditional.
+            * Skip instructions depending on the condition.
+            * Remove ONLY the condition form the solution stack.
+            */
+            case Token::TTAG_ADVANCE_ON_FALSE:
+            {
+                if (thread.solution.size() < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
+                Token& condition = thread.solution.back();
+                if (!Parser::tag_value(condition.tag)) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
+                    return SOLVE_ERROR;
+                }
+                if (!condition.as_bool())
+                    state.program_counter += token.val_int;
+                thread.solution.pop_back();
+            }
+            break;
 
-			/* AWAIT.
-			*/
-			case Token::TTAG_AWAIT:
-				return SOLVE_AWAIT;
+            /* AWAIT.
+            */
+            case Token::TTAG_AWAIT:
+                return SOLVE_AWAIT;
 
-			/* RETURN.
-			*/
-			case Token::TTAG_RETURN:
-				goto execution_return;
+            /* RETURN.
+            */
+            case Token::TTAG_RETURN:
+                goto execution_return;
 
-			/* Binary and Increment/Decrement Operation.
-			* BINARY_ Operators.
-			* ASSIGN_ Operators.
-			* INCREMENT and DECREMENT Operators.
-			* Impossible tag (remaining keywords and punctuation).
-			*/
-			default:
-			{
-				int indices = thread.solution.size();
-				while (indices > state.begin && thread.solution[indices - 1].tag == Token::TTAG_INDEX) indices--; // Index of the last INDEX Token.
+            /* Binary and Increment/Decrement Operation.
+            * BINARY_ Operators.
+            * ASSIGN_ Operators.
+            * INCREMENT and DECREMENT Operators.
+            * Impossible tag (remaining keywords and punctuation).
+            */
+            default:
+            {
+                int indices = thread.solution.size();
+                while (indices > state.begin && thread.solution[indices - 1].tag == Token::TTAG_INDEX) indices--; // Index of the last INDEX Token.
 
-				if (Parser::tag_binary(token.tag) && indices < state.begin + 2) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), indices - state.begin);
-					return SOLVE_ERROR;
-				}
-				else if (Parser::tag_unary(token.tag) && indices < state.begin + 1) {
-					interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), indices - state.begin);
-					return SOLVE_ERROR;
-				}
+                if (Parser::tag_binary(token.tag) && indices < state.begin + 2) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(2), indices - state.begin);
+                    return SOLVE_ERROR;
+                }
+                else if (Parser::tag_unary(token.tag) && indices < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), indices - state.begin);
+                    return SOLVE_ERROR;
+                }
 
-				Token last(std::move(thread.solution[indices - 1])); // Operand Token previous to any INDEX.
+                Token last(std::move(thread.solution[indices - 1])); // Operand Token previous to any INDEX.
 
-				Token* left, * right;
-				tok_tag left_type;
+                Token* left, * right;
+                tok_tag left_type;
 
-				if (Parser::tag_assignment(token.tag) || Parser::tag_incdec(token.tag))
-				{
-					/* Assignment operator solution stack state.
-					*                      *indices
-					*                          |
-					* ---------+-------+-------v----------+
-					* stack... | right | moved | INDEX... |
-					* ---------+-------+-- | --+----------+
-					*                      |
-					*     *left -> last <---
-					*/
+                if (Parser::tag_assignment(token.tag) || Parser::tag_incdec(token.tag))
+                {
+                    /* Assignment operator solution stack state.
+                    *                      *indices
+                    *                          |
+                    * ---------+-------+-------v----------+
+                    * stack... | right | moved | INDEX... |
+                    * ---------+-------+-- | --+----------+
+                    *                      |
+                    *     *left -> last <---
+                    */
 
-					if (last.tag != Token::TTAG_REFERENCE) {
-						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_REFERENCE), tag_name(last.tag));
-						return SOLVE_ERROR;
-					}
+                    if (last.tag != Token::TTAG_REFERENCE) {
+                        interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[7], tag_name(token.tag), tag_name(Token::TTAG_REFERENCE), tag_name(last.tag));
+                        return SOLVE_ERROR;
+                    }
 
-					left = (token.tag == Token::TTAG_BINARY_EQUAL && (indices == thread.solution.size())) ? &last : state.GET_VARIABLE_VALUE_(last, state); // No need to dereference if no operation nor indexing occurs (avoid variable not found error).
-					if (!left) return SOLVE_ERROR;
-					left_type = left->tag;
+                    left = (token.tag == Token::TTAG_BINARY_EQUAL && (indices == thread.solution.size())) ? &last : state.GET_VARIABLE_VALUE_(last, state); // No need to dereference if no operation nor indexing occurs (avoid variable not found error).
+                    if (!left) return SOLVE_ERROR;
+                    left_type = left->tag;
 
-					/*
-					* Array indexing admits operations which could potentially alter or even delete it.
-					* For example:
-					*	a[0][array_clear(a)];
-					* Thus dereferencing and indexing a variable for assignment MUST be done last.
-					* This way the validity of the assigning variable and index can be guaranteed.
-					*/
-					for (int i = indices; i < thread.solution.size(); i++) {
-						if (left_type == Token::TTAG_ARRAY) {
-							if (thread.solution[i].val_int < 0 || left->val_array->array.size() <= thread.solution[i].val_int) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(left_type));
-								return SOLVE_ERROR;
-							}
-							left = &left->val_array->array[thread.solution[i].val_int];
-							left_type = left->tag;
-						}
-						else if (left_type == Token::TTAG_STRING) {
-							if (thread.solution[i].val_int < 0 || strlen(left->val_string->string_get()) <= thread.solution[i].val_int) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(left_type));
-								return SOLVE_ERROR;
-							}
-							if (!left->val_string->owned) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[14], tag_name(Token::TTAG_STRING));
-								return SOLVE_ERROR;
-							}
-							left = (Token*)&left->val_string->string_get()[thread.solution[i].val_int];
-							left_type = Token::TTAG_CHAR;
-						}
-						else if (left_type == Token::TTAG_CHAR) {
-							if (thread.solution[i].val_int != 0) {
-								interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(Token::TTAG_STRING));
-								return SOLVE_ERROR;
-							}
-						}
-						else {
-							interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(left_type));
-							return SOLVE_ERROR;
-						}
-					}
+                    /*
+                    * Array indexing admits operations which could potentially alter or even delete it.
+                    * For example:
+                    *   a[0][array_clear(a)];
+                    * Thus dereferencing and indexing a variable for assignment MUST be done last.
+                    * This way the validity of the assigning variable and index can be guaranteed.
+                    */
+                    for (int i = indices; i < thread.solution.size(); i++) {
+                        if (left_type == Token::TTAG_ARRAY) {
+                            if (thread.solution[i].val_int < 0 || left->val_array->array.size() <= thread.solution[i].val_int) {
+                                interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(left_type));
+                                return SOLVE_ERROR;
+                            }
+                            left = &left->val_array->array[thread.solution[i].val_int];
+                            left_type = left->tag;
+                        }
+                        else if (left_type == Token::TTAG_STRING) {
+                            if (thread.solution[i].val_int < 0 || strlen(left->val_string->string_get()) <= thread.solution[i].val_int) {
+                                interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(left_type));
+                                return SOLVE_ERROR;
+                            }
+                            if (!left->val_string->owned) {
+                                interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[14], tag_name(Token::TTAG_STRING));
+                                return SOLVE_ERROR;
+                            }
+                            left = (Token*)&left->val_string->string_get()[thread.solution[i].val_int];
+                            left_type = Token::TTAG_CHAR;
+                        }
+                        else if (left_type == Token::TTAG_CHAR) {
+                            if (thread.solution[i].val_int != 0) {
+                                interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[8], tag_name(Token::TTAG_INDEX), thread.solution[i].val_int, tag_name(Token::TTAG_STRING));
+                                return SOLVE_ERROR;
+                            }
+                        }
+                        else {
+                            interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(Token::TTAG_INDEX), tag_name(left_type));
+                            return SOLVE_ERROR;
+                        }
+                    }
 
-					thread.solution.resize(Parser::tag_incdec(token.tag) ? indices : indices - 1); // Remove the INDEX, and moved Token if not INCREMENT nor DECREMENT.
+                    thread.solution.resize(Parser::tag_incdec(token.tag) ? indices : indices - 1); // Remove the INDEX, and moved Token if not INCREMENT nor DECREMENT.
 
-					right = &thread.solution.back();
+                    right = &thread.solution.back();
 
-					/* INCREMENT/DECREMENT operator solution stack state.
-					*       *right  *indices
-					*          |       |
-					* ---------v-------v----------+
-					* stack... | moved | INDEX... |
-					* ---------+-- | --+----------+
-					*              |
-					*              --> last <- *left
-					*/
-				}
-				else
-				{
-					/* Non Assignment operator solution stack state.
-					*                     *indices
-					*                         |
-					* ---------+------+-------v
-					* stack... | left | moved |
-					* ---------+------+-- | --+
-					*                     |
-					*  *right -> last <----
-					*/
+                    /* INCREMENT/DECREMENT operator solution stack state.
+                    *       *right  *indices
+                    *          |       |
+                    * ---------v-------v----------+
+                    * stack... | moved | INDEX... |
+                    * ---------+-- | --+----------+
+                    *              |
+                    *              --> last <- *left
+                    */
+                }
+                else
+                {
+                    /* Non Assignment operator solution stack state.
+                    *                     *indices
+                    *                         |
+                    * ---------+------+-------v
+                    * stack... | left | moved |
+                    * ---------+------+-- | --+
+                    *                     |
+                    *  *right -> last <----
+                    */
 
-					if (indices != thread.solution.size()) {
-						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(Token::TTAG_INDEX));
-						return SOLVE_ERROR;
-					}
+                    if (indices != thread.solution.size()) {
+                        interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(Token::TTAG_INDEX));
+                        return SOLVE_ERROR;
+                    }
 
-					if (token.val_int & OPFLAG_BINARY_NO_POP) { // Not pop the last moved Token.
-						left = &(thread.solution[thread.solution.size() - 2]);
-					}
-					else {
-						thread.solution.pop_back(); // Remove the moved Token.
-						left = &thread.solution.back();
-					}
-					left_type = left->tag;
-					right = &last;
-				}
+                    if (token.val_int & OPFLAG_BINARY_NO_POP) { // Not pop the last moved Token.
+                        left = &(thread.solution[thread.solution.size() - 2]);
+                    }
+                    else {
+                        thread.solution.pop_back(); // Remove the moved Token.
+                        left = &thread.solution.back();
+                    }
+                    left_type = left->tag;
+                    right = &last;
+                }
 
-				Token& result = thread.solution.back();
+                Token& result = thread.solution.back();
 
-				switch (token.tag)
-				{
-				case Token::TTAG_BINARY_ADD:
-				case Token::TTAG_ASSIGN_ADD:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = left->val_int + right->val_int;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_float = (float_tL)left->val_int + right->val_float;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_float = left->val_float + (float_tL)right->val_int;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_float = left->val_float + right->val_float;
-						break;
-					/* String Addition (concatenation).
-					* Constructor: In-place Token object (rvalue) String allocation and 'owner' count increment.
-					* Move assignment: value swap transferring ownership to 'result' and setting STRING tag.
-					* Destructor: handles any necessary deallocation of the original 'result' data remaining in the rvalue.
-					*/
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_STRING):
-					{
-						const size_t l0 = intlen(left->val_int);
-						const size_t l1 = strlen(right->val_string->string_get());
-						result = Token(result.line, result.column, String_tL_init(left->val_int, l0, right->val_string->string_get(), l1));
-					}
-					break;
-					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_INT):
-					{
-						const size_t l0 = strlen(left->val_string->string_get());
-						const size_t l1 = intlen(right->val_int);
-						result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_int, l1));
-					}
-					break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_STRING):
-					{
-						const size_t l0 = snprintf(NULL, 0, "%f", left->val_float);
-						const size_t l1 = strlen(right->val_string->string_get());
-						result = Token(result.line, result.column, String_tL_init(left->val_float, l0, right->val_string->string_get(), l1));
-					}
-					break;
-					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_FLOAT):
-					{
-						const size_t l0 = strlen(left->val_string->string_get());
-						const size_t l1 = snprintf(NULL, 0, "%f", right->val_float);
-						result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_float, l1));
-					}
-					break;
-					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
-					{
-						const size_t l0 = strlen(left->val_string->string_get());
-						const size_t l1 = strlen(right->val_string->string_get());
-						result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_string->string_get(), l1));
-					}
-					break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                switch (token.tag)
+                {
+                case Token::TTAG_BINARY_ADD:
+                case Token::TTAG_ASSIGN_ADD:
+                {
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        result.val_int = left->val_int + right->val_int;
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        result.val_float = (float_tL)left->val_int + right->val_float;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        result.val_float = left->val_float + (float_tL)right->val_int;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        result.val_float = left->val_float + right->val_float;
+                        break;
+                    /* String Addition (concatenation).
+                    * Constructor: In-place Token object (rvalue) String allocation and 'owner' count increment.
+                    * Move assignment: value swap transferring ownership to 'result' and setting STRING tag.
+                    * Destructor: handles any necessary deallocation of the original 'result' data remaining in the rvalue.
+                    */
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_STRING):
+                    {
+                        const size_t l0 = intlen(left->val_int);
+                        const size_t l1 = strlen(right->val_string->string_get());
+                        result = Token(result.line, result.column, String_tL_init(left->val_int, l0, right->val_string->string_get(), l1));
+                    }
+                    break;
+                    case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_INT):
+                    {
+                        const size_t l0 = strlen(left->val_string->string_get());
+                        const size_t l1 = intlen(right->val_int);
+                        result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_int, l1));
+                    }
+                    break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_STRING):
+                    {
+                        const size_t l0 = snprintf(NULL, 0, "%f", left->val_float);
+                        const size_t l1 = strlen(right->val_string->string_get());
+                        result = Token(result.line, result.column, String_tL_init(left->val_float, l0, right->val_string->string_get(), l1));
+                    }
+                    break;
+                    case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_FLOAT):
+                    {
+                        const size_t l0 = strlen(left->val_string->string_get());
+                        const size_t l1 = snprintf(NULL, 0, "%f", right->val_float);
+                        result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_float, l1));
+                    }
+                    break;
+                    case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+                    {
+                        const size_t l0 = strlen(left->val_string->string_get());
+                        const size_t l1 = strlen(right->val_string->string_get());
+                        result = Token(result.line, result.column, String_tL_init(left->val_string->string_get(), l0, right->val_string->string_get(), l1));
+                    }
+                    break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_SUBTRACT:
-				case Token::TTAG_ASSIGN_SUBTRACT:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = left->val_int - right->val_int;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_float = (float_tL)left->val_int - right->val_float;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_float = left->val_float - (float_tL)right->val_int;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_float = left->val_float - right->val_float;
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_SUBTRACT:
+                case Token::TTAG_ASSIGN_SUBTRACT:
+                {
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        result.val_int = left->val_int - right->val_int;
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        result.val_float = (float_tL)left->val_int - right->val_float;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        result.val_float = left->val_float - (float_tL)right->val_int;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        result.val_float = left->val_float - right->val_float;
+                        break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_MULTIPLY:
-				case Token::TTAG_ASSIGN_MULTIPLY:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						result.val_int = left->val_int * right->val_int;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						result.val_float = (float_tL)left->val_int * right->val_float;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						result.val_float = left->val_float * (float_tL)right->val_int;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						result.val_float = left->val_float * right->val_float;
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_MULTIPLY:
+                case Token::TTAG_ASSIGN_MULTIPLY:
+                {
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        result.val_int = left->val_int * right->val_int;
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        result.val_float = (float_tL)left->val_int * right->val_float;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        result.val_float = left->val_float * (float_tL)right->val_int;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        result.val_float = left->val_float * right->val_float;
+                        break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_DIVIDE:
-				case Token::TTAG_ASSIGN_DIVIDE:
-				{
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						if (right->val_int == LANGUAGE_ZERO_INT) {
-							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-							return SOLVE_ERROR;
-						}
-						result.val_int = left->val_int / right->val_int;
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						if (right->val_float == LANGUAGE_ZERO_FLOAT) {
-							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-							return SOLVE_ERROR;
-						}
-						result.val_float = (float_tL)left->val_int / right->val_float;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						if (right->val_int == LANGUAGE_ZERO_INT) {
-							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-							return SOLVE_ERROR;
-						}
-						result.val_float = left->val_float / (float_tL)right->val_int;
-						result.tag = Token::TTAG_FLOAT;
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						if (right->val_float == LANGUAGE_ZERO_FLOAT) {
-							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-							return SOLVE_ERROR;
-						}
-						result.val_float = left->val_float / right->val_float;
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_DIVIDE:
+                case Token::TTAG_ASSIGN_DIVIDE:
+                {
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        if (right->val_int == LANGUAGE_ZERO_INT) {
+                            interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+                            return SOLVE_ERROR;
+                        }
+                        result.val_int = left->val_int / right->val_int;
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        if (right->val_float == LANGUAGE_ZERO_FLOAT) {
+                            interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+                            return SOLVE_ERROR;
+                        }
+                        result.val_float = (float_tL)left->val_int / right->val_float;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        if (right->val_int == LANGUAGE_ZERO_INT) {
+                            interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+                            return SOLVE_ERROR;
+                        }
+                        result.val_float = left->val_float / (float_tL)right->val_int;
+                        result.tag = Token::TTAG_FLOAT;
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        if (right->val_float == LANGUAGE_ZERO_FLOAT) {
+                            interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+                            return SOLVE_ERROR;
+                        }
+                        result.val_float = left->val_float / right->val_float;
+                        break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_MODULUS:
-				case Token::TTAG_ASSIGN_MODULUS:
-				{
-					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
-						if (right->val_int == LANGUAGE_ZERO_INT) {
-							interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
-							return SOLVE_ERROR;
-						}
-						result.val_int = left->val_int % right->val_int;
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_MODULUS:
+                case Token::TTAG_ASSIGN_MODULUS:
+                {
+                    if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+                        if (right->val_int == LANGUAGE_ZERO_INT) {
+                            interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[1]);
+                            return SOLVE_ERROR;
+                        }
+                        result.val_int = left->val_int % right->val_int;
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_SHIFT_LEFT:
-				case Token::TTAG_ASSIGN_SHIFT_LEFT:
-				{
-					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
-						result.val_int = left->val_int << right->val_int;
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_SHIFT_LEFT:
+                case Token::TTAG_ASSIGN_SHIFT_LEFT:
+                {
+                    if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+                        result.val_int = left->val_int << right->val_int;
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_SHIFT_RIGHT:
-				case Token::TTAG_ASSIGN_SHIFT_RIGHT:
-				{
-					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
-						result.val_int = left->val_int >> right->val_int;
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_SHIFT_RIGHT:
+                case Token::TTAG_ASSIGN_SHIFT_RIGHT:
+                {
+                    if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+                        result.val_int = left->val_int >> right->val_int;
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_AND_BITWISE:
-				case Token::TTAG_ASSIGN_AND_BITWISE:
-				{
-					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
-						result.val_int = left->val_int & right->val_int;
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_AND_BITWISE:
+                case Token::TTAG_ASSIGN_AND_BITWISE:
+                {
+                    if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+                        result.val_int = left->val_int & right->val_int;
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_OR_BITWISE:
-				case Token::TTAG_ASSIGN_OR_BITWISE:
-				{
-					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
-						result.val_int = left->val_int | right->val_int;
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_OR_BITWISE:
+                case Token::TTAG_ASSIGN_OR_BITWISE:
+                {
+                    if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+                        result.val_int = left->val_int | right->val_int;
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_OR_EXCLUSIVE:
-				case Token::TTAG_ASSIGN_OR_EXCLUSIVE:
-				{
-					if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
-						result.val_int = left->val_int ^ right->val_int;
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-				}
-				break;
+                case Token::TTAG_BINARY_OR_EXCLUSIVE:
+                case Token::TTAG_ASSIGN_OR_EXCLUSIVE:
+                {
+                    if (left_type == Token::TTAG_INT && right->tag == Token::TTAG_INT) {
+                        result.val_int = left->val_int ^ right->val_int;
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                }
+                break;
 
-				case Token::TTAG_BINARY_AND:
-				{
-					if (!Parser::tag_value(left_type) || !Parser::tag_value(right->tag)) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.val_int = (left->as_bool() && right->as_bool()) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					result.tag = Token::TTAG_INT;
-				}
-				break;
+                case Token::TTAG_BINARY_AND:
+                {
+                    if (!Parser::tag_value(left_type) || !Parser::tag_value(right->tag)) {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                    result.val_int = (left->as_bool() && right->as_bool()) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+                    result.tag = Token::TTAG_INT;
+                }
+                break;
 
-				case Token::TTAG_BINARY_OR:
-				{
-					if (!Parser::tag_value(left_type) || !Parser::tag_value(right->tag)) {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.val_int = (left->as_bool() || right->as_bool()) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
-					result.tag = Token::TTAG_INT;
-				}
-				break;
+                case Token::TTAG_BINARY_OR:
+                {
+                    if (!Parser::tag_value(left_type) || !Parser::tag_value(right->tag)) {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                    result.val_int = (left->as_bool() || right->as_bool()) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT;
+                    result.tag = Token::TTAG_INT;
+                }
+                break;
 
 #define RESULT_SOLVE_CONDITION_AS_TAG(condition, tag) result.val_int = ((condition) == (token.tag == (tag))) ? LANGUAGE_TRUE_INT : LANGUAGE_FALSE_INT
-				case Token::TTAG_BINARY_LESSER:
-				case Token::TTAG_BINARY_GREATER_EQUAL:
-				{
+                case Token::TTAG_BINARY_LESSER:
+                case Token::TTAG_BINARY_GREATER_EQUAL:
+                {
 #define RESULT_SOLVE_LESSER(condition) RESULT_SOLVE_CONDITION_AS_TAG(condition, Token::TTAG_BINARY_LESSER)
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						RESULT_SOLVE_LESSER(left->val_int < right->val_int);
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						RESULT_SOLVE_LESSER((float_tL)left->val_int < right->val_float);
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						RESULT_SOLVE_LESSER(left->val_float < (float_tL)right->val_int);
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						RESULT_SOLVE_LESSER(left->val_float < right->val_float);
-						break;
-					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
-						RESULT_SOLVE_LESSER(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) < 0);
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.tag = Token::TTAG_INT;
-				}
-				break;
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        RESULT_SOLVE_LESSER(left->val_int < right->val_int);
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        RESULT_SOLVE_LESSER((float_tL)left->val_int < right->val_float);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        RESULT_SOLVE_LESSER(left->val_float < (float_tL)right->val_int);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        RESULT_SOLVE_LESSER(left->val_float < right->val_float);
+                        break;
+                    case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+                        RESULT_SOLVE_LESSER(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) < 0);
+                        break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                    result.tag = Token::TTAG_INT;
+                }
+                break;
 
-				case Token::TTAG_BINARY_GREATER:
-				case Token::TTAG_BINARY_LESSER_EQUAL:
-				{
+                case Token::TTAG_BINARY_GREATER:
+                case Token::TTAG_BINARY_LESSER_EQUAL:
+                {
 #define RESULT_SOLVE_GREATER(condition) RESULT_SOLVE_CONDITION_AS_TAG(condition, Token::TTAG_BINARY_GREATER)
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						RESULT_SOLVE_GREATER(left->val_int > right->val_int);
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						RESULT_SOLVE_GREATER((float_tL)left->val_int > right->val_float);
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						RESULT_SOLVE_GREATER(left->val_float > (float_tL)right->val_int);
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						RESULT_SOLVE_GREATER(left->val_float > right->val_float);
-						break;
-					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
-						RESULT_SOLVE_LESSER(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) > 0);
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.tag = Token::TTAG_INT;
-				}
-				break;
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        RESULT_SOLVE_GREATER(left->val_int > right->val_int);
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        RESULT_SOLVE_GREATER((float_tL)left->val_int > right->val_float);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        RESULT_SOLVE_GREATER(left->val_float > (float_tL)right->val_int);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        RESULT_SOLVE_GREATER(left->val_float > right->val_float);
+                        break;
+                    case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+                        RESULT_SOLVE_LESSER(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) > 0);
+                        break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                    result.tag = Token::TTAG_INT;
+                }
+                break;
 
-				case Token::TTAG_BINARY_EQUAL_DOUBLE:
-				case Token::TTAG_BINARY_EQUAL_NOT:
-				{
+                case Token::TTAG_BINARY_EQUAL_DOUBLE:
+                case Token::TTAG_BINARY_EQUAL_NOT:
+                {
 #define RESULT_SOLVE_EQUAL(condition) RESULT_SOLVE_CONDITION_AS_TAG(condition, Token::TTAG_BINARY_EQUAL_DOUBLE)
-					switch (tagCOUPLE(left_type, right->tag))
-					{
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
-						RESULT_SOLVE_EQUAL(left->val_int == right->val_int);
-						break;
-					case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
-						RESULT_SOLVE_EQUAL((float_tL)left->val_int == right->val_float);
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
-						RESULT_SOLVE_EQUAL(left->val_float == (float_tL)right->val_int);
-						break;
-					case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
-						RESULT_SOLVE_EQUAL(left->val_float == right->val_float);
-						break;
-					case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
-						RESULT_SOLVE_EQUAL(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) == 0 && std::strlen(left->val_string->string_get()) == std::strlen(right->val_string->string_get()));
-						break;
-					case tagCOUPLE(Token::TTAG_ARRAY, Token::TTAG_ARRAY):
-						RESULT_SOLVE_EQUAL(left->val_array && left->val_array == right->val_array);
-						break;
-					case tagCOUPLE(Token::TTAG_FUNCTION, Token::TTAG_FUNCTION):
-						RESULT_SOLVE_EQUAL(left->val_function && left->val_function == right->val_function && left->val_function->loaded);
-						break;
-					case tagCOUPLE(Token::TTAG_BUILTIN, Token::TTAG_BUILTIN):
-						RESULT_SOLVE_EQUAL(left->val_builtin && left->val_builtin == right->val_builtin);
-						break;
-					default:
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
-						return SOLVE_ERROR;
-					}
-					result.tag = Token::TTAG_INT;
-				}
-				break;
+                    switch (tagCOUPLE(left_type, right->tag))
+                    {
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_INT):
+                        RESULT_SOLVE_EQUAL(left->val_int == right->val_int);
+                        break;
+                    case tagCOUPLE(Token::TTAG_INT, Token::TTAG_FLOAT):
+                        RESULT_SOLVE_EQUAL((float_tL)left->val_int == right->val_float);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_INT):
+                        RESULT_SOLVE_EQUAL(left->val_float == (float_tL)right->val_int);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FLOAT, Token::TTAG_FLOAT):
+                        RESULT_SOLVE_EQUAL(left->val_float == right->val_float);
+                        break;
+                    case tagCOUPLE(Token::TTAG_STRING, Token::TTAG_STRING):
+                        RESULT_SOLVE_EQUAL(left->val_string && right->val_string && left->val_string->string_get() && right->val_string->string_get() && std::strcmp(left->val_string->string_get(), right->val_string->string_get()) == 0 && std::strlen(left->val_string->string_get()) == std::strlen(right->val_string->string_get()));
+                        break;
+                    case tagCOUPLE(Token::TTAG_ARRAY, Token::TTAG_ARRAY):
+                        RESULT_SOLVE_EQUAL(left->val_array && left->val_array == right->val_array);
+                        break;
+                    case tagCOUPLE(Token::TTAG_FUNCTION, Token::TTAG_FUNCTION):
+                        RESULT_SOLVE_EQUAL(left->val_function && left->val_function == right->val_function && left->val_function->loaded);
+                        break;
+                    case tagCOUPLE(Token::TTAG_BUILTIN, Token::TTAG_BUILTIN):
+                        RESULT_SOLVE_EQUAL(left->val_builtin && left->val_builtin == right->val_builtin);
+                        break;
+                    default:
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[6], tag_name(token.tag), tag_name(left_type), tag_name(right->tag));
+                        return SOLVE_ERROR;
+                    }
+                    result.tag = Token::TTAG_INT;
+                }
+                break;
 
-				case Token::TTAG_UNARY_INCREMENT:
-				{
-					if (left_type == Token::TTAG_INT) {
-						result.val_int = (token.val_int == INCDEC_PRE_VAL) ? (++left->val_int) : (left->val_int++);
-					}
-					else if (left_type == Token::TTAG_FLOAT) {
-						result.val_float = (token.val_int == INCDEC_PRE_VAL) ? (++left->val_float) : (left->val_float++);
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(left_type));
-						return SOLVE_ERROR;
-					}
-					result.tag = left_type;
-				}
-				break;
+                case Token::TTAG_UNARY_INCREMENT:
+                {
+                    if (left_type == Token::TTAG_INT) {
+                        result.val_int = (token.val_int == INCDEC_PRE_VAL) ? (++left->val_int) : (left->val_int++);
+                    }
+                    else if (left_type == Token::TTAG_FLOAT) {
+                        result.val_float = (token.val_int == INCDEC_PRE_VAL) ? (++left->val_float) : (left->val_float++);
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(left_type));
+                        return SOLVE_ERROR;
+                    }
+                    result.tag = left_type;
+                }
+                break;
 
-				case Token::TTAG_UNARY_DECREMENT:
-				{
-					if (left_type == Token::TTAG_INT) {
-						result.val_int = (token.val_int == INCDEC_PRE_VAL) ? (--left->val_int) : (left->val_int--);
-					}
-					else if (left_type == Token::TTAG_FLOAT) {
-						result.val_float = (token.val_int == INCDEC_PRE_VAL) ? (--left->val_float) : (left->val_float--);
-					}
-					else {
-						interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(left_type));
-						return SOLVE_ERROR;
-					}
-					result.tag = left_type;
-				}
-				break;
+                case Token::TTAG_UNARY_DECREMENT:
+                {
+                    if (left_type == Token::TTAG_INT) {
+                        result.val_int = (token.val_int == INCDEC_PRE_VAL) ? (--left->val_int) : (left->val_int--);
+                    }
+                    else if (left_type == Token::TTAG_FLOAT) {
+                        result.val_float = (token.val_int == INCDEC_PRE_VAL) ? (--left->val_float) : (left->val_float--);
+                    }
+                    else {
+                        interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(left_type));
+                        return SOLVE_ERROR;
+                    }
+                    result.tag = left_type;
+                }
+                break;
 
-				default:
-					break;
-				}
+                default:
+                    break;
+                }
 
-				if (!Parser::tag_assignment(token.tag)) break; // Non assignment binary operation ended.
+                if (!Parser::tag_assignment(token.tag)) break; // Non assignment binary operation ended.
 
-				if (left_type == Token::TTAG_REFERENCE) {
-					state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left->val_int, result); // There can never be a TTAG_REFERENCE inside an TTAG_ARRAY.
-				}
-				else if (left_type == Token::TTAG_CHAR) {
-					if (right->tag != Token::TTAG_STRING || strlen(right->val_string->string_get()) != 1) {
-						interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[9], tag_name(Token::TTAG_STRING), tag_name(Token::TTAG_STRING));
-						return SOLVE_ERROR;
-					}
-					*(char*)left = right->val_string->string_get()[0];
-				}
-				else {
-					*left = result;
-				}
-			}
-			break;
+                if (left_type == Token::TTAG_REFERENCE) {
+                    state.GET_ASSIGNMENT_TABLE_(state).insert_or_assign(left->val_int, result); // There can never be a TTAG_REFERENCE inside an TTAG_ARRAY.
+                }
+                else if (left_type == Token::TTAG_CHAR) {
+                    if (right->tag != Token::TTAG_STRING || strlen(right->val_string->string_get()) != 1) {
+                        interpreterError(file_name(), last.line, last.column, ERROR_MESSAGES[9], tag_name(Token::TTAG_STRING), tag_name(Token::TTAG_STRING));
+                        return SOLVE_ERROR;
+                    }
+                    *(char*)left = right->val_string->string_get()[0];
+                }
+                else {
+                    *left = result;
+                }
+            }
+            break;
 
-			}
-		}
-	execution_return:
-		{
-			if (thread.solution.size() < state.begin) {
-				interpreterError(file_name(), 0, 0, ERROR_MESSAGES[15], state.begin, thread.solution.size());
-				return SOLVE_ERROR;
-			}
+            }
+        }
+    execution_return:
+        {
+            if (thread.solution.size() < state.begin) {
+                interpreterError(file_name(), 0, 0, ERROR_MESSAGES[15], state.begin, thread.solution.size());
+                return SOLVE_ERROR;
+            }
 #ifdef FUNCTION_RETURN_SINGLE // Force SINGLE Token return.
-			if (thread.executing.size() > 1) {
-				if (thread.solution.size() == state.begin) thread.solution.emplace_back(0, 0, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
-				else if (thread.solution.size() > state.begin + 1) {
-					thread.solution[state.begin] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + state.begin), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
-					thread.solution.resize(state.begin + 1); // Delete everything after the return ARRAY.
-				}
-			}
+            if (thread.executing.size() > 1) {
+                if (thread.solution.size() == state.begin) thread.solution.emplace_back(0, 0, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
+                else if (thread.solution.size() > state.begin + 1) {
+                    thread.solution[state.begin] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + state.begin), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
+                    thread.solution.resize(state.begin + 1); // Delete everything after the return ARRAY.
+                }
+            }
 #endif // FUNCTION_RETURN_SINGLE
-			thread.executing.pop_back(); // Remove the current terminated function.
-		}
-	execution_end:
-		; // Empty statement to allow compilation.
-	}
+            thread.executing.pop_back(); // Remove the current terminated function.
+        }
+    execution_end:
+        ; // Empty statement to allow compilation.
+    }
 
-	return SOLVE_OK;
+    return SOLVE_OK;
 }
 
 Language::Function_tL* Language::script_load(const char* filename, const char* funcname, const char* source, unsigned short flags)
 {
-	Function_tL* function = nullptr;
+    Function_tL* function = nullptr;
 
-		const auto& loaded = LOADED_SOURCEFILE.insert({ filename, { filename } });
+        const auto& loaded = LOADED_SOURCEFILE.insert({ filename, { filename } });
 
-		std::unordered_map<std::string, Function_tL> file_new_;
+        std::unordered_map<std::string, Function_tL> file_new_;
 
-		Parser parser;
-		if (tokenize_source(filename, source, parser.tokens))
-			function = parser.parse(&loaded.first->second, &file_new_, funcname, flags);
-		
-		if (function)
-		{
-			std::unordered_map<std::string, Function_tL>& file_old = loaded.first->second.functions;
+        Parser parser;
+        if (tokenize_source(filename, source, parser.tokens))
+            function = parser.parse(&loaded.first->second, &file_new_, funcname, flags);
+        
+        if (function)
+        {
+            std::unordered_map<std::string, Function_tL>& file_old = loaded.first->second.functions;
 
-			for (auto& old : file_old)
-			{
-				const std::unordered_map<std::string, Function_tL>::iterator& new_ = file_new_.find(old.first);
-				if (new_ == file_new_.end())
-				{
-					if (flags & PARSE_FLAG::ALLOW_FUNCTION_DEF) {
-						old.second.unload();
-					}
-				}
-				else
-				{
-					old.second.arg_id = std::move(new_->second.arg_id);
-					old.second.program = new_->second.program;
-					old.second.global = new_->second.global;
-					old.second.loaded = true;
+            for (auto& old : file_old)
+            {
+                const std::unordered_map<std::string, Function_tL>::iterator& new_ = file_new_.find(old.first);
+                if (new_ == file_new_.end())
+                {
+                    if (flags & PARSE_FLAG::ALLOW_FUNCTION_DEF) {
+                        old.second.unload();
+                    }
+                }
+                else
+                {
+                    old.second.arg_id = std::move(new_->second.arg_id);
+                    old.second.program = new_->second.program;
+                    old.second.global = new_->second.global;
+                    old.second.loaded = true;
 
-					file_new_.erase(new_);
-				}
-			}
+                    file_new_.erase(new_);
+                }
+            }
 
-			file_old.merge(file_new_);
+            file_old.merge(file_new_);
 
-			function = &file_old.find(funcname)->second;
-		}
-		else
-		{
-			if (loaded.second)
-				LOADED_SOURCEFILE.erase(loaded.first);
-		}
-	
-	return function;
+            function = &file_old.find(funcname)->second;
+        }
+        else
+        {
+            if (loaded.second)
+                LOADED_SOURCEFILE.erase(loaded.first);
+        }
+    
+    return function;
 }
 
 Language::Function_tL* Language::script_load(const char* filename, unsigned short flags)
 {
-	const char* source = readfile(filename);
+    const char* source = readfile(filename);
 
-	if (source)
-	{
-		Function_tL* result = script_load(filename, filename, source, flags);
+    if (source)
+    {
+        Function_tL* result = script_load(filename, filename, source, flags);
 
-		delete[] source;
+        delete[] source;
 
-		return result;
-	}
+        return result;
+    }
 
-	return nullptr;
+    return nullptr;
 }
 
 Language::SOLVE_RESULT Language::script_import(const char* filename LANGUAGE_SOLVER_SIGNATURE, unsigned short flags)
 {
-	Function_tL* loaded_file = script_load(filename, flags);
+    Function_tL* loaded_file = script_load(filename, flags);
 
-	if (loaded_file)
-	{
-		Thread_tL thread{ { Execution_tL(loaded_file) } };
+    if (loaded_file)
+    {
+        Thread_tL thread{ { Execution_tL(loaded_file) } };
 
-		return script_run(thread LANGUAGE_SOLVER_ARGUMENTS);
-	}
+        return script_run(thread LANGUAGE_SOLVER_ARGUMENTS);
+    }
 
-	return SOLVE_ERROR;
+    return SOLVE_ERROR;
 }
 
 void Language::script_unload(const char* filename)
 {
-	const auto& loaded = LOADED_SOURCEFILE.find(filename);
-	if (loaded != LOADED_SOURCEFILE.end())
-		loaded->second.unload();
+    const auto& loaded = LOADED_SOURCEFILE.find(filename);
+    if (loaded != LOADED_SOURCEFILE.end())
+        loaded->second.unload();
 }
 
 #ifdef LANGUAGE_EXAMPLE_LOADING
@@ -1903,29 +1903,29 @@ void Language::script_unload(const char* filename)
 
 namespace Language
 {
-	static void builtinErrorVA(const char* format, va_list argp)
-	{
-		vprintf(format, argp);
-	}
+    static void builtinErrorVA(const char* format, va_list argp)
+    {
+        vprintf(format, argp);
+    }
 
-	static void builtinError_(const char* filename, const char* builtin_name, const char* f, ...)
-	{
-		printf(fERROR);
-		printf("Builtin <%s> '%s'. ", builtin_name, filename);
-		va_list argp;
-		va_start(argp, f);
-		builtinErrorVA(f, argp);
-		va_end(argp);
-		printf("\n");
-	}
+    static void builtinError_(const char* filename, const char* builtin_name, const char* f, ...)
+    {
+        printf(fERROR);
+        printf("Builtin <%s> '%s'. ", builtin_name, filename);
+        va_list argp;
+        va_start(argp, f);
+        builtinErrorVA(f, argp);
+        va_end(argp);
+        printf("\n");
+    }
 
 /* Built-in naming helpers.
 * Prefix built-in function names to avoid macros and names collisions.
 */
-#define BIN_PREFIX BIN_														// Prefix.
-#define BIN_PREFIX_STR STRINGIZING(BIN_PREFIX)								// Prefix string representation.
-	constexpr unsigned char BIN_PREFIX_LEN = sizeof(BIN_PREFIX_STR) - 1;	// Prefix string representation length.
-#define BIN_NAME(name) CONCATENATION(BIN_PREFIX, name)						// Join function prefix and name.
+#define BIN_PREFIX BIN_                                                     // Prefix.
+#define BIN_PREFIX_STR STRINGIZING(BIN_PREFIX)                              // Prefix string representation.
+    constexpr unsigned char BIN_PREFIX_LEN = sizeof(BIN_PREFIX_STR) - 1;    // Prefix string representation length.
+#define BIN_NAME(name) CONCATENATION(BIN_PREFIX, name)                      // Join function prefix and name.
 
 // Built-in function signature using name prefix and parenthesis to avoid collisions.
 #define BIN_DEF(name) static SOLVE_RESULT (BIN_NAME(name))(std::vector<Token>& arguments, std::vector<Token>& solution, Thread_tL* thread LANGUAGE_SOLVER_SIGNATURE)
@@ -1946,171 +1946,171 @@ namespace Language
 */
 #define builtinError(format, ...) builtinError_(file_name(), (__func__ + BIN_PREFIX_LEN), format, __VA_ARGS__)
 
-	BIN_DEF(version)
-	{
-		if (!arguments.empty())
-		{
-			builtinError("This function takes no arguments.");
-			return SOLVE_ERROR;
-		}
+    BIN_DEF(version)
+    {
+        if (!arguments.empty())
+        {
+            builtinError("This function takes no arguments.");
+            return SOLVE_ERROR;
+        }
 
-		solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
-		return SOLVE_OK;
-	}
+        solution.emplace_back(0, 0, String_tL_external(LANGUAGE_VERSION));
+        return SOLVE_OK;
+    }
 
-	BIN_DEF(import)
-	{
-		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
-		{
-			builtinError("Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
-			return SOLVE_ERROR;
-		}
+    BIN_DEF(import)
+    {
+        if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
+        {
+            builtinError("Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
+            return SOLVE_ERROR;
+        }
 
-		std::filesystem::path file_path															// Resulting path.
-			= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
-				.remove_filename()																// Remove file to get containing folder.
-				/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
-			.lexically_normal();																// Resolve directory parenting.
+        std::filesystem::path file_path                                                         // Resulting path.
+            = (std::filesystem::path(thread->executing.back().name_file)                        // Caller file relative path.
+                .remove_filename()                                                              // Remove file to get containing folder.
+                / arguments[0].val_string->string_get())                                        // Concatenate requested resource relative to caller.
+            .lexically_normal();                                                                // Resolve directory parenting.
 
-		SOLVE_RESULT solve = script_import(file_path.string().c_str() LANGUAGE_SOLVER_ARGUMENTS);
+        SOLVE_RESULT solve = script_import(file_path.string().c_str() LANGUAGE_SOLVER_ARGUMENTS);
 
-		if (solve == SOLVE_ERROR)
-			builtinError("Failed to import file '%s'.", file_path.string().c_str());
+        if (solve == SOLVE_ERROR)
+            builtinError("Failed to import file '%s'.", file_path.string().c_str());
 
-		solution.emplace_back(0, 0, (int_tL)solve);
+        solution.emplace_back(0, 0, (int_tL)solve);
 
-		return solve;
-	}
+        return solve;
+    }
 
-	BIN_DEF(load)
-	{
-		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
-		{
-			builtinError("Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
-			return SOLVE_ERROR;
-		}
+    BIN_DEF(load)
+    {
+        if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_STRING)
+        {
+            builtinError("Argument must be a single '%s'.", tag_name(Token::TTAG_STRING));
+            return SOLVE_ERROR;
+        }
 
-		std::filesystem::path file_path															// Resulting path.
-			= (std::filesystem::path(thread->executing.back().name_file)						// Caller file relative path.
-				.remove_filename()																// Remove file to get containing folder.
-				/ arguments[0].val_string->string_get())										// Concatenate requested resource relative to caller.
-			.lexically_normal();																// Resolve directory parenting.
+        std::filesystem::path file_path                                                         // Resulting path.
+            = (std::filesystem::path(thread->executing.back().name_file)                        // Caller file relative path.
+                .remove_filename()                                                              // Remove file to get containing folder.
+                / arguments[0].val_string->string_get())                                        // Concatenate requested resource relative to caller.
+            .lexically_normal();                                                                // Resolve directory parenting.
 
-		Function_tL* func = script_load(file_path.string().c_str());
+        Function_tL* func = script_load(file_path.string().c_str());
 
-		if (!func)
-		{
-			builtinError("Failed to load file '%s'.", file_path.string().c_str());
-			return SOLVE_ERROR;
-		}
+        if (!func)
+        {
+            builtinError("Failed to load file '%s'.", file_path.string().c_str());
+            return SOLVE_ERROR;
+        }
 
-		solution.emplace_back(0, 0, func);
+        solution.emplace_back(0, 0, func);
 
-		return SOLVE_OK;
-	}
+        return SOLVE_OK;
+    }
 
-	BIN_DEF(print)
-	{
-		if (arguments.size() != 1)
-		{
-			builtinError("This function takes a single argument.");
-			return SOLVE_ERROR;
-		}
+    BIN_DEF(print)
+    {
+        if (arguments.size() != 1)
+        {
+            builtinError("This function takes a single argument.");
+            return SOLVE_ERROR;
+        }
 
-		arguments[0].print();
-		printf("\n");
+        arguments[0].print();
+        printf("\n");
 
-		return SOLVE_OK;
-	}
+        return SOLVE_OK;
+    }
 
-	BIN_DEF(max)
-	{
-		if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_ARRAY || arguments[0].val_array->array.empty())
-		{
-			builtinError("Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
-			return SOLVE_ERROR;
-		}
+    BIN_DEF(max)
+    {
+        if (arguments.size() != 1 || arguments[0].tag != Token::TTAG_ARRAY || arguments[0].val_array->array.empty())
+        {
+            builtinError("Argument must be a single non-empty '%s'.", tag_name(Token::TTAG_ARRAY));
+            return SOLVE_ERROR;
+        }
 
-		if (std::find_if(
-			arguments[0].val_array->array.begin(),
-			arguments[0].val_array->array.end(),
-			[](const Token& element) { return element.tag != Token::TTAG_INT && element.tag != Token::TTAG_FLOAT; }) ==
-			arguments[0].val_array->array.end())
-		{
-			solution.push_back(
-				std::move(
-					*std::max_element(
-						arguments[0].val_array->array.begin(),
-						arguments[0].val_array->array.end(),
-						[](const Token& left, const Token& right) {
-							return ((left.tag == Token::TTAG_INT) ? left.val_int : left.val_float) < ((right.tag == Token::TTAG_INT) ? right.val_int : right.val_float);
-						}
-					)
-				)
-			);
+        if (std::find_if(
+            arguments[0].val_array->array.begin(),
+            arguments[0].val_array->array.end(),
+            [](const Token& element) { return element.tag != Token::TTAG_INT && element.tag != Token::TTAG_FLOAT; }) ==
+            arguments[0].val_array->array.end())
+        {
+            solution.push_back(
+                std::move(
+                    *std::max_element(
+                        arguments[0].val_array->array.begin(),
+                        arguments[0].val_array->array.end(),
+                        [](const Token& left, const Token& right) {
+                            return ((left.tag == Token::TTAG_INT) ? left.val_int : left.val_float) < ((right.tag == Token::TTAG_INT) ? right.val_int : right.val_float);
+                        }
+                    )
+                )
+            );
 
-			return SOLVE_OK;
-		}
+            return SOLVE_OK;
+        }
 
-		builtinError("'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
-		return SOLVE_ERROR;
-	}
+        builtinError("'%s' must contain only '%s' and '%s'.", tag_name(Token::TTAG_ARRAY), tag_name(Token::TTAG_INT), tag_name(Token::TTAG_FLOAT));
+        return SOLVE_ERROR;
+    }
 
-	static int register_function()
-	{
-		BIN_REG(version);
-		BIN_REG(import);
-		BIN_REG(load);
-		BIN_REG(print);
-		BIN_REG(max);
+    static int register_function()
+    {
+        BIN_REG(version);
+        BIN_REG(import);
+        BIN_REG(load);
+        BIN_REG(print);
+        BIN_REG(max);
 
-		return 0;
-	}
+        return 0;
+    }
 }
 
 // BUILTIN END
 
 Language::int_tL Language::LANGUAGE_initialize()
 {
-	register_function();
+    register_function();
 
-	return 1;
+    return 1;
 }
 
 Language::int_tL Language::LANGUAGE_terminate()
 {
-	// Terminate all Thread_tL.
+    // Terminate all Thread_tL.
 
-	LOADED_SOURCEFILE.clear();
-	NAME_TABLE.clear();
-	VALUE_TABLE.clear();
+    LOADED_SOURCEFILE.clear();
+    NAME_TABLE.clear();
+    VALUE_TABLE.clear();
 
-	return 1;
+    return 1;
 }
 
 Language::int_tL Language::LANGUAGE_reload()
 {
-	LANGUAGE_terminate();
-	LANGUAGE_initialize();
+    LANGUAGE_terminate();
+    LANGUAGE_initialize();
 
-	return 1;
+    return 1;
 }
 
 #ifdef LANGUAGE_TEST_PROGRAM
 
 int main()
 {
-	Language::LANGUAGE_initialize();
+    Language::LANGUAGE_initialize();
 
-	Language::SOLVE_RESULT result = Language::script_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
+    Language::SOLVE_RESULT result = Language::script_import(std::filesystem::relative(__FILE__ "/../example/import.txt", std::filesystem::current_path()).string().c_str());
 
-	if (result == Language::SOLVE_RESULT::SOLVE_OK)
-	{
-	}
+    if (result == Language::SOLVE_RESULT::SOLVE_OK)
+    {
+    }
 
-	Language::LANGUAGE_terminate();
+    Language::LANGUAGE_terminate();
 
-	return 0;
+    return 0;
 }
 
 #endif // LANGUAGE_TEST_PROGRAM

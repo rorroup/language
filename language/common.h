@@ -23,8 +23,8 @@ namespace Language
 
 /* Basic macros.
 */
-#define STRINGIZING_(name) #name						// https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
-#define CONCATENATION_(left, right) left ## right		// https://gcc.gnu.org/onlinedocs/cpp/Concatenation.html
+#define STRINGIZING_(name) #name                        // https://gcc.gnu.org/onlinedocs/cpp/Stringizing.html
+#define CONCATENATION_(left, right) left ## right       // https://gcc.gnu.org/onlinedocs/cpp/Concatenation.html
 
 /* Double layer macros.
 * https://stackoverflow.com/a/32801489
@@ -33,22 +33,22 @@ namespace Language
 #define CONCATENATION(left, right) CONCATENATION_(left, right)
 
 // https://stackoverflow.com/a/3219471
-#define ANSI_RED     "\x1b[31m"
-#define ANSI_GREEN   "\x1b[32m"
-#define ANSI_YELLOW  "\x1b[33m"
-//#define ANSI_BLUE    "\x1b[34m"
-//#define ANSI_MAGENTA "\x1b[35m"
-#define ANSI_CYAN    "\x1b[36m"
-#define ANSI_WHITE   "\x1b[0m"
+#define ANSI_RED        "\x1b[31m"
+#define ANSI_GREEN      "\x1b[32m"
+#define ANSI_YELLOW     "\x1b[33m"
+//#define ANSI_BLUE       "\x1b[34m"
+//#define ANSI_MAGENTA    "\x1b[35m"
+#define ANSI_CYAN       "\x1b[36m"
+#define ANSI_WHITE      "\x1b[0m"
 
-	extern const char* fERROR;
+    extern const char* fERROR;
 
-	typedef unsigned short lin_num;
+    typedef unsigned short lin_num;
 #define fLIN PRIu16
-	typedef unsigned short col_num;
+    typedef unsigned short col_num;
 #define fCOL PRIu16
 
-	void printLanguageError(const char* type, const char* subtype, const char* filename, lin_num line, col_num column, const char* format, va_list argp);
+    void printLanguageError(const char* type, const char* subtype, const char* filename, lin_num line, col_num column, const char* format, va_list argp);
 }
 
 #endif // !H_LANGUAGE_COMMON

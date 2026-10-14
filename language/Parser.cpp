@@ -5,7 +5,7 @@
 
 const char* Language::Parser::file_name()
 {
-	return loaded ? loaded->name.c_str() : nullptr;
+    return loaded ? loaded->name.c_str() : nullptr;
 }
 
 /* tag_* checking methods.
@@ -20,65 +20,65 @@ bool Language::Parser::tag_ternary(const tok_tag tag) { return Token::TTAG_TERNA
 
 namespace Language
 {
-	typedef unsigned char ErrMesType;
-	enum : ErrMesType
-	{
-		Parser = 0,
-		SYNTAX_ERROR,
-		OPERATOR_MISSING,
-		OPERAND_MISSING,
-		EXPRESSION_MISSING,
-		DELIMITER_MISMATCH,
-		WRONG_CONTEXT,
-		NAME_DUPLICATE,
-	};
+    typedef unsigned char ErrMesType;
+    enum : ErrMesType
+    {
+        Parser = 0,
+        SYNTAX_ERROR,
+        OPERATOR_MISSING,
+        OPERAND_MISSING,
+        EXPRESSION_MISSING,
+        DELIMITER_MISMATCH,
+        WRONG_CONTEXT,
+        NAME_DUPLICATE,
+    };
 
-	static const char* ERROR_MESSAGE_TYPES[]
-	{
-		STRINGIZING(Parser),
-		STRINGIZING(SYNTAX_ERROR),
-		STRINGIZING(OPERATOR_MISSING),
-		STRINGIZING(OPERAND_MISSING),
-		STRINGIZING(EXPRESSION_MISSING),
-		STRINGIZING(DELIMITER_MISMATCH),
-		STRINGIZING(WRONG_CONTEXT),
-		STRINGIZING(NAME_DUPLICATE),
-	};
+    static const char* ERROR_MESSAGE_TYPES[]
+    {
+        STRINGIZING(Parser),
+        STRINGIZING(SYNTAX_ERROR),
+        STRINGIZING(OPERATOR_MISSING),
+        STRINGIZING(OPERAND_MISSING),
+        STRINGIZING(EXPRESSION_MISSING),
+        STRINGIZING(DELIMITER_MISMATCH),
+        STRINGIZING(WRONG_CONTEXT),
+        STRINGIZING(NAME_DUPLICATE),
+    };
 
-	static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
-	{
-		{ Parser, nullptr },
-		{ SYNTAX_ERROR, "Expected '%s' token%s." },
-		{ OPERAND_MISSING, "'%s' operator requires an argument." },
-		{ EXPRESSION_MISSING, "%s must contain an operation." },
-		{ DELIMITER_MISMATCH, "A corresponding '%s' is missing." },
-		{ WRONG_CONTEXT, "Global function definitions %s." },
-		{ OPERAND_MISSING, "'%s' operator must be followed by an operand." },
-		{ EXPRESSION_MISSING, "%s missing" },
-		{ WRONG_CONTEXT, "'%s' token may not be used in this context." },
-		{ NAME_DUPLICATE, "Label name '%s' can not be repeated." },
-		{ WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
-		{ NAME_DUPLICATE, "Function name '%s' already exists inside this file." },
-		{ EXPRESSION_MISSING, "Label name '%s' not exists in function '%s'." },
-	};
+    static const std::pair<const ErrMesType, const char*> ERROR_MESSAGES[]
+    {
+        { Parser, nullptr },
+        { SYNTAX_ERROR, "Expected '%s' token%s." },
+        { OPERAND_MISSING, "'%s' operator requires an argument." },
+        { EXPRESSION_MISSING, "%s must contain an operation." },
+        { DELIMITER_MISMATCH, "A corresponding '%s' is missing." },
+        { WRONG_CONTEXT, "Global function definitions %s." },
+        { OPERAND_MISSING, "'%s' operator must be followed by an operand." },
+        { EXPRESSION_MISSING, "%s missing" },
+        { WRONG_CONTEXT, "'%s' token may not be used in this context." },
+        { NAME_DUPLICATE, "Label name '%s' can not be repeated." },
+        { WRONG_CONTEXT, "Unable to finish parsing because Tokens in the stream remain external to its scope." },
+        { NAME_DUPLICATE, "Function name '%s' already exists inside this file." },
+        { EXPRESSION_MISSING, "Label name '%s' not exists in function '%s'." },
+    };
 
-	static void parserError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
-	{
-		va_list argp;
-		va_start(argp, f);
-		printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
-		va_end(argp);
-	}
+    static void parserError(const char* filename, lin_num line, col_num column, std::pair<const ErrMesType, const char*> f, ...)
+    {
+        va_list argp;
+        va_start(argp, f);
+        printLanguageError(ERROR_MESSAGE_TYPES[0], ERROR_MESSAGE_TYPES[f.first], filename, line, column, f.second, argp);
+        va_end(argp);
+    }
 }
 
 #define REQUIRE_CURRENT_TAG_RETURN(required_tag, returned) \
 if (tokenIndex >= tokens.size()) { \
-	parserError(file_name(), tokens.back().line, tokens.back().column, ERROR_MESSAGES[1], tag_name(required_tag), " but none are left"); \
-	return returned; \
+    parserError(file_name(), tokens.back().line, tokens.back().column, ERROR_MESSAGES[1], tag_name(required_tag), " but none are left"); \
+    return returned; \
 } \
 if (tokens[tokenIndex].tag != required_tag) { \
-	parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(required_tag), ""); \
-	return returned; \
+    parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(required_tag), ""); \
+    return returned; \
 }
 
 #define REQUIRE_CURRENT_TAG(required_tag) REQUIRE_CURRENT_TAG_RETURN(required_tag, PARSE_ERROR)
@@ -88,188 +88,188 @@ if (tokens[tokenIndex].tag != required_tag) { \
 */
 bool Language::Parser::goto_label(Function_tL& _function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps)
 {
-	// Aliases.
-	std::vector<Token>& program = *_function.program;
-	std::vector<std::pair<size_t, std::string>>& gotos = _jumps.first;
-	std::unordered_map<std::string, size_t>& labels = _jumps.second;
+    // Aliases.
+    std::vector<Token>& program = *_function.program;
+    std::vector<std::pair<size_t, std::string>>& gotos = _jumps.first;
+    std::unordered_map<std::string, size_t>& labels = _jumps.second;
 
-	for (const auto& _goto : gotos)
-	{
-		const auto& _label = labels.find(_goto.second); // Find destination LABEL matching GOTO label name.
-		if (_label == labels.end()) // GOTO label name not found.
-		{
-			parserError(_function.source->name.c_str(), program[_goto.first].line, program[_goto.first].column, ERROR_MESSAGES[12], _goto.second.c_str(), _function.name);
-			return false;
-		}
-		program[_goto.first].val_int = _label->second; // Assign LABEL token index as GOTO associated JUMP destination.
-	}
+    for (const auto& _goto : gotos)
+    {
+        const auto& _label = labels.find(_goto.second); // Find destination LABEL matching GOTO label name.
+        if (_label == labels.end()) // GOTO label name not found.
+        {
+            parserError(_function.source->name.c_str(), program[_goto.first].line, program[_goto.first].column, ERROR_MESSAGES[12], _goto.second.c_str(), _function.name);
+            return false;
+        }
+        program[_goto.first].val_int = _label->second; // Assign LABEL token index as GOTO associated JUMP destination.
+    }
 
-	return true;
+    return true;
 }
 
 /* parse_operand.
 * Parse a single operand (atom).
 * Operand contains:
-*	Any combination of Pre Unary operators.
-*	The operand structure: a simple Value, Array, Variable, or Parenthesised operation.
-*	Any combination of Post operations, such as INCREMENT/DECREMENT, Array Indexing (Brackets) or Function Call (Parenthesis).
+*   Any combination of Pre Unary operators.
+*   The operand structure: a simple Value, Array, Variable, or Parenthesised operation.
+*   Any combination of Post operations, such as INCREMENT/DECREMENT, Array Indexing (Brackets) or Function Call (Parenthesis).
 * Returns the tag ID of the last parsed structure on success.
 */
 Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 {
-	static const TokenTagInfo* TOKEN_POSITIVE = tag_id(Token::TTAG_UNARY_POSITIVE);
-	static const TokenTagInfo* TOKEN_NEGATIVE = tag_id(Token::TTAG_UNARY_NEGATIVE);
+    static const TokenTagInfo* TOKEN_POSITIVE = tag_id(Token::TTAG_UNARY_POSITIVE);
+    static const TokenTagInfo* TOKEN_NEGATIVE = tag_id(Token::TTAG_UNARY_NEGATIVE);
 
-	const auto unary_begin = tokens.rend() - tokenIndex;	// Reverse iterator up to the first Pre Unary operator.
-	auto unary_end = unary_begin;							// Reverse iterator up to the last Pre Unary operator.
+    const auto unary_begin = tokens.rend() - tokenIndex;    // Reverse iterator up to the first Pre Unary operator.
+    auto unary_end = unary_begin;                           // Reverse iterator up to the last Pre Unary operator.
 
-	bool unary_inc_dec = false; // Presence of UNARY INCREMENT or DECREMENT since they perform assignment.
+    bool unary_inc_dec = false; // Presence of UNARY INCREMENT or DECREMENT since they perform assignment.
 
-	// Parse Pre Unary operators.
-	while (tokenIndex < tokens.size())
-	{
-		Token& unary = tokens[tokenIndex];
-		if (tag_incdec(unary.tag)) unary_inc_dec = true; // INC/DEC PRE Operator.
-		else if (unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value); // ADD to POSITIVE.
-		else if (unary.tag == Token::TTAG_BINARY_SUBTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
-		else if	(!tag_unary(unary.tag)) break; // Non Unary operator.
-		unary_end--;
-		tokenIndex++;
-	}
+    // Parse Pre Unary operators.
+    while (tokenIndex < tokens.size())
+    {
+        Token& unary = tokens[tokenIndex];
+        if (tag_incdec(unary.tag)) unary_inc_dec = true; // INCREMENT/DECREMENT Pre Operator.
+        else if (unary.tag == Token::TTAG_BINARY_ADD)		unary = Token(unary.line, unary.column, TOKEN_POSITIVE->tag, TOKEN_POSITIVE->value); // ADD to POSITIVE.
+        else if (unary.tag == Token::TTAG_BINARY_SUBTRACT)	unary = Token(unary.line, unary.column, TOKEN_NEGATIVE->tag, TOKEN_NEGATIVE->value); // SUBTRACT to NEGATIVE.
+        else if	(!tag_unary(unary.tag)) break; // Non Unary operator.
+        unary_end--;
+        tokenIndex++;
+    }
 
-	// No main operand structure parsed yet.
-	tok_tag typeLast = OPERATION_EMPTY;
+    // No main operand structure parsed yet.
+    tok_tag typeLast = OPERATION_EMPTY;
 
-	if (tokenIndex >= tokens.size())
-	{
-		if (unary_end != unary_begin) { // Unary operators found.
-			parserError(file_name(), unary_end->line, unary_end->column, ERROR_MESSAGES[6], tag_name(unary_end->tag));
-			return PARSE_ERROR;
-		}
+    if (tokenIndex >= tokens.size())
+    {
+        if (unary_end != unary_begin) { // Unary operators found.
+            parserError(file_name(), unary_end->line, unary_end->column, ERROR_MESSAGES[6], tag_name(unary_end->tag));
+            return PARSE_ERROR;
+        }
 
-		return OPERATION_EMPTY;
-	}
+        return OPERATION_EMPTY;
+    }
 
-	// Operand main structure.
-	Token& operand = tokens[tokenIndex];
-	switch (operand.tag)
-	{
-	// Simple Value.
-	case Token::TTAG_NONE:
-	case Token::TTAG_INT:
-	case Token::TTAG_FLOAT:
-	case Token::TTAG_STRING:
-		typeLast = operand.tag; // Register tag.
-		program.push_back(std::move(tokens[tokenIndex])); // Move Value.
-		tokenIndex++;
-		break;
+    // Operand main structure.
+    Token& operand = tokens[tokenIndex];
+    switch (operand.tag)
+    {
+    // Simple Value.
+    case Token::TTAG_NONE:
+    case Token::TTAG_INT:
+    case Token::TTAG_FLOAT:
+    case Token::TTAG_STRING:
+        typeLast = operand.tag; // Register tag.
+        program.push_back(std::move(tokens[tokenIndex])); // Move Value.
+        tokenIndex++;
+        break;
 
-	// Variable.
-	case Token::TTAG_IDENTIFIER:
-	{
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_VARIABLE, NAME_TABLE_get_name_id(operand.val_identifier)); // Variable name ID.
-		typeLast = Token::TTAG_VARIABLE; // Register tag.
-		tokenIndex++;
-	}
-	break;
+    // Variable.
+    case Token::TTAG_IDENTIFIER:
+    {
+        program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_VARIABLE, NAME_TABLE_get_name_id(operand.val_identifier)); // Variable name ID.
+        typeLast = Token::TTAG_VARIABLE; // Register tag.
+        tokenIndex++;
+    }
+    break;
 
-	// Parenthesised expression.
-	case Token::TTAG_PARENTHESIS_OPEN:																					// Open parenthesis.
-	{
-		tokenIndex++;
-		std::vector<Token> inner;
-		typeLast = parse_operation(inner, PRECEDENCE_ASSIGNMENT);														// Parse parenthesis inner operation.
-		if (typeLast == PARSE_ERROR)
-			return typeLast;
-		if (typeLast == OPERATION_EMPTY) {
-			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[3], "Parenthesised expression");
-			return PARSE_ERROR;
-		}
-		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);																// Close parenthesis.
-		program.insert(program.end(), std::make_move_iterator(inner.begin()), std::make_move_iterator(inner.end()));	// Move parenthesis content.
-		typeLast = tokens[tokenIndex].tag;																				// Register closing parenthesis tag.
-		tokenIndex++;
-	}
-	break;
+    // Parenthesised expression.
+    case Token::TTAG_PARENTHESIS_OPEN:                                                                                  // Open parenthesis.
+    {
+        tokenIndex++;
+        std::vector<Token> inner;
+        typeLast = parse_operation(inner, PRECEDENCE_ASSIGNMENT);                                                       // Parse parenthesis inner operation.
+        if (typeLast == PARSE_ERROR)
+            return typeLast;
+        if (typeLast == OPERATION_EMPTY) {
+            parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[3], "Parenthesised expression");
+            return PARSE_ERROR;
+        }
+        REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);                                                             // Close parenthesis.
+        program.insert(program.end(), std::make_move_iterator(inner.begin()), std::make_move_iterator(inner.end()));    // Move parenthesis content.
+        typeLast = tokens[tokenIndex].tag;                                                                              // Register closing parenthesis tag.
+        tokenIndex++;
+    }
+    break;
 
-	// Array.
-	case Token::TTAG_BRACKET_OPEN:																							// Open bracket.
-	{
-		program.emplace_back(operand.line, operand.column, Token::TTAG_SEQUENCE, -1);										// Register start of the Array sequence.
-		tokenIndex++;
-		std::vector<Token> elements;
-		if (parse_operation(elements, PRECEDENCE_SEQUENCE) == PARSE_ERROR)													// Parse Array elements sequence.
-			return PARSE_ERROR;
-		REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);																		// Close bracket.
-		program.insert(program.end(), std::make_move_iterator(elements.begin()), std::make_move_iterator(elements.end()));	// Move Array content.
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_ARRAY_INIT, LANGUAGE_INT(1));	// Register Array Initialization Token.
-		typeLast = Token::TTAG_ARRAY_INIT;																					// Register Array Initialization tag.
-		tokenIndex++;
-	}
-	break;
+    // Array.
+    case Token::TTAG_BRACKET_OPEN:                                                                                          // Open bracket.
+    {
+        program.emplace_back(operand.line, operand.column, Token::TTAG_SEQUENCE, -1);                                       // Register start of the Array sequence.
+        tokenIndex++;
+        std::vector<Token> elements;
+        if (parse_operation(elements, PRECEDENCE_SEQUENCE) == PARSE_ERROR)                                                  // Parse Array elements sequence.
+            return PARSE_ERROR;
+        REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);                                                                     // Close bracket.
+        program.insert(program.end(), std::make_move_iterator(elements.begin()), std::make_move_iterator(elements.end()));  // Move Array content.
+        program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_ARRAY_INIT, LANGUAGE_INT(1));  // Register Array Initialization Token.
+        typeLast = Token::TTAG_ARRAY_INIT;                                                                                  // Register Array Initialization tag.
+        tokenIndex++;
+    }
+    break;
 
-	/* Remaining invalid operand tags.
-	* Impossible to come from the tokenized stream (Special operations).
-	* Non operation tags (Keywords and Delimiters).
-	* Binary operators.
-	*/
-	default:
-		if (unary_end != unary_begin) { // Unary operators found.
-			parserError(file_name(), unary_end->line, unary_end->column, ERROR_MESSAGES[6], tag_name(unary_end->tag));
-			return PARSE_ERROR;
-		}
+    /* Remaining invalid operand tags.
+    * Impossible to come from the tokenized stream (Special operations).
+    * Non operation tags (Keywords and Delimiters).
+    * Binary operators.
+    */
+    default:
+        if (unary_end != unary_begin) { // Unary operators found.
+            parserError(file_name(), unary_end->line, unary_end->column, ERROR_MESSAGES[6], tag_name(unary_end->tag));
+            return PARSE_ERROR;
+        }
 
-		return OPERATION_EMPTY;
-	}
+        return OPERATION_EMPTY;
+    }
 
-	// Post operators.
-	while (tokenIndex < tokens.size())
-	{
-		// Unary Increment/Decrement.
-		if (tag_incdec(tokens[tokenIndex].tag))																					// INC/DEC Operator.
-		{
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, tokens[tokenIndex].tag, INCDEC_POST_VAL);	// Register it as POST.
-			unary_inc_dec = true;
-			tokenIndex++;
-		}
-		// Function Call.
-		else if (tokens[tokenIndex].tag == Token::TTAG_PARENTHESIS_OPEN)															// Open parenthesis.
-		{
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_SEQUENCE, -1);						// Register Call sequence start.
-			tokenIndex++;
-			std::vector<Token> arguments;
-			if (parse_operation(arguments, PRECEDENCE_SEQUENCE) == PARSE_ERROR)														// Parse Call arguments sequence.
-				return PARSE_ERROR;
-			REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);																		// Close parenthesis.
-			program.insert(program.end(), std::make_move_iterator(arguments.begin()), std::make_move_iterator(arguments.end()));	// Move Call arguments.
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_CALL, LANGUAGE_INT(1));			// Register Call Token.
-			typeLast = Token::TTAG_CALL;																							// Register Call tag.
-			tokenIndex++;
-		}
-		// Array Index.
-		else if (tokens[tokenIndex].tag == Token::TTAG_BRACKET_OPEN)														// Open bracket.
-		{
-			tokenIndex++;
-			std::vector<Token> index;
-			if (parse_operation(index, PRECEDENCE_ASSIGNMENT) == PARSE_ERROR)												// Parse Index operation.
-				return PARSE_ERROR;
-			REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);																	// Close bracket.
-			program.insert(program.end(), std::make_move_iterator(index.begin()), std::make_move_iterator(index.end()));	// Move Index operation.
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_INDEX, LANGUAGE_INT(1));	// Register Array Index Token.
-			typeLast = Token::TTAG_INDEX;																					// Register Array Index tag.
-			tokenIndex++;
-		}
-		else break;
-	}
+    // Post operators.
+    while (tokenIndex < tokens.size())
+    {
+        // Unary Increment/Decrement.
+        if (tag_incdec(tokens[tokenIndex].tag))                                                                                 // INCREMENT/DECREMENT Post Operator.
+        {
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, tokens[tokenIndex].tag, INCDEC_POST_VAL);  // Register it as POST.
+            unary_inc_dec = true;
+            tokenIndex++;
+        }
+        // Function Call.
+        else if (tokens[tokenIndex].tag == Token::TTAG_PARENTHESIS_OPEN)                                                            // Open parenthesis.
+        {
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_SEQUENCE, -1);                     // Register Call sequence start.
+            tokenIndex++;
+            std::vector<Token> arguments;
+            if (parse_operation(arguments, PRECEDENCE_SEQUENCE) == PARSE_ERROR)                                                     // Parse Call arguments sequence.
+                return PARSE_ERROR;
+            REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);                                                                     // Close parenthesis.
+            program.insert(program.end(), std::make_move_iterator(arguments.begin()), std::make_move_iterator(arguments.end()));    // Move Call arguments.
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_CALL, LANGUAGE_INT(1));            // Register Call Token.
+            typeLast = Token::TTAG_CALL;                                                                                            // Register Call tag.
+            tokenIndex++;
+        }
+        // Array Index.
+        else if (tokens[tokenIndex].tag == Token::TTAG_BRACKET_OPEN)                                                        // Open bracket.
+        {
+            tokenIndex++;
+            std::vector<Token> index;
+            if (parse_operation(index, PRECEDENCE_ASSIGNMENT) == PARSE_ERROR)                                               // Parse Index operation.
+                return PARSE_ERROR;
+            REQUIRE_CURRENT_TAG(Token::TTAG_BRACKET_CLOSE);                                                                 // Close bracket.
+            program.insert(program.end(), std::make_move_iterator(index.begin()), std::make_move_iterator(index.end()));    // Move Index operation.
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_INDEX, LANGUAGE_INT(1));   // Register Array Index Token.
+            typeLast = Token::TTAG_INDEX;                                                                                   // Register Array Index tag.
+            tokenIndex++;
+        }
+        else break;
+    }
 
-	program.insert(program.end(), std::make_move_iterator(unary_end), std::make_move_iterator(unary_begin)); // Move Unary operators backwards.
+    program.insert(program.end(), std::make_move_iterator(unary_end), std::make_move_iterator(unary_begin)); // Move Unary operators backwards.
 
-	// Unary INCREMENT/DECREMENT operation.
-	if (unary_inc_dec && !program.empty() && program[0].tag == Token::TTAG_VARIABLE) {
-		program[0].tag = Token::TTAG_REFERENCE; // Assignment operations deferred dereferencing.
-	}
+    // Unary INCREMENT/DECREMENT operation.
+    if (unary_inc_dec && !program.empty() && program[0].tag == Token::TTAG_VARIABLE) {
+        program[0].tag = Token::TTAG_REFERENCE; // Assignment operations deferred dereferencing.
+    }
 
-	return typeLast;
+    return typeLast;
 }
 
 /* parse_operation.
@@ -281,83 +281,83 @@ Language::tok_tag Language::Parser::parse_operand(std::vector<Token>& program)
 * Returns the id of the last parsed structure.
 * 
 * Assignment special handling:
-*	Assignment operands are deliberately flipped because the right hand side is supposed to resolve before being assigned to the left hand variable.
-*	Considering an ARRAY 'a' and an INT 'i' in the following 2 cases:
-*		(Case 1) a[i] + a[i = 1];
-*		(Case 2) a[i] = a[i = 1];
-*	The addition operation SHOULD index the left instance of the array on the previous value of 'i',
-*	whereas the assignment SHOULD index it on the right hand newly assigned value of '1'.
-*	This is particularly problematic when the assigned value clears the array, thus any previously computed indices are invalidated.
-*	To solve this problem the left hand side variable WILL ALWAYS be dereferenced last, just before the assignment.
-*	This way the subsequent assignment only occurs on a valid variable reference.
+*   Assignment operands are deliberately flipped because the right hand side is supposed to resolve before being assigned to the left hand variable.
+*   Considering an ARRAY 'a' and an INT 'i' in the following 2 cases:
+*       (Case 1) a[i] + a[i = 1];
+*       (Case 2) a[i] = a[i = 1];
+*   The addition operation SHOULD index the left instance of the array on the previous value of 'i',
+*   whereas the assignment SHOULD index it on the right hand newly assigned value of '1'.
+*   This is particularly problematic when the assigned value clears the array, thus any previously computed indices are invalidated.
+*   To solve this problem the left hand side variable WILL ALWAYS be dereferenced last, just before the assignment.
+*   This way the subsequent assignment only occurs on a valid variable reference.
 */
 Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program, int_tL precedence_min, int* right_begin)
 {
-	std::vector<Token>& left = program;
-	tok_tag typeLast = parse_operand(left); // Parse left hand side operand.
-	if (typeLast < Token::TTAG_BEGIN_) // No operand.
-		return typeLast;
+    std::vector<Token>& left = program;
+    tok_tag typeLast = parse_operand(left); // Parse left hand side operand.
+    if (typeLast < Token::TTAG_BEGIN_) // No operand.
+        return typeLast;
 
-	// Variable assignment operation.
-	if (tokenIndex < tokens.size() && tag_assignment(tokens[tokenIndex].tag) && left[0].tag == Token::TTAG_VARIABLE) {
-		left[0].tag = Token::TTAG_REFERENCE; // Assignment operations deferred dereferencing.
-	}
+    // Variable assignment operation.
+    if (tokenIndex < tokens.size() && tag_assignment(tokens[tokenIndex].tag) && left[0].tag == Token::TTAG_VARIABLE) {
+        left[0].tag = Token::TTAG_REFERENCE; // Assignment operations deferred dereferencing.
+    }
 
-	// Precedence analisis and branching.
+    // Precedence analisis and branching.
 #define OP_PRECEDENCE(val) ((val) & PRECEDENCE_MASK_)
 #define OP_ASSOCIATIVITY(val) ((val) & ASSOCIATIVITY_MASK_)
-	while (tokenIndex < tokens.size() && (
-		((tag_binary(tokens[tokenIndex].tag) || (tokens[tokenIndex].tag == Token::TTAG_TERNARY_QUESTION)) && (OP_PRECEDENCE(tokens[tokenIndex].val_int) >= precedence_min))
-		|| ((tokens[tokenIndex].tag == Token::TTAG_TERNARY_COLON) && right_begin) // COLON operation MUST ALWAYS form if caller is QUESTION and NEVER otherwise.
-		))
-	{
-		Token& binary = tokens[tokenIndex]; // Binary operator.
-		tokenIndex++;
+    while (tokenIndex < tokens.size() && (
+        ((tag_binary(tokens[tokenIndex].tag) || (tokens[tokenIndex].tag == Token::TTAG_TERNARY_QUESTION)) && (OP_PRECEDENCE(tokens[tokenIndex].val_int) >= precedence_min))
+        || ((tokens[tokenIndex].tag == Token::TTAG_TERNARY_COLON) && right_begin) // COLON operation MUST ALWAYS form if caller is QUESTION and NEVER otherwise.
+        ))
+    {
+        Token& binary = tokens[tokenIndex]; // Binary operator.
+        tokenIndex++;
 
-		int inner_right = -1; // Inner right operand index.
-		std::vector<Token> right;
-		typeLast = parse_operation(right,
-			tag_ternary(binary.tag) ? PRECEDENCE_ASSIGNMENT : (OP_PRECEDENCE(binary.val_int) + (OP_ASSOCIATIVITY(binary.val_int) ? 1 : 0)), // Compute new min precedence to parse right hand side operation, or reset for ternary to accept ASSIGNMENT.
-			(binary.tag == Token::TTAG_TERNARY_QUESTION) ? &inner_right : nullptr); // Only QUESTION passes pointer looking for matching inner COLON operator.
-		if (typeLast == PARSE_ERROR)
-			return typeLast;
-		if (typeLast == OPERATION_EMPTY) {
-			if (binary.tag == Token::TTAG_BINARY_COMMA) // Trailing comma is allowed.
-				break;
-			parserError(file_name(), binary.line, binary.column, ERROR_MESSAGES[6], tag_name(binary.tag));
-			return PARSE_ERROR;
-		}
+        int inner_right = -1; // Inner right operand index.
+        std::vector<Token> right;
+        typeLast = parse_operation(right,
+            tag_ternary(binary.tag) ? PRECEDENCE_ASSIGNMENT : (OP_PRECEDENCE(binary.val_int) + (OP_ASSOCIATIVITY(binary.val_int) ? 1 : 0)), // Compute new min precedence to parse right hand side operation, or reset for ternary to accept ASSIGNMENT.
+            (binary.tag == Token::TTAG_TERNARY_QUESTION) ? &inner_right : nullptr); // Only QUESTION passes pointer looking for matching inner COLON operator.
+        if (typeLast == PARSE_ERROR)
+            return typeLast;
+        if (typeLast == OPERATION_EMPTY) {
+            if (binary.tag == Token::TTAG_BINARY_COMMA) // Trailing comma is allowed.
+                break;
+            parserError(file_name(), binary.line, binary.column, ERROR_MESSAGES[6], tag_name(binary.tag));
+            return PARSE_ERROR;
+        }
 
-		// Combine operands and operator in RPN.
-		if (tag_assignment(binary.tag))				// Assignment operator.
-			left.swap(right);						// Invert order.
-		else if (binary.tag == Token::TTAG_TERNARY_QUESTION) {
-			if (inner_right < 0) {
-				parserError(file_name(), binary.line, binary.column, ERROR_MESSAGES[1], tag_name(Token::TTAG_TERNARY_COLON), " but none are left.");
-				return PARSE_ERROR;
-			}
-			left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE_ON_FALSE, (int_tL)inner_right); // Conditional ADVANCE to the right COLON side.
-		}
-		else if (binary.tag == Token::TTAG_TERNARY_COLON) {
-			/* Ternary Operation.
-			*                                              ----------------
-			*                             -----------------|-------,      |
-			* -----------+-----------+----|----+------+----|----+--v----+-v----------+
-			* program... | condition | ADVANCE | left | ADVANCE | right | program... |
-			* -----------+-----------+---------+------+---------+-------+------------+
-			*              condition      ?     left       :      right
-			*/
-			left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE, (int_tL)right.size()); // Left COLON side ADVANCE past the right one.
-			*right_begin = left.size(); // Allow QUESTION to ADVANCE directly to the right COLON side past the left one.
-		}
-		left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));	// Stack together left and right hand operands.
-		if (binary.tag == Token::TTAG_TERNARY_QUESTION) continue; // QUESTION operator already included (ADVANCE).
-		else if (binary.tag == Token::TTAG_TERNARY_COLON) break; // COLON is always the top level operator in its operation.
-		else if (binary.tag != Token::TTAG_BINARY_COMMA)														// Skip comma sequence operator.
-			left.push_back(std::move(binary));																	// Move operator to the end.
-	}
+        // Combine operands and operator in RPN.
+        if (tag_assignment(binary.tag))             // Assignment operator.
+            left.swap(right);                       // Invert order.
+        else if (binary.tag == Token::TTAG_TERNARY_QUESTION) {
+            if (inner_right < 0) {
+                parserError(file_name(), binary.line, binary.column, ERROR_MESSAGES[1], tag_name(Token::TTAG_TERNARY_COLON), " but none are left.");
+                return PARSE_ERROR;
+            }
+            left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE_ON_FALSE, (int_tL)inner_right); // Conditional ADVANCE to the right COLON side.
+        }
+        else if (binary.tag == Token::TTAG_TERNARY_COLON) {
+            /* Ternary Operation.
+            *                                              ----------------
+            *                             -----------------|-------,      |
+            * -----------+-----------+----|----+------+----|----+--v----+-v----------+
+            * program... | condition | ADVANCE | left | ADVANCE | right | program... |
+            * -----------+-----------+---------+------+---------+-------+------------+
+            *              condition      ?      left      :      right
+            */
+            left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE, (int_tL)right.size()); // Left COLON side ADVANCE past the right one.
+            *right_begin = left.size(); // Allow QUESTION to ADVANCE directly to the right COLON side past the left one.
+        }
+        left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));  // Stack together left and right hand operands.
+        if (binary.tag == Token::TTAG_TERNARY_QUESTION) continue; // QUESTION operator already included (ADVANCE).
+        else if (binary.tag == Token::TTAG_TERNARY_COLON) break; // COLON is always the top level operator in its operation.
+        else if (binary.tag != Token::TTAG_BINARY_COMMA)                                                        // Skip comma sequence operator.
+            left.push_back(std::move(binary));                                                                  // Move operator to the end.
+    }
 
-	return typeLast;
+    return typeLast;
 }
 
 /* parse_if.
@@ -365,95 +365,95 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
 */
 short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
-	std::vector<Token>& program = *function.program;
-	short branches = 0;
-	int condition_index = -1;
-	std::vector<size_t> block_end_index{};
+    std::vector<Token>& program = *function.program;
+    short branches = 0;
+    int condition_index = -1;
+    std::vector<size_t> block_end_index{};
 
-	while (tokenIndex < tokens.size()) {
-		tok_tag keyword_tag = tokens[tokenIndex].tag;
+    while (tokenIndex < tokens.size()) {
+        tok_tag keyword_tag = tokens[tokenIndex].tag;
 
-		if (keyword_tag == Token::TTAG_IF) {
-			if (branches) {
-				break;
-			}
-		}
-		else if (keyword_tag == Token::TTAG_ELSE) {
-			if (!branches) { // TTAG_IF
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::TTAG_IF), "");
-				return PARSE_ERROR;
-			}
+        if (keyword_tag == Token::TTAG_IF) {
+            if (branches) {
+                break;
+            }
+        }
+        else if (keyword_tag == Token::TTAG_ELSE) {
+            if (!branches) { // TTAG_IF
+                parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::TTAG_IF), "");
+                return PARSE_ERROR;
+            }
 
-			tokenIndex++;
-			if (tokenIndex < tokens.size()) {
-				if (tokens[tokenIndex].tag == Token::TTAG_IF) {
-					keyword_tag = Token::TTAG_IF; // TTAG_ELSE TTAG_IF
-				}
-				else {
-					tokenIndex--;
-				}
-			}
-			else {
-				tokenIndex--;
-			}
-		}
-		else {
-			if (!branches) { // TTAG_IF
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::TTAG_IF), "");
-				return PARSE_ERROR;
-			}
-			break;
-		}
-		if (branches) {
-			block_end_index.push_back(program.size());
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, -1);
+            tokenIndex++;
+            if (tokenIndex < tokens.size()) {
+                if (tokens[tokenIndex].tag == Token::TTAG_IF) {
+                    keyword_tag = Token::TTAG_IF; // TTAG_ELSE TTAG_IF
+                }
+                else {
+                    tokenIndex--;
+                }
+            }
+            else {
+                tokenIndex--;
+            }
+        }
+        else {
+            if (!branches) { // TTAG_IF
+                parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], tag_name(Token::TTAG_IF), "");
+                return PARSE_ERROR;
+            }
+            break;
+        }
+        if (branches) {
+            block_end_index.push_back(program.size());
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, -1);
 
-			program[condition_index].val_int = program.size();
-		}
-		tokenIndex++;
+            program[condition_index].val_int = program.size();
+        }
+        tokenIndex++;
 
-		condition_index = -1;
-		if (keyword_tag == Token::TTAG_IF) {
-			REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);
-			tokenIndex++;
+        condition_index = -1;
+        if (keyword_tag == Token::TTAG_IF) {
+            REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);
+            tokenIndex++;
 
-			std::vector<Token> condition;
-			tok_tag parsed = parse_operation(condition, PRECEDENCE_ASSIGNMENT);
-			if (parsed == PARSE_ERROR)
-				return PARSE_ERROR;
-			if (parsed == OPERATION_EMPTY) {
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'if' condition");
-				return PARSE_ERROR;
-			}
-			program.insert(program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
-			condition_index = program.size();
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP_ON_FALSE, -1);
+            std::vector<Token> condition;
+            tok_tag parsed = parse_operation(condition, PRECEDENCE_ASSIGNMENT);
+            if (parsed == PARSE_ERROR)
+                return PARSE_ERROR;
+            if (parsed == OPERATION_EMPTY) {
+                parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'if' condition");
+                return PARSE_ERROR;
+            }
+            program.insert(program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
+            condition_index = program.size();
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP_ON_FALSE, -1);
 
-			REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
-			tokenIndex++;
-		}
-		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
-		tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
+            tokenIndex++;
+        }
+        REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
+        tokenIndex++;
 
-		if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
-			return PARSE_ERROR;
+        if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+            return PARSE_ERROR;
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
-		tokenIndex++;
+        REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
+        tokenIndex++;
 
-		branches++;
-		if (keyword_tag == Token::TTAG_ELSE) {
-			break;
-		}
-	}
+        branches++;
+        if (keyword_tag == Token::TTAG_ELSE) {
+            break;
+        }
+    }
 
-	if (condition_index >= 0)
-		program[condition_index].val_int = program.size();
+    if (condition_index >= 0)
+        program[condition_index].val_int = program.size();
 
-	for (const size_t& index : block_end_index)
-		program[index].val_int = program.size();
+    for (const size_t& index : block_end_index)
+        program[index].val_int = program.size();
 
-	return true;
+    return true;
 }
 
 /* parse_switch.
@@ -464,90 +464,90 @@ short Language::Parser::parse_if(Function_tL& function, std::pair<std::vector<st
 * That way once a condition is met the program skips the ones remaining.
 * 
 * switch (<CONTROL>) {
-*	on <CONDITION>:
-*	default:
-*		off;
+*   on <CONDITION>:
+*   default:
+*       off;
 * }
 */
 char Language::Parser::parse_switch(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
-	static const TokenTagInfo* OPERATOR_EQUALITY = tag_id(Token::TTAG_BINARY_EQUAL_DOUBLE);
+    static const TokenTagInfo* OPERATOR_EQUALITY = tag_id(Token::TTAG_BINARY_EQUAL_DOUBLE);
 
-	std::vector<Token>& program = *function.program;
+    std::vector<Token>& program = *function.program;
 
-	REQUIRE_CURRENT_TAG(Token::TTAG_SWITCH);				// switch
-	tokenIndex++;
-	REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);		// (
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_SWITCH);                // switch
+    tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);      // (
+    tokenIndex++;
 
-	Program_tL Control;										// <Control>.
-	tok_tag _control = parse_operation(Control, PRECEDENCE_ASSIGNMENT);
-	if (_control == PARSE_ERROR)
-		return PARSE_ERROR;
-	if (_control == OPERATION_EMPTY) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'switch' control value");
-		return PARSE_ERROR;
-	}
-	program.insert(program.end(), std::make_move_iterator(Control.begin()), std::make_move_iterator(Control.end()));
+    Program_tL Control;                                     // <Control>.
+    tok_tag _control = parse_operation(Control, PRECEDENCE_ASSIGNMENT);
+    if (_control == PARSE_ERROR)
+        return PARSE_ERROR;
+    if (_control == OPERATION_EMPTY) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'switch' control value");
+        return PARSE_ERROR;
+    }
+    program.insert(program.end(), std::make_move_iterator(Control.begin()), std::make_move_iterator(Control.end()));
 
-	REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);		// )
-	tokenIndex++;
-	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);			// {
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);     // )
+    tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);            // {
+    tokenIndex++;
 
-	std::vector<int> offs;		// Switch 'off' indices.
-	int case_start = -1;		// Case start JUMP index.
-	int last_advance = -1;		// Last case ADVANCE index.
-	while (tokenIndex < tokens.size()) {
-		const Token& keyword = tokens[tokenIndex];
-		if (keyword.tag == Token::TTAG_ON) {				// on
-			tokenIndex++;
-			if (case_start >= 0) { // Not first case.
-				case_start = program.size();															// JUMP index.
-				program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// JUMP Token to skip condition.
-			}
-			if (last_advance >= 0) program[last_advance].val_int = program.size() - last_advance - 1; // Last condition ADVANCE into this one.
+    std::vector<int> offs;      // Switch 'off' indices.
+    int case_start = -1;        // Case start JUMP index.
+    int last_advance = -1;      // Last case ADVANCE index.
+    while (tokenIndex < tokens.size()) {
+        const Token& keyword = tokens[tokenIndex];
+        if (keyword.tag == Token::TTAG_ON) {                // on
+            tokenIndex++;
+            if (case_start >= 0) { // Not first case.
+                case_start = program.size();                                                            // JUMP index.
+                program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, LANGUAGE_INT(-1)); // JUMP Token to skip condition.
+            }
+            if (last_advance >= 0) program[last_advance].val_int = program.size() - last_advance - 1; // Last condition ADVANCE into this one.
 
-			Program_tL Condition;							// <Condition>.
-			tok_tag _condition = parse_operation(Condition, PRECEDENCE_ASSIGNMENT);
-			if (_condition == PARSE_ERROR)
-				return PARSE_ERROR;
-			if (_condition == OPERATION_EMPTY) {
-				parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Switch 'on' condition");
-				return PARSE_ERROR;
-			}
-			program.insert(program.end(), std::make_move_iterator(Condition.begin()), std::make_move_iterator(Condition.end()));
+            Program_tL Condition;                           // <Condition>.
+            tok_tag _condition = parse_operation(Condition, PRECEDENCE_ASSIGNMENT);
+            if (_condition == PARSE_ERROR)
+                return PARSE_ERROR;
+            if (_condition == OPERATION_EMPTY) {
+                parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Switch 'on' condition");
+                return PARSE_ERROR;
+            }
+            program.insert(program.end(), std::make_move_iterator(Condition.begin()), std::make_move_iterator(Condition.end()));
 
-			program.emplace_back(keyword.line, keyword.column, OPERATOR_EQUALITY->tag, OPERATOR_EQUALITY->value | OPFLAG_BINARY_NO_POP);	// Compare condition without popping control.
-			last_advance = program.size();																									// ADVANCE Token index.
-			program.emplace_back(keyword.line, keyword.column, Token::TTAG_ADVANCE_ON_FALSE, LANGUAGE_INT(1));								// ADVANCE to next condition if not equal.
-			program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, (int_tL)(program.size() + 1));								// Clear control from the solution stack.
+            program.emplace_back(keyword.line, keyword.column, OPERATOR_EQUALITY->tag, OPERATOR_EQUALITY->value | OPFLAG_BINARY_NO_POP);    // Compare condition without popping control.
+            last_advance = program.size();                                                                                                  // ADVANCE Token index.
+            program.emplace_back(keyword.line, keyword.column, Token::TTAG_ADVANCE_ON_FALSE, LANGUAGE_INT(1));                              // ADVANCE to next condition if not equal.
+            program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, (int_tL)(program.size() + 1));                             // Clear control from the solution stack.
 
-			if (case_start >= 0) program[case_start].val_int = program.size(); // Condition skipped.
-			else case_start = 0;
-		}
-		else {
-			if (last_advance >= 0) program[last_advance].val_int = program.size() - last_advance - 1; // Last condition ADVANCE into this one.
-			program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, (int_tL)(program.size() + 1)); // Clear control from the solution stack.
-			if (keyword.tag != Token::TTAG_DEFAULT) break;	// default
-			tokenIndex++;
-		}
+            if (case_start >= 0) program[case_start].val_int = program.size(); // Condition skipped.
+            else case_start = 0;
+        }
+        else {
+            if (last_advance >= 0) program[last_advance].val_int = program.size() - last_advance - 1; // Last condition ADVANCE into this one.
+            program.emplace_back(keyword.line, keyword.column, Token::TTAG_JUMP, (int_tL)(program.size() + 1)); // Clear control from the solution stack.
+            if (keyword.tag != Token::TTAG_DEFAULT) break;  // default
+            tokenIndex++;
+        }
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_TERNARY_COLON);		// :
-		tokenIndex++;
+        REQUIRE_CURRENT_TAG(Token::TTAG_TERNARY_COLON);     // :
+        tokenIndex++;
 
-		if (parse_instructions(function, _jumps, interrupts, &offs) == PARSE_ERROR)
-			return PARSE_ERROR;
+        if (parse_instructions(function, _jumps, interrupts, &offs) == PARSE_ERROR)
+            return PARSE_ERROR;
 
-		if (keyword.tag == Token::TTAG_DEFAULT) break;
-	}
+        if (keyword.tag == Token::TTAG_DEFAULT) break;
+    }
 
-	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);			// }
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);           // }
+    tokenIndex++;
 
-	for (const int& off_jump_index : offs) program[off_jump_index].val_int = program.size(); // 'off' JUMP after 'switch' structure.
+    for (const int& off_jump_index : offs) program[off_jump_index].val_int = program.size(); // 'off' JUMP after 'switch' structure.
 
-	return true;
+    return true;
 }
 
 /* parse_loop.
@@ -555,227 +555,227 @@ char Language::Parser::parse_switch(Function_tL& function, std::pair<std::vector
 */
 char Language::Parser::parse_loop(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
-	std::vector<Token>& program = *function.program;
-	if (tokenIndex >= tokens.size()) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
-		return PARSE_ERROR;
-	}
-	const Token& keyword = tokens[tokenIndex];
-	if (keyword.tag != Token::TTAG_FOR && keyword.tag != Token::TTAG_WHILE && keyword.tag != Token::TTAG_DO) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
-		return PARSE_ERROR;
-	}
-	tokenIndex++;
+    std::vector<Token>& program = *function.program;
+    if (tokenIndex >= tokens.size()) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
+        return PARSE_ERROR;
+    }
+    const Token& keyword = tokens[tokenIndex];
+    if (keyword.tag != Token::TTAG_FOR && keyword.tag != Token::TTAG_WHILE && keyword.tag != Token::TTAG_DO) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[1], "Loop declaration", "");
+        return PARSE_ERROR;
+    }
+    tokenIndex++;
 
-	if (keyword.tag != Token::TTAG_DO) {
-		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);
-		tokenIndex++;
-	}
+    if (keyword.tag != Token::TTAG_DO) {
+        REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);
+        tokenIndex++;
+    }
 
-	if (keyword.tag == Token::TTAG_FOR) {
-		std::vector<Token> init;
-		tok_tag loop_init = parse_operation(init, PRECEDENCE_ASSIGNMENT);
-		if (loop_init == PARSE_ERROR)
-			return PARSE_ERROR;
-		if (loop_init != OPERATION_EMPTY) {
-			program.insert(program.end(), std::make_move_iterator(init.begin()), std::make_move_iterator(init.end()));
-			program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-		}
+    if (keyword.tag == Token::TTAG_FOR) {
+        std::vector<Token> init;
+        tok_tag loop_init = parse_operation(init, PRECEDENCE_ASSIGNMENT);
+        if (loop_init == PARSE_ERROR)
+            return PARSE_ERROR;
+        if (loop_init != OPERATION_EMPTY) {
+            program.insert(program.end(), std::make_move_iterator(init.begin()), std::make_move_iterator(init.end()));
+            program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
+        }
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
-		tokenIndex++;
-	}
+        REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
+        tokenIndex++;
+    }
 
-	std::vector<Token> condition_content{};
-	tok_tag loop_condition = OPERATION_EMPTY;
-	if (keyword.tag != Token::TTAG_DO) {
-		loop_condition = parse_operation(condition_content, PRECEDENCE_ASSIGNMENT);
-		if (loop_condition == PARSE_ERROR)
-			return PARSE_ERROR;
-		if (loop_condition == OPERATION_EMPTY && keyword.tag == Token::TTAG_WHILE) {
-			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'while' condition");
-			return PARSE_ERROR;
-		}
-	}
+    std::vector<Token> condition_content{};
+    tok_tag loop_condition = OPERATION_EMPTY;
+    if (keyword.tag != Token::TTAG_DO) {
+        loop_condition = parse_operation(condition_content, PRECEDENCE_ASSIGNMENT);
+        if (loop_condition == PARSE_ERROR)
+            return PARSE_ERROR;
+        if (loop_condition == OPERATION_EMPTY && keyword.tag == Token::TTAG_WHILE) {
+            parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'while' condition");
+            return PARSE_ERROR;
+        }
+    }
 
-	tok_tag loop_increment = OPERATION_EMPTY;
-	std::pair<lin_num, col_num> increment_position;
-	std::vector<Token> increment_content{};
-	if (keyword.tag == Token::TTAG_FOR) {
-		REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
-		tokenIndex++;
-		increment_position = { tokens[tokenIndex].line, tokens[tokenIndex].column };
+    tok_tag loop_increment = OPERATION_EMPTY;
+    std::pair<lin_num, col_num> increment_position;
+    std::vector<Token> increment_content{};
+    if (keyword.tag == Token::TTAG_FOR) {
+        REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
+        tokenIndex++;
+        increment_position = { tokens[tokenIndex].line, tokens[tokenIndex].column };
 
-		loop_increment = parse_operation(increment_content, PRECEDENCE_ASSIGNMENT);
-		if (loop_increment == PARSE_ERROR)
-			return PARSE_ERROR;
-	}
+        loop_increment = parse_operation(increment_content, PRECEDENCE_ASSIGNMENT);
+        if (loop_increment == PARSE_ERROR)
+            return PARSE_ERROR;
+    }
 
-	int loop_start = program.size();
+    int loop_start = program.size();
 
-	if (keyword.tag == Token::TTAG_FOR && loop_increment != OPERATION_EMPTY) {
-		const int init_jump = program.size();
-		program.emplace_back(increment_position.first, increment_position.second, Token::TTAG_JUMP, -1);
-		loop_start = program.size();
-		program.insert(program.end(), std::make_move_iterator(increment_content.begin()), std::make_move_iterator(increment_content.end())); // https://stackoverflow.com/questions/15004517/moving-elements-from-stdvector-to-another-one?rq=3
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
-		program[init_jump].val_int = program.size();
-	}
+    if (keyword.tag == Token::TTAG_FOR && loop_increment != OPERATION_EMPTY) {
+        const int init_jump = program.size();
+        program.emplace_back(increment_position.first, increment_position.second, Token::TTAG_JUMP, -1);
+        loop_start = program.size();
+        program.insert(program.end(), std::make_move_iterator(increment_content.begin()), std::make_move_iterator(increment_content.end())); // https://stackoverflow.com/questions/15004517/moving-elements-from-stdvector-to-another-one?rq=3
+        program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);
+        program[init_jump].val_int = program.size();
+    }
 
-	int condition_jump = -1;
-	if (keyword.tag != Token::TTAG_DO && loop_condition != OPERATION_EMPTY) {
-		program.insert(program.end(), std::make_move_iterator(condition_content.begin()), std::make_move_iterator(condition_content.end()));
-		condition_jump = program.size();
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP_ON_FALSE, -1);
-	}
+    int condition_jump = -1;
+    if (keyword.tag != Token::TTAG_DO && loop_condition != OPERATION_EMPTY) {
+        program.insert(program.end(), std::make_move_iterator(condition_content.begin()), std::make_move_iterator(condition_content.end()));
+        condition_jump = program.size();
+        program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP_ON_FALSE, -1);
+    }
 
-	if (keyword.tag != Token::TTAG_DO) {
-		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
-		tokenIndex++;
-	}
+    if (keyword.tag != Token::TTAG_DO) {
+        REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
+        tokenIndex++;
+    }
 
-	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
+    tokenIndex++;
 
-	std::vector<int> interruptions[2] = { std::vector<int>{}, std::vector<int>{} };
-	if (parse_instructions(function, _jumps, interruptions, _offs) == PARSE_ERROR)
-		return PARSE_ERROR;
+    std::vector<int> interruptions[2] = { std::vector<int>{}, std::vector<int>{} };
+    if (parse_instructions(function, _jumps, interruptions, _offs) == PARSE_ERROR)
+        return PARSE_ERROR;
 
-	REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
+    tokenIndex++;
 
-	if (keyword.tag == Token::TTAG_DO) {
-		REQUIRE_CURRENT_TAG(Token::TTAG_WHILE);
-		tokenIndex++;
+    if (keyword.tag == Token::TTAG_DO) {
+        REQUIRE_CURRENT_TAG(Token::TTAG_WHILE);
+        tokenIndex++;
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);
-		tokenIndex++;
+        REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_OPEN);
+        tokenIndex++;
 
-		for (const auto& index : interruptions[1]) // continue;
-			program[index].val_int = program.size();
+        for (const auto& index : interruptions[1]) // continue;
+            program[index].val_int = program.size();
 
-		std::vector<Token> condition;
-		loop_condition = parse_operation(condition, PRECEDENCE_ASSIGNMENT);
-		if (loop_condition == PARSE_ERROR)
-			return PARSE_ERROR;
-		if (loop_condition == OPERATION_EMPTY) {
-			parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'do while' condition");
-			return PARSE_ERROR;
-		}
-		program.insert(program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
-		program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP_ON_NOT_FALSE, loop_start);
+        std::vector<Token> condition;
+        loop_condition = parse_operation(condition, PRECEDENCE_ASSIGNMENT);
+        if (loop_condition == PARSE_ERROR)
+            return PARSE_ERROR;
+        if (loop_condition == OPERATION_EMPTY) {
+            parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'do while' condition");
+            return PARSE_ERROR;
+        }
+        program.insert(program.end(), std::make_move_iterator(condition.begin()), std::make_move_iterator(condition.end()));
+        program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP_ON_NOT_FALSE, loop_start);
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
-		tokenIndex++;
+        REQUIRE_CURRENT_TAG(Token::TTAG_PARENTHESIS_CLOSE);
+        tokenIndex++;
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
-		tokenIndex++;
-	}
-	else {
-		program.emplace_back(tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, Token::TTAG_JUMP, loop_start);
+        REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);
+        tokenIndex++;
+    }
+    else {
+        program.emplace_back(tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, Token::TTAG_JUMP, loop_start);
 
-		if (loop_condition != OPERATION_EMPTY)
-			program[condition_jump].val_int = program.size();
+        if (loop_condition != OPERATION_EMPTY)
+            program[condition_jump].val_int = program.size();
 
-		for (const auto& index : interruptions[1]) // continue;
-			program[index].val_int = loop_start;
-	}
+        for (const auto& index : interruptions[1]) // continue;
+            program[index].val_int = loop_start;
+    }
 
-	if (tokenIndex < tokens.size() && tokens[tokenIndex].tag == Token::TTAG_ELSE) { // NO TTAG_BREAK.
-		tokenIndex++;
+    if (tokenIndex < tokens.size() && tokens[tokenIndex].tag == Token::TTAG_ELSE) { // NO TTAG_BREAK.
+        tokenIndex++;
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
-		tokenIndex++;
+        REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_OPEN);
+        tokenIndex++;
 
-		if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
-			return PARSE_ERROR;
+        if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+            return PARSE_ERROR;
 
-		REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
-		tokenIndex++;
-	}
+        REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE);
+        tokenIndex++;
+    }
 
-	for (const auto& index : interruptions[0]) // break;
-		program[index].val_int = program.size();
+    for (const auto& index : interruptions[0]) // break;
+        program[index].val_int = program.size();
 
-	return true;
+    return true;
 }
 
 Language::Function_tL* Language::Parser::parse_function()
 {
-	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_FUNCTION_DEF, nullptr);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_FUNCTION_DEF, nullptr);
+    tokenIndex++;
 
-	if (tokenIndex >= tokens.size()) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Function definition");
-		return nullptr;
-	}
+    if (tokenIndex >= tokens.size()) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "Function definition");
+        return nullptr;
+    }
 
-	if (tokens[tokenIndex].tag != Token::TTAG_IDENTIFIER) { // Anonymous function.
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'Global function' name");
-		return nullptr;
-	}
+    if (tokens[tokenIndex].tag != Token::TTAG_IDENTIFIER) { // Anonymous function.
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[7], "'Global function' name");
+        return nullptr;
+    }
 
-	if (~flags & PARSE_FLAG::ALLOW_FUNCTION_DEF) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "are not authorized within this file");
-		return nullptr;
-	}
+    if (~flags & PARSE_FLAG::ALLOW_FUNCTION_DEF) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "are not authorized within this file");
+        return nullptr;
+    }
 
-	if (scopeLevel != 0) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "can not occur inside another function");
-		return nullptr;
-	}
+    if (scopeLevel != 0) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[5], "can not occur inside another function");
+        return nullptr;
+    }
 
-	const auto& function_insert = functions->insert({ tokens[tokenIndex].val_identifier, Function_tL{ loaded } });
-	if (!function_insert.second) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], tokens[tokenIndex].val_identifier);
-		return nullptr;
-	}
-	Function_tL& function = function_insert.first->second;
+    const auto& function_insert = functions->insert({ tokens[tokenIndex].val_identifier, Function_tL{ loaded } });
+    if (!function_insert.second) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[11], tokens[tokenIndex].val_identifier);
+        return nullptr;
+    }
+    Function_tL& function = function_insert.first->second;
 
-	function.name = tokens[tokenIndex].val_identifier; // Function name.
-	tokens[tokenIndex].val_identifier = nullptr; // Steal.
+    function.name = tokens[tokenIndex].val_identifier; // Function name.
+    tokens[tokenIndex].val_identifier = nullptr; // Steal.
 
-	function.variable_id = NAME_TABLE_get_name_id(function.name); // Function name ID.
-	function.program = std::make_shared<Program_tL>();
-	function.program->reserve(tokens.size() - tokenIndex);
-	function.global = flags & PARSE_FLAG::GLOBAL_ALL;
+    function.variable_id = NAME_TABLE_get_name_id(function.name); // Function name ID.
+    function.program = std::make_shared<Program_tL>();
+    function.program->reserve(tokens.size() - tokenIndex);
+    function.global = flags & PARSE_FLAG::GLOBAL_ALL;
 
-	tokenIndex++;
+    tokenIndex++;
 
-	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_PARENTHESIS_OPEN, nullptr);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_PARENTHESIS_OPEN, nullptr);
+    tokenIndex++;
 
-	while (tokenIndex < tokens.size()) {
-		if (tokens[tokenIndex].tag != Token::TTAG_IDENTIFIER)
-			break;
-		function.arg_id.emplace_back(NAME_TABLE_get_name_id(tokens[tokenIndex].val_identifier)); // Function argument name ID.
-		tokenIndex++;
+    while (tokenIndex < tokens.size()) {
+        if (tokens[tokenIndex].tag != Token::TTAG_IDENTIFIER)
+            break;
+        function.arg_id.emplace_back(NAME_TABLE_get_name_id(tokens[tokenIndex].val_identifier)); // Function argument name ID.
+        tokenIndex++;
 
-		if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != Token::TTAG_BINARY_COMMA)
-			break;
-		tokenIndex++;
-	}
-	function.arg_id.shrink_to_fit();
+        if (tokenIndex >= tokens.size() || tokens[tokenIndex].tag != Token::TTAG_BINARY_COMMA)
+            break;
+        tokenIndex++;
+    }
+    function.arg_id.shrink_to_fit();
 
-	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_PARENTHESIS_CLOSE, nullptr);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_PARENTHESIS_CLOSE, nullptr);
+    tokenIndex++;
 
-	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_BRACE_OPEN, nullptr);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_BRACE_OPEN, nullptr);
+    tokenIndex++;
 
-	scopeLevel++;
-	std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current function 'goto' and 'label' declarations.
-	if (parse_instructions(function, jumps, nullptr, nullptr) == PARSE_ERROR)
-		return nullptr;
-	if (!goto_label(function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
-		return nullptr;
-	scopeLevel--;
+    scopeLevel++;
+    std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current function 'goto' and 'label' declarations.
+    if (parse_instructions(function, jumps, nullptr, nullptr) == PARSE_ERROR)
+        return nullptr;
+    if (!goto_label(function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
+        return nullptr;
+    scopeLevel--;
 
-	REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_BRACE_CLOSE, nullptr);
-	tokenIndex++;
+    REQUIRE_CURRENT_TAG_RETURN(Token::TTAG_BRACE_CLOSE, nullptr);
+    tokenIndex++;
 
-	function.program->shrink_to_fit();
-	return &function;
+    function.program->shrink_to_fit();
+    return &function;
 }
 
 /* parse_instructions.
@@ -783,225 +783,225 @@ Language::Function_tL* Language::Parser::parse_function()
 */
 char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>>& _jumps, std::vector<int> interrupts[2], std::vector<int>* _offs)
 {
-	std::vector<Token>& program = *function.program;
-	while (tokenIndex < tokens.size())
-	{
-		/* Parse and stack an individual structure.
-		* ALWAYS assumed to be an operation unless a keyword states otherwise.
-		* It calls the corresponding method, but some are processed locally.
-		*/
-		Token& token = tokens[tokenIndex];
-		switch (token.tag)
-		{
-		/* End of the current structure special symbol (not consumed).
-		*/
-		case Token::TTAG_BRACE_CLOSE: // }
-			return true;
+    std::vector<Token>& program = *function.program;
+    while (tokenIndex < tokens.size())
+    {
+        /* Parse and stack an individual structure.
+        * ALWAYS assumed to be an operation unless a keyword states otherwise.
+        * It calls the corresponding method, but some are processed locally.
+        */
+        Token& token = tokens[tokenIndex];
+        switch (token.tag)
+        {
+        /* End of the current structure special symbol (not consumed).
+        */
+        case Token::TTAG_BRACE_CLOSE: // }
+            return true;
 
-		/* if/else structure.
-		*/
-		case Token::TTAG_IF: // if
-			if (parse_if(function, _jumps, interrupts, _offs) == PARSE_ERROR)
-				return PARSE_ERROR;
-			break;
+        /* if/else structure.
+        */
+        case Token::TTAG_IF: // if
+            if (parse_if(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+                return PARSE_ERROR;
+            break;
 
-		case Token::TTAG_ELSE: // else
-			parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
-			return PARSE_ERROR;
+        case Token::TTAG_ELSE: // else
+            parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
+            return PARSE_ERROR;
 
-		/* switch structure.
-		*/
-		case Token::TTAG_SWITCH: // switch
-			if (parse_switch(function, _jumps, interrupts, _offs) == PARSE_ERROR)
-				return PARSE_ERROR;
-			break;
+        /* switch structure.
+        */
+        case Token::TTAG_SWITCH: // switch
+            if (parse_switch(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+                return PARSE_ERROR;
+            break;
 
-		/* Loop structure.
-		*/
-		case Token::TTAG_FOR:	// for
-		case Token::TTAG_WHILE:	// while
-		case Token::TTAG_DO:	// do
-			if (parse_loop(function, _jumps, interrupts, _offs) == PARSE_ERROR)
-				return PARSE_ERROR;
-			break;
+        /* Loop structure.
+        */
+        case Token::TTAG_FOR:   // for
+        case Token::TTAG_WHILE: // while
+        case Token::TTAG_DO:    // do
+            if (parse_loop(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+                return PARSE_ERROR;
+            break;
 
-		/* Loop interruption instruction.
-		* break;
-		* continue;
-		*/
-		case Token::TTAG_BREAK:							// break
-		case Token::TTAG_CONTINUE:						// continue
-			if (interrupts == nullptr) { // Not inside a loop.
-				parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
-				return PARSE_ERROR;
-			}
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
-			interrupts[token.tag - Token::TTAG_BREAK].push_back(program.size());				// Register JUMP index.
-			program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Register JUMP Token.
-			tokenIndex++;
-			break;
+        /* Loop interruption instruction.
+        * break;
+        * continue;
+        */
+        case Token::TTAG_BREAK:                         // break
+        case Token::TTAG_CONTINUE:                      // continue
+            if (interrupts == nullptr) { // Not inside a loop.
+                parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
+                return PARSE_ERROR;
+            }
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
+            interrupts[token.tag - Token::TTAG_BREAK].push_back(program.size());                // Register JUMP index.
+            program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1)); // Register JUMP Token.
+            tokenIndex++;
+            break;
 
-		/* Switch cases and interruption instructions.
-		* on <OPERATION>:
-		* default:
-		* off;
-		*/
-		case Token::TTAG_ON:							// on
-		case Token::TTAG_DEFAULT:						// default
-		case Token::TTAG_OFF:							// off
-			if (_offs == nullptr) { // Not inside a switch.
-				parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
-				return PARSE_ERROR;
-			}
-			if (token.tag != Token::TTAG_OFF) return true; // Handled in 'parse_switch'.
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
-			_offs->push_back(program.size());													// Register JUMP index.
-			program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Register JUMP Token.
-			tokenIndex++;
-			break;
+        /* Switch cases and interruption instructions.
+        * on <OPERATION>:
+        * default:
+        * off;
+        */
+        case Token::TTAG_ON:                            // on
+        case Token::TTAG_DEFAULT:                       // default
+        case Token::TTAG_OFF:                           // off
+            if (_offs == nullptr) { // Not inside a switch.
+                parserError(file_name(), token.line, token.column, ERROR_MESSAGES[8], tag_name(token.tag));
+                return PARSE_ERROR;
+            }
+            if (token.tag != Token::TTAG_OFF) return true; // Handled in 'parse_switch'.
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON); // Semicolon.
+            _offs->push_back(program.size());                                                   // Register JUMP index.
+            program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1)); // Register JUMP Token.
+            tokenIndex++;
+            break;
 
-		/* Function definition.
-		*/
-		case Token::TTAG_FUNCTION_DEF: // function
-		{
-			std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
-			Function_tL* parse_result = parse_function();
-			if (parse_result == nullptr)
-				return PARSE_ERROR;
-			const auto& original = loaded->functions.find(parse_result->name);
-			program.emplace_back(function_position.first, function_position.second, (original == loaded->functions.end()) ? parse_result : &original->second);
-		}
-		break;
+        /* Function definition.
+        */
+        case Token::TTAG_FUNCTION_DEF: // function
+        {
+            std::pair<lin_num, col_num> function_position{ tokens[tokenIndex].line, tokens[tokenIndex].column };
+            Function_tL* parse_result = parse_function();
+            if (parse_result == nullptr)
+                return PARSE_ERROR;
+            const auto& original = loaded->functions.find(parse_result->name);
+            program.emplace_back(function_position.first, function_position.second, (original == loaded->functions.end()) ? parse_result : &original->second);
+        }
+        break;
 
-		/* Return instruction.
-		* return operations;
-		*/
-		case Token::TTAG_RETURN:													// return
-		{
-			tokenIndex++;
-			std::vector<Token> sequence;
-			tok_tag parse_result = parse_operation(sequence, PRECEDENCE_SEQUENCE);	// Operations
-			if (parse_result == PARSE_ERROR)
-				return PARSE_ERROR;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);								// Semicolon.
-			program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));	// Move operations.
-			program.push_back(std::move(token));																				// Move return Token.
-			tokenIndex++;
-		}
-		break;
+        /* Return instruction.
+        * return operations;
+        */
+        case Token::TTAG_RETURN:                                                    // return
+        {
+            tokenIndex++;
+            std::vector<Token> sequence;
+            tok_tag parse_result = parse_operation(sequence, PRECEDENCE_SEQUENCE);  // Operations
+            if (parse_result == PARSE_ERROR)
+                return PARSE_ERROR;
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);                             // Semicolon.
+            program.insert(program.end(), std::make_move_iterator(sequence.begin()), std::make_move_iterator(sequence.end()));  // Move operations.
+            program.push_back(std::move(token));                                                                                // Move return Token.
+            tokenIndex++;
+        }
+        break;
 
-		/* Await instruction.
-		* await;
-		*/
-		case Token::TTAG_AWAIT:										// await
-			program.emplace_back(std::move(token)); // Move await.
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);				// Semicolon.
-			tokenIndex++;
-			break;
+        /* Await instruction.
+        * await;
+        */
+        case Token::TTAG_AWAIT:                                     // await
+            program.emplace_back(std::move(token)); // Move await.
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);             // Semicolon.
+            tokenIndex++;
+            break;
 
-		/* label declaration.
-		* label "label name":
-		* Register label position index within the current function.
-		*/
-		case Token::TTAG_LABEL:																									// 'label' keyword.
-		{
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_STRING);																			// "String" label name.
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_TERNARY_COLON);																		// COLON symbol.
-			const auto& insertion = _jumps.second.try_emplace(tokens[tokenIndex - 1].val_string->string_get(), program.size());	// Register label name and token index.
-			if (!insertion.second) { // Label name already existed.
-				parserError(file_name(), tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, ERROR_MESSAGES[9], tokens[tokenIndex - 1].val_string->string_get());
-				return PARSE_ERROR;
-			}
-			tokenIndex++;
-		}
-		break;
+        /* label declaration.
+        * label "label name":
+        * Register label position index within the current function.
+        */
+        case Token::TTAG_LABEL:                                                                                                 // 'label' keyword.
+        {
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_STRING);                                                                            // "String" label name.
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_TERNARY_COLON);                                                                     // COLON symbol.
+            const auto& insertion = _jumps.second.try_emplace(tokens[tokenIndex - 1].val_string->string_get(), program.size()); // Register label name and token index.
+            if (!insertion.second) { // Label name already existed.
+                parserError(file_name(), tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, ERROR_MESSAGES[9], tokens[tokenIndex - 1].val_string->string_get());
+                return PARSE_ERROR;
+            }
+            tokenIndex++;
+        }
+        break;
 
-		/* goto instruction.
-		* goto "label name";
-		* Set a JUMP instruction and register its target label name.
-		* Label names and positions are resolved after parsing the function.
-		*/
-		case Token::TTAG_GOTO:																										// 'goto' keyword.
-		{
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_STRING);																				// "String" label name.
-			tokenIndex++;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);																				// SEMICOLON symbol.
-			_jumps.first.emplace_back(program.size(), tokens[tokenIndex - 1].val_string->string_get());								// Register JUMP token index and target label name.
-			program.emplace_back(tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, Token::TTAG_JUMP, LANGUAGE_INT(-1));	// Add the token to JUMP to the specified label position.
-			tokenIndex++;
-		}
-		break;
+        /* goto instruction.
+        * goto "label name";
+        * Set a JUMP instruction and register its target label name.
+        * Label names and positions are resolved after parsing the function.
+        */
+        case Token::TTAG_GOTO:                                                                                                      // 'goto' keyword.
+        {
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_STRING);                                                                                // "String" label name.
+            tokenIndex++;
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);                                                                             // SEMICOLON symbol.
+            _jumps.first.emplace_back(program.size(), tokens[tokenIndex - 1].val_string->string_get());                             // Register JUMP token index and target label name.
+            program.emplace_back(tokens[tokenIndex - 1].line, tokens[tokenIndex - 1].column, Token::TTAG_JUMP, LANGUAGE_INT(-1));   // Add the token to JUMP to the specified label position.
+            tokenIndex++;
+        }
+        break;
 
-		/* Operation structure.
-		* operation;
-		* ALL Operands.
-		* ALL Symbols.
-		* Impossible to come from the tokenized stream (Special operations).
-		*/
-		default:
-		{
-			std::vector<Token> operation;
-			tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);	// Operation.
-			if (parse_result == PARSE_ERROR)
-				return PARSE_ERROR;
-			REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);									// Semicolon.
-			if (parse_result != OPERATION_EMPTY) {
-				program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));	// Move operation.
-				program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);			// End of operation JUMP Token.
-			}
-			tokenIndex++;
-		}
-		break;
+        /* Operation structure.
+        * operation;
+        * ALL Operands.
+        * ALL Symbols.
+        * Impossible to come from the tokenized stream (Special operations).
+        */
+        default:
+        {
+            std::vector<Token> operation;
+            tok_tag parse_result = parse_operation(operation, PRECEDENCE_ASSIGNMENT);   // Operation.
+            if (parse_result == PARSE_ERROR)
+                return PARSE_ERROR;
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);                                 // Semicolon.
+            if (parse_result != OPERATION_EMPTY) {
+                program.insert(program.end(), std::make_move_iterator(operation.begin()), std::make_move_iterator(operation.end()));    // Move operation.
+                program.emplace_back(tokens[tokenIndex].line, tokens[tokenIndex].column, Token::TTAG_JUMP, program.size() + 1);         // End of operation JUMP Token.
+            }
+            tokenIndex++;
+        }
+        break;
 
-		}
-	}
+        }
+    }
 
-	return true;
+    return true;
 }
 
 Language::Function_tL* Language::Parser::parse(SourceFile* file_, std::unordered_map<std::string, Function_tL>* _functions, const char* funcname, unsigned short _flags)
 {
-	loaded = file_;
-	functions = _functions;
-	flags = _flags;
+    loaded = file_;
+    functions = _functions;
+    flags = _flags;
 
-	const auto& file_function_insert = functions->insert({ funcname, Function_tL{ loaded } });
-	if (!file_function_insert.second) {
-		parserError(file_name(), 0, 0, ERROR_MESSAGES[11], funcname);
-		return nullptr;
-	}
-	Function_tL* file_function = &file_function_insert.first->second;
-	file_function->global = flags & (PARSE_FLAG::GLOBAL_FIRST | PARSE_FLAG::GLOBAL_ALL);
-	file_function->program = std::make_shared<Program_tL>();
-	file_function->program->reserve(tokens.size() - tokenIndex);
+    const auto& file_function_insert = functions->insert({ funcname, Function_tL{ loaded } });
+    if (!file_function_insert.second) {
+        parserError(file_name(), 0, 0, ERROR_MESSAGES[11], funcname);
+        return nullptr;
+    }
+    Function_tL* file_function = &file_function_insert.first->second;
+    file_function->global = flags & (PARSE_FLAG::GLOBAL_FIRST | PARSE_FLAG::GLOBAL_ALL);
+    file_function->program = std::make_shared<Program_tL>();
+    file_function->program->reserve(tokens.size() - tokenIndex);
 
-	const size_t len = strlen(funcname) + 1;
-	file_function->name = new char[len];
-	std::memcpy(file_function->name, funcname, len);
-	std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current file function 'goto' and 'label' declarations.
-	if (parse_instructions(*file_function, jumps, nullptr) == PARSE_ERROR)
-		return nullptr;
-	if (!goto_label(*file_function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
-		return nullptr;
+    const size_t len = strlen(funcname) + 1;
+    file_function->name = new char[len];
+    std::memcpy(file_function->name, funcname, len);
+    std::pair<std::vector<std::pair<size_t, std::string>>, std::unordered_map<std::string, size_t>> jumps; // Container for current file function 'goto' and 'label' declarations.
+    if (parse_instructions(*file_function, jumps, nullptr) == PARSE_ERROR)
+        return nullptr;
+    if (!goto_label(*file_function, jumps)) // Resolve 'goto' and 'label' JUMP indices.
+        return nullptr;
 
-	if (tokenIndex < tokens.size()) {
-		parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[10]);
-		return nullptr;
-	}
+    if (tokenIndex < tokens.size()) {
+        parserError(file_name(), tokens[tokenIndex].line, tokens[tokenIndex].column, ERROR_MESSAGES[10]);
+        return nullptr;
+    }
 
-	/*
-	* TODO: At some point check
-	* !tokens.empty();
-	* !file_function->program->empty();
-	* The source code may be all blankspaces and semicolons.
-	*/
+    /*
+    * TODO: At some point check
+    * !tokens.empty();
+    * !file_function->program->empty();
+    * The source code may be all blankspaces and semicolons.
+    */
 
-	file_function->program->shrink_to_fit();
-	return file_function;
+    file_function->program->shrink_to_fit();
+    return file_function;
 }
