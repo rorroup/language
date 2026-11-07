@@ -798,6 +798,20 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
         case Token::TTAG_BRACE_CLOSE: // }
             return true;
 
+        /* Arbitrary scope start.
+        */
+        case Token::TTAG_BRACE_OPEN: // {
+        {
+            tokenIndex++;
+
+            if (parse_instructions(function, _jumps, interrupts, _offs) == PARSE_ERROR)
+                return PARSE_ERROR;
+
+            REQUIRE_CURRENT_TAG(Token::TTAG_BRACE_CLOSE); // }
+            tokenIndex++;
+        }
+        break;
+
         /* if/else structure.
         */
         case Token::TTAG_IF: // if
@@ -836,7 +850,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
                 return PARSE_ERROR;
             }
             tokenIndex++;
-            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);	// Semicolon.
+            REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON); // Semicolon.
             interrupts[token.tag - Token::TTAG_BREAK].push_back(program.size());                // Register JUMP index.
             program.emplace_back(token.line, token.column, Token::TTAG_JUMP, LANGUAGE_INT(-1)); // Register JUMP Token.
             tokenIndex++;
