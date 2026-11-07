@@ -350,6 +350,12 @@ Language::tok_tag Language::Parser::parse_operation(std::vector<Token>& program,
             left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE, (int_tL)right.size()); // Left COLON side ADVANCE past the right one.
             *right_begin = left.size(); // Allow QUESTION to ADVANCE directly to the right COLON side past the left one.
         }
+        else if (binary.tag == Token::TTAG_BINARY_AND) { // AND short circuit.
+            left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE_ON_FALSE, (int_tL)(right.size() + 1)); // Skip right and AND ON_FALSE: (0)(right)(&&) => (0).
+        }
+        else if (binary.tag == Token::TTAG_BINARY_OR) { // OR short circuit.
+            left.emplace_back(binary.line, binary.column, Token::TTAG_ADVANCE_ON_NOT_FALSE, (int_tL)(right.size() + 1)); // Skip right and OR ON_NOT_FALSE: (1)(right)(||) => (1).
+        }
         left.insert(left.end(), std::make_move_iterator(right.begin()), std::make_move_iterator(right.end()));  // Stack together left and right hand operands.
         if (binary.tag == Token::TTAG_TERNARY_QUESTION) continue; // QUESTION operator already included (ADVANCE).
         else if (binary.tag == Token::TTAG_TERNARY_COLON) break; // COLON is always the top level operator in its operation.
