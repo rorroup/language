@@ -136,6 +136,7 @@ namespace Language
                             TTAG_JUMP_ON_NOT_FALSE,                 // Jump when result not evaluates to false.
                             TTAG_ADVANCE,                           // Advance the position in the program.
                             TTAG_ADVANCE_ON_FALSE,                  // Advance the position when result evaluates to false.
+                            TTAG_ADVANCE_ON_NOT_FALSE,              // Advance the position when result evaluates to not false.
                     TTAG_PCOUNTER_END_,
 
                 TTAG_INNER_END_ = TTAG_PCOUNTER_END_,
@@ -537,6 +538,7 @@ namespace Language
         { LANGUAGE_TTAG_NAME(JUMP_ON_NOT_FALSE) },
         { LANGUAGE_TTAG_NAME(ADVANCE) },
         { LANGUAGE_TTAG_NAME(ADVANCE_ON_FALSE) },
+        { LANGUAGE_TTAG_NAME(ADVANCE_ON_NOT_FALSE) },
 
         // Keyword tags, in tag ascending order.
 
@@ -1210,6 +1212,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
             * Remove ONLY the condition form the solution stack.
             */
             case Token::TTAG_ADVANCE_ON_FALSE:
+            case Token::TTAG_ADVANCE_ON_NOT_FALSE:
             {
                 if (thread.solution.size() < state.begin + 1) {
                     interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
@@ -1220,7 +1223,7 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
                     interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(condition.tag));
                     return SOLVE_ERROR;
                 }
-                if (!condition.as_bool())
+                if (condition.as_bool() == (token.tag == Token::TTAG_ADVANCE_ON_NOT_FALSE))
                     state.program_counter += token.val_int;
                 thread.solution.pop_back();
             }
