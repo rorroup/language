@@ -186,9 +186,9 @@ namespace Language
                             TTAG_UNARY_NEGATION,                    // ! (logic not)
                             TTAG_UNARY_POSITIVE,                    // +
                             TTAG_UNARY_NEGATIVE,                    // -
-                            TTAG_UNARY_INCDEC_BEGIN_ = TTAG_UNARY_NEGATIVE,
-                            TTAG_UNARY_INCREMENT,                   // ++
-                            TTAG_UNARY_DECREMENT,                   // --
+                            TTAG_UNARY_INCDEC_BEGIN_,
+                            TTAG_UNARY_INCREMENT = TTAG_UNARY_INCDEC_BEGIN_,    // ++
+                            TTAG_UNARY_DECREMENT,                               // --
                             TTAG_UNARY_INCDEC_END_,
                         TTAG_UNARY_END_ = TTAG_UNARY_INCDEC_END_,
 
