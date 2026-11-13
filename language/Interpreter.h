@@ -190,7 +190,8 @@ namespace Language
                             TTAG_UNARY_INCREMENT = TTAG_UNARY_INCDEC_BEGIN_,    // ++
                             TTAG_UNARY_DECREMENT,                               // --
                             TTAG_UNARY_INCDEC_END_,
-                        TTAG_UNARY_END_ = TTAG_UNARY_INCDEC_END_,
+                            TTAG_UNARY_SPREAD = TTAG_UNARY_INCDEC_END_, // ...
+                        TTAG_UNARY_END_,
 
                         // Binary operators.
                         TTAG_BINARY_BEGIN_ = TTAG_UNARY_END_,
@@ -564,6 +565,7 @@ namespace Language
 
         // Symbol tags, in text length descending order.
 
+        { LANGUAGE_TTAG_NAME(UNARY_SPREAD),         "...",      PRECEDENCE_UNARY            | ASSOCIATIVITY_RIGHT_TO_LEFT },
         { LANGUAGE_TTAG_NAME(ASSIGN_SHIFT_LEFT),    "<<=",      PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
         { LANGUAGE_TTAG_NAME(ASSIGN_SHIFT_RIGHT),   ">>=",      PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
         { LANGUAGE_TTAG_NAME(ASSIGN_ADD),           "+=",       PRECEDENCE_ASSIGNMENT       | ASSOCIATIVITY_RIGHT_TO_LEFT },
@@ -1077,6 +1079,26 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
                     interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
                     return SOLVE_ERROR;
                 }
+            }
+            break;
+
+            /* TTAG_UNARY_SPREAD.
+            * Spread array contents.
+            */
+            case Token::TTAG_UNARY_SPREAD:
+            {
+                if (thread.solution.size() < state.begin + 1) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[3], tag_name(token.tag), LANGUAGE_INT(1), thread.solution.size() - state.begin);
+                    return SOLVE_ERROR;
+                }
+
+                Token& arg = thread.solution.back();
+                if (arg.tag != Token::TTAG_ARRAY) {
+                    interpreterError(file_name(), token.line, token.column, ERROR_MESSAGES[5], tag_name(token.tag), tag_name(arg.tag));
+                    return SOLVE_ERROR;
+                }
+
+                thread.solution.insert(thread.solution.end() - 1, std::make_move_iterator(arg.val_array->array.begin()), std::make_move_iterator(arg.val_array->array.end()));
             }
             break;
 
