@@ -9,8 +9,6 @@
 #include <memory>
 #include "common.h"
 
-#define FUNCTION_RETURN_SINGLE
-
 namespace Language
 {
     typedef char tok_tag;
@@ -1138,27 +1136,14 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
                     Builtin_tL* builtin = calling.val_builtin; // Built-in C++ function.
                     std::vector<Token> arguments(std::make_move_iterator(thread.solution.begin() + lastSequence + 1), std::make_move_iterator(thread.solution.end())); // Arguments.
                     thread.solution.resize(lastSequence - 1); // Take the function, sequence and its arguments out of the solution stack.
-
-#ifdef FUNCTION_RETURN_SINGLE // Force SINGLE Token return.
-                    size_t stack_size = thread.solution.size(); // Register previous stack size.
-#endif // FUNCTION_RETURN_SINGLE
-
                     SOLVE_RESULT answer = builtin(arguments, thread.solution, &thread LANGUAGE_SOLVER_ARGUMENTS); // Call Built-in function.
-
-#ifdef FUNCTION_RETURN_SINGLE
                     if (answer == SOLVE_ERROR) return answer;
-                    if (thread.solution.size() == stack_size) {
-                        thread.solution.emplace_back(token.line, token.column, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
+                    if (thread.solution.size() == lastSequence - 1) thread.solution.emplace_back(token.line, token.column, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
+                    else if (thread.solution.size() != lastSequence) { // Not SINGLE VALUE return.
+                        interpreterError(file_name(), calling.line, calling.column, ERROR_MESSAGES[15], lastSequence - 1, thread.solution.size());
+                        return SOLVE_ERROR;
                     }
-                    else if (thread.solution.size() > stack_size + 1) {
-                        thread.solution[stack_size] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + stack_size), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
-                        thread.solution.resize(stack_size + 1); // Delete everything after the return ARRAY.
-                    }
-#endif // FUNCTION_RETURN_SINGLE
-
-                    if (answer != SOLVE_OK) {
-                        return answer;
-                    }
+                    if (answer == SOLVE_AWAIT) return answer;
                 }
                 else if (calling.tag == Token::TTAG_FUNCTION) {
                     Function_tL* func = calling.val_function; // Language user-defined function.
@@ -1812,19 +1797,11 @@ Language::SOLVE_RESULT Language::script_run(Thread_tL& thread LANGUAGE_SOLVER_SI
         }
     execution_return:
         {
-            if (thread.solution.size() < state.begin) {
+            if (thread.solution.size() == state.begin) thread.solution.emplace_back(0, 0, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
+            else if (thread.solution.size() != state.begin + 1) { // Not SINGLE VALUE return.
                 interpreterError(file_name(), 0, 0, ERROR_MESSAGES[15], state.begin, thread.solution.size());
                 return SOLVE_ERROR;
             }
-#ifdef FUNCTION_RETURN_SINGLE // Force SINGLE Token return.
-            if (thread.executing.size() > 1) {
-                if (thread.solution.size() == state.begin) thread.solution.emplace_back(0, 0, LANGUAGE_FALSE_INT); // Push an arbitrary FALSE as the SINGLE return VALUE.
-                else if (thread.solution.size() > state.begin + 1) {
-                    thread.solution[state.begin] = Token(0, 0, new Array_tL(std::vector<Token>(std::make_move_iterator(thread.solution.begin() + state.begin), std::make_move_iterator(thread.solution.end())))); // Push SINGLE ARRAY containing the many return VALUE.
-                    thread.solution.resize(state.begin + 1); // Delete everything after the return ARRAY.
-                }
-            }
-#endif // FUNCTION_RETURN_SINGLE
             thread.executing.pop_back(); // Remove the current terminated function.
         }
     execution_end:

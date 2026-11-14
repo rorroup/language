@@ -902,7 +902,7 @@ char Language::Parser::parse_instructions(Function_tL& function, std::pair<std::
         {
             tokenIndex++;
             std::vector<Token> sequence;
-            tok_tag parse_result = parse_operation(sequence, PRECEDENCE_SEQUENCE);  // Operations
+            tok_tag parse_result = parse_operation(sequence, PRECEDENCE_ASSIGNMENT);// Operation.
             if (parse_result == PARSE_ERROR)
                 return PARSE_ERROR;
             REQUIRE_CURRENT_TAG(Token::TTAG_SEMICOLON);                             // Semicolon.
